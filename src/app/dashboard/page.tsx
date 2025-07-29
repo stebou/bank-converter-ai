@@ -4,7 +4,7 @@ import React from 'react';
 import { currentUser } from '@clerk/nextjs/server';
 import DashboardClientPage from './DashboardClientPage';
 import { redirect } from 'next/navigation';
-import type { DocumentType } from '@/types'; // <-- IMPORTATION DU TYPE ICI
+import { prisma } from '@/lib/prisma';
 
 // Cette page est un Composant Serveur
 export default async function DashboardPage() {
@@ -16,15 +16,32 @@ export default async function DashboardPage() {
 
   const firstName = user.firstName || user.fullName || 'Utilisateur';
 
-  // LA CORRECTION EST APPLIQUÉE ICI :
-  // On dit explicitement à TypeScript que cette variable est un tableau
-  // d'objets de type DocumentType, même s'il est vide.
-  const initialDocuments: DocumentType[] = [];
+  // --- CORRECTION APPLIQUÉE ICI ---
+  // On fait une requête relationnelle pour trouver les documents.
+  const documents = await prisma.document.findMany({
+    where: {
+      // On dit à Prisma : "trouve les documents où l'utilisateur associé (user)
+      // a un clerkId qui correspond à l'ID de l'utilisateur connecté".
+      user: {
+        clerkId: user.id,
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+  
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: user.id },
+  });
+
+  const credits = dbUser ? (dbUser.documentsLimit - dbUser.documentsUsed) : 5;
 
   return (
     <DashboardClientPage 
       userName={firstName} 
-      initialDocuments={initialDocuments} 
+      initialDocuments={documents}
+      initialCredits={credits}
     />
   );
 }

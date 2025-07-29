@@ -1,76 +1,96 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
-import Link from 'next/link';
-import type { DocumentType } from '@/types'; // <-- IMPORTATION du type partagé
-
-// --- Types ---
-// La définition de DocumentType a été supprimée de ce fichier pour éviter les conflits.
-// Nous utilisons maintenant la version importée depuis '@/'types'.
+import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, FileText, X } from 'lucide-react';
+import type { DocumentType } from '@/types';
 
 // Types spécifiques à ce composant client
-type UploadModuleProps = {
-  onUpload: () => void;
-  processing: boolean;
-  file: File | null;
-  setFile: React.Dispatch<React.SetStateAction<File | null>>;
-};
-
-type DocumentHistoryTableProps = {
-  documents: DocumentType[]; // <-- Utilise le DocumentType importé
-};
-
-type CreditsStatusProps = {
-  credits: number;
-};
-
 type DashboardClientPageProps = {
   userName: string;
-  initialDocuments: DocumentType[]; // <-- Utilise le DocumentType importé
+  initialDocuments: DocumentType[];
+  initialCredits: number;
 };
 
-// --- SOUS-COMPOSANTS DU DASHBOARD ---
+// --- COMPOSANT : VUE DÉTAILLÉE DU DOCUMENT ---
+const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onClose: () => void }) => (
+  <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative">
+    <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+      <X className="w-6 h-6" />
+    </button>
+    <div className="flex items-center space-x-3 mb-6">
+      <CheckCircle className="w-6 h-6 text-green-600" />
+      <h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+        <div className="text-2xl font-bold text-green-700">{document.aiConfidence?.toFixed(1) ?? 'N/A'}%</div>
+        <div className="text-sm text-green-600">Confiance IA</div>
+      </div>
+      <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+        <div className="text-2xl font-bold text-orange-700">{document.anomaliesDetected}</div>
+        <div className="text-sm text-orange-600">Anomalies détectées</div>
+      </div>
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
+        <div className="text-2xl font-bold text-blue-700">{document.totalTransactions}</div>
+        <div className="text-sm text-blue-600">Transactions</div>
+      </div>
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
+        <div className="text-2xl font-bold text-purple-700">~€0.04</div>
+        <div className="text-sm text-purple-600">Coût IA (simulé)</div>
+      </div>
+    </div>
+    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+      <div>
+        <div className="font-semibold text-gray-900">Banque détectée: {document.bankDetected ?? 'Non identifiée'}</div>
+        <div className="text-sm text-gray-600">{document.filename}</div>
+      </div>
+      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+        <Download className="w-4 h-4" /><span>Export (à venir)</span>
+      </button>
+    </div>
+  </div>
+);
 
-const UploadModule: React.FC<UploadModuleProps> = ({ onUpload, processing, file, setFile }) => {
+// --- COMPOSANT : MODULE D'UPLOAD ---
+const UploadModule = ({ onUpload, processing, file, setFile, credits }: { onUpload: () => void, processing: boolean, file: File | null, setFile: React.Dispatch<React.SetStateAction<File | null>>, credits: number }) => {
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
-    if (selectedFile && selectedFile.type === 'application/pdf') {
-      setFile(selectedFile);
-    }
+    if (selectedFile && selectedFile.type === 'application/pdf') setFile(selectedFile);
   }, [setFile]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Téléverser un relevé</h3>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600">Glissez-déposez votre fichier PDF ici ou cliquez pour parcourir</p>
-          <input type="file" accept="application/pdf" onChange={handleFileUpload} className="hidden" id="upload-input" />
-          <label htmlFor="upload-input" className="inline-block mt-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition cursor-pointer">
-            Choisir un fichier
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+      <div className="text-center">
+        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-6"><Upload className="w-8 h-8 text-white" /></div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Téléverser un relevé</h2>
+        <p className="text-gray-600 mb-8">Utilisez un crédit pour analyser un document PDF.</p>
+        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors hover:border-blue-400 hover:bg-blue-50/50">
+          <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="fileInputDashboard" />
+          <label htmlFor="fileInputDashboard" className="cursor-pointer block">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg font-medium text-gray-700 mb-2">Cliquez pour sélectionner un PDF</p>
           </label>
-          {file && <p className="mt-2 text-gray-500">{file.name}</p>}
         </div>
-        <button onClick={onUpload} disabled={processing || !file} className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-          {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-          Téléverser
+        {file && (<div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200 flex items-center justify-center space-x-3"><CheckCircle className="w-5 h-5 text-green-600" /><span className="text-green-800 font-medium">{file.name}</span></div>)}
+        <button onClick={onUpload} disabled={!file || processing || credits <= 0} className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2">
+          {processing ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Analyse IA en cours...</span></>) : credits <= 0 ? (<span>Crédits insuffisants</span>) : (<><Brain className="w-5 h-5" /><span>Analyser (1 crédit)</span></>)}
         </button>
       </div>
     </div>
   );
 };
 
-const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-    <h3 className="text-lg font-semibold text-gray-900 p-6 border-b border-gray-200">Historique des traitements</h3>
+// --- COMPOSANT : HISTORIQUE DES DOCUMENTS ---
+const DocumentHistoryTable = ({ documents, onSelectDocument }: { documents: DocumentType[], onSelectDocument: (doc: DocumentType) => void }) => (
+  <div className="bg-white rounded-2xl shadow-xl border border-gray-100">
+    <h3 className="text-lg font-semibold text-gray-900 p-6 border-b border-gray-200">Historique des analyses</h3>
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left font-medium text-gray-600">Nom du fichier</th>
             <th className="px-6 py-3 text-left font-medium text-gray-600">Date</th>
-            <th className="px-6 py-3 text-left font-medium text-gray-600">Confiance IA</th>
+            <th className="px-6 py-3 text-left font-medium text-gray-600">Transactions</th>
             <th className="px-6 py-3 text-left font-medium text-gray-600">Anomalies</th>
             <th className="px-6 py-3 text-left font-medium text-gray-600">Actions</th>
           </tr>
@@ -79,19 +99,21 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
           {documents.length > 0 ? documents.map((doc) => (
             <tr key={doc.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{doc.filename}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-gray-600">{doc.date}</td>
-              <td className="px-6 py-4 whitespace-nowrap font-semibold text-blue-600">{doc.confidence}%</td>
-              <td className={`px-6 py-4 whitespace-nowrap font-bold ${doc.anomalies > 0 ? 'text-red-600' : 'text-green-600'}`}>{doc.anomalies}</td>
-              <td className="px-6 py-4 whitespace-nowrap space-x-4">
-                <button className="text-blue-600 hover:underline font-medium">Voir</button>
-                <button className="text-purple-600 hover:underline font-medium">Exporter</button>
+              <td className="px-6 py-4 whitespace-nowrap text-gray-600">{new Date(doc.createdAt).toLocaleDateString('fr-FR')}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-gray-600">{doc.totalTransactions}</td>
+              <td className={`px-6 py-4 whitespace-nowrap font-bold ${doc.anomaliesDetected > 0 ? 'text-red-600' : 'text-green-600'}`}>{doc.anomaliesDetected}</td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <button onClick={() => onSelectDocument(doc)} className="text-blue-600 hover:underline font-medium">Voir les détails</button>
               </td>
             </tr>
           )) : (
             <tr>
               <td colSpan={5} className="text-center py-16 text-gray-500">
-                <p>Aucun document traité pour le moment.</p>
-                <p className="text-xs mt-1">Utilisez le module d&aposupload pour commencer.</p>
+                <div className="text-center">
+                  <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-500 mb-2">Aucune analyse pour le moment</h3>
+                  <p className="text-gray-400">Utilisez le module de téléversement pour commencer.</p>
+                </div>
               </td>
             </tr>
           )}
@@ -101,73 +123,129 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
   </div>
 );
 
-const CreditsStatus: React.FC<CreditsStatusProps> = ({ credits }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">Mes Crédits</h3>
-    <div className="text-center">
-      <p className="text-5xl font-bold text-blue-600">{credits}</p>
-      <p className="text-sm text-gray-500 mt-1">crédits restants</p>
-    </div>
-    <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4"><div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${credits * 10}%` }}></div></div>
-    <Link href="/dashboard/reglages">
-      <button className="w-full mt-4 bg-green-600 text-white font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition hover:bg-green-700">
-        <Plus className="w-5 h-5" /> Acheter des crédits
-      </button>
-    </Link>
-  </div>
-);
+// --- COMPOSANT : STATUT DES CRÉDITS (avec l'ID du plan réel) ---
+const CreditsStatus = ({ credits }: { credits: number }) => {
+  const [loading, setLoading] = useState(false);
 
-export default function DashboardClientPage({ userName, initialDocuments = [] }: DashboardClientPageProps) {
+  const handlePurchase = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // L'ID réel de votre plan a été inséré ici
+        body: JSON.stringify({ planId: 'cmdozsf4f0001s6otqbuk575x' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'La requête a échoué.' }));
+        throw new Error(errorData.error || 'Erreur inconnue');
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'achat:", error);
+      alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Gérer l'abonnement</h3>
+      <div className="text-center">
+        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{credits}</p>
+        <p className="text-sm text-gray-500 mt-1">crédits d'analyse restants</p>
+      </div>
+      <button onClick={handlePurchase} disabled={loading} className="w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed">
+        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+        Souscrire à l'abonnement Smart
+      </button>
+    </div>
+  );
+};
+
+
+// --- COMPOSANT DE PAGE PRINCIPAL ---
+export default function DashboardClientPage({ userName, initialDocuments, initialCredits }: DashboardClientPageProps) {
   const [documents, setDocuments] = useState<DocumentType[]>(initialDocuments);
+  const [credits, setCredits] = useState(initialCredits);
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
-  
-  const credits = 10 - documents.length; 
+  const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
     setProcessing(true);
-    
-    setTimeout(() => {
-      const newDoc: DocumentType = {
-        id: Date.now(),
-        filename: file.name,
-        date: new Date().toLocaleDateString('fr-FR'),
-        confidence: 97.3,
-        anomalies: Math.random() > 0.8 ? 1 : 0,
-      };
-      setDocuments((prev) => [newDoc, ...prev]);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
+        throw new Error(errorData.error);
+      }
+
+      const newDocument = await response.json();
+      
+      setDocuments((prev) => [newDocument, ...prev]);
+      setCredits((prev) => prev - 1); 
       setFile(null);
+      setSelectedDocument(newDocument);
+
+    } catch (error) {
+      console.error("Erreur d'upload:", error);
+      alert(`Une erreur est survenue lors de l'analyse: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
       setProcessing(false);
-    }, 2000);
+    }
   };
 
-  const stats = { total: documents.length, anomalies: documents.filter((d) => d.anomalies > 0).length };
+  const stats = {
+    total: documents.length,
+    anomalies: documents.reduce((sum, doc) => sum + (doc.anomaliesDetected || 0), 0),
+  };
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-full">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Bonjour, {userName} !</h1>
-        <p className="text-gray-600 mt-1">Bienvenue sur votre tableau de bord.</p>
+        <p className="text-gray-600 mt-1">Bienvenue sur votre tableau de bord d'analyse IA.</p>
       </header>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
           <div className="p-3 bg-blue-100 rounded-lg"><BarChart2 className="w-6 h-6 text-blue-600" /></div>
           <div><p className="text-sm text-gray-600">Documents traités</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
           <div className="p-3 bg-red-100 rounded-lg"><AlertCircle className="w-6 h-6 text-red-600" /></div>
           <div><p className="text-sm text-gray-600">Anomalies détectées</p><p className="text-2xl font-bold text-gray-900">{stats.anomalies}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
           <div className="p-3 bg-green-100 rounded-lg"><CheckCircle className="w-6 h-6 text-green-600" /></div>
           <div><p className="text-sm text-gray-600">Crédits restants</p><p className="text-2xl font-bold text-gray-900">{credits}</p></div>
         </div>
       </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <UploadModule onUpload={handleUpload} processing={processing} file={file} setFile={setFile} />
-          <DocumentHistoryTable documents={documents} />
+          {selectedDocument ? (
+            <DocumentDetailView document={selectedDocument} onClose={() => setSelectedDocument(null)} />
+          ) : (
+            <UploadModule onUpload={handleUpload} processing={processing} file={file} setFile={setFile} credits={credits} />
+          )}
+          <DocumentHistoryTable documents={documents} onSelectDocument={setSelectedDocument} />
         </div>
         <div className="lg:col-span-1">
           <CreditsStatus credits={credits} />

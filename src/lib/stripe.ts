@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16', // ✅ Version stable et largement supportée
+export const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
+  apiVersion: '2025-06-30.basil', // VERSION REQUISE PAR LA LIBRAIRIE
   typescript: true,
 });

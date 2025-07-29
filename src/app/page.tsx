@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-// CORRECTION : Imports inutilisés (Target, TrendingUp, Phone, MapPin, Facebook) ont été retirés
-import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Check, Crown, Sparkles, ArrowRight, Menu, X, Mail, Twitter, Linkedin, Github } from 'lucide-react';
+import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github } from 'lucide-react';
 import Link from 'next/link'; 
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { SignUpModal } from '@/components/SignUpModal';
+import { Navigation } from '@/components/Navigation'; // CORRECTION : On importe le composant Navigation
 
-// --- TYPES POUR LES DONNÉES (CORRECTION POUR @typescript-eslint/no-explicit-any) ---
+// --- TYPES (inchangés) ---
 interface Transaction {
   id: number;
   date: string;
@@ -35,83 +36,16 @@ interface AnalysisResults {
   };
 }
 
-// --- SOUS-COMPOSANTS DE LA PAGE ---
 
-const Navigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  React.useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const headerClasses = `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out ${isScrolled ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 backdrop-blur-md border-b border-white/20' : 'bg-transparent'}`;
-  const titleClasses = `text-lg font-bold transition-colors duration-300 ${isScrolled ? 'text-white' : 'text-gray-900'}`;
-  const navLinkClasses = `font-medium transition-colors duration-300 hover:text-blue-200 ${isScrolled ? 'text-white' : 'text-gray-700'}`;
-  const loginButtonClasses = `font-medium transition-colors duration-300 hover:text-blue-200 ${isScrolled ? 'text-white' : 'text-gray-700'}`;
-  const mobileButtonClasses = `md:hidden transition-colors duration-300 ${isScrolled ? 'text-white' : 'text-gray-900'}`;
-  const mobileBorderClasses = `border-t py-4 ${isScrolled ? 'border-white/20' : 'border-gray-200'}`;
-  const mobileSeparatorClasses = `pt-4 border-t space-y-3 ${isScrolled ? 'border-white/20' : 'border-gray-200'}`;
-
-  return (
-    <header className={headerClasses}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"><Brain className="w-5 h-5 text-white" /></div>
-            <span className={titleClasses}>Bank Statement Converter IA</span>
-          </div>
-          <nav className="hidden md:flex items-center space-x-3">
-            <a href="#features" className={navLinkClasses}>Fonctionnalités</a>
-            <a href="#pricing" className={navLinkClasses}>Pricing</a>
-          </nav>
-          <div className="hidden md:flex items-center space-x-4">
-            <SignedOut>
-              <Link href="/sign-in"><button className={loginButtonClasses}>Se connecter</button></Link>
-              <Link href="/sign-up"><button className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105 font-medium border border-white/20">Commencer</button></Link>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard"><button className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105 font-medium border border-white/20">Mon Dashboard</button></Link>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-          </div>
-          <button className={mobileButtonClasses} onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}</button>
-        </div>
-        {isMenuOpen && (
-          <div className="md:hidden">
-            <div className={mobileBorderClasses}>
-              <nav className="flex flex-col space-y-4">
-                <a href="#features" className={navLinkClasses} onClick={() => setIsMenuOpen(false)}>Fonctionnalités</a>
-                <a href="#pricing" className={navLinkClasses} onClick={() => setIsMenuOpen(false)}>Pricing</a>
-                <div className={mobileSeparatorClasses}>
-                  <SignedOut>
-                    <Link href="/sign-in"><button className={loginButtonClasses} onClick={() => setIsMenuOpen(false)}>Se connecter</button></Link>
-                    <Link href="/sign-up"><button className="w-full bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all font-medium" onClick={() => setIsMenuOpen(false)}>Commencer</button></Link>
-                  </SignedOut>
-                  <SignedIn>
-                    <Link href="/dashboard"><button className="w-full bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all font-medium" onClick={() => setIsMenuOpen(false)}>Mon Dashboard</button></Link>
-                    <div className="flex items-center justify-between pt-2"><span className={navLinkClasses}>Mon Compte</span><UserButton afterSignOutUrl="/" /></div>
-                  </SignedIn>
-                </div>
-              </nav>
-            </div>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-};
+// --- SOUS-COMPOSANTS DE LA PAGE (Navigation a été déplacé) ---
 
 const PricingSection = () => {
+  // ... (Le code de PricingSection ne change pas)
   const plans = [
-    { name: "Free", price: "0€", period: "/mois", description: "Parfait pour tester notre IA", features: ["5 documents/mois", "IA parsing 85%+ précision", "Export CSV basique", "Support communauté", "Toutes banques françaises"], buttonText: "Commencer gratuitement", buttonStyle: "bg-gray-100 text-gray-900 hover:bg-gray-200 hover:scale-105", cardStyle: "border-gray-200 hover:border-gray-300 hover:shadow-lg", popular: false, icon: <FileText className="w-8 h-8 text-gray-600" /> },
-    { name: "Smart", price: "49€", period: "/mois", description: "IA avancée pour PME", features: ["100 documents/mois", "IA parsing 95%+ précision", "Auto-catégorisation intelligente", "Détection anomalies basique", "Exports multiples (CSV, JSON, Excel)", "Support email prioritaire", "API access basique"], buttonText: "Démarrer Smart", buttonStyle: "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-105 hover:shadow-xl", cardStyle: "border-blue-200 hover:border-blue-400 hover:shadow-2xl hover:-translate-y-2", popular: true, icon: <Brain className="w-8 h-8 text-blue-600" /> },
-    { name: "Professional", price: "149€", period: "/mois", description: "IA premium pour cabinets", features: ["500 documents/mois", "IA parsing 97%+ précision", "Détection anomalies avancée", "Réconciliation bancaire IA", "API complète + webhooks", "10 utilisateurs inclus", "White-label options", "Support téléphone prioritaire", "SLA 99.5%"], buttonText: "Upgrade Pro", buttonStyle: "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 hover:scale-105 hover:shadow-xl", cardStyle: "border-purple-200 hover:border-purple-400 hover:shadow-2xl hover:-translate-y-2", popular: false, icon: <Crown className="w-8 h-8 text-purple-600" /> },
-    { name: "Enterprise", price: "399€", period: "/mois", description: "IA sur-mesure + CSM dédié", features: ["Documents illimités", "IA fine-tuned sur vos données", "Custom categorization rules", "Utilisateurs illimités", "Intégrations ERP custom", "CSM dédié + formation", "SLA 99.9% + support 24/7", "Déploiement on-premise option", "Audit compliance inclus"], buttonText: "Contacter l'équipe", buttonStyle: "bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600 hover:scale-105 hover:shadow-xl", cardStyle: "border-yellow-200 hover:border-yellow-400 hover:shadow-2xl hover:-translate-y-2", popular: false, icon: <Sparkles className="w-8 h-8 text-yellow-600" /> }
+    { name: "Gratuit", price: "0€", period: "/mois", description: "Parfait pour tester notre IA", features: ["5 documents/mois", "Analyse IA 85%+ précision", "Export CSV basique", "Support communauté", "Toutes banques françaises"], buttonText: "Commencer gratuitement", buttonStyle: "bg-gray-100 text-gray-900 hover:bg-gray-200 hover:scale-105", cardStyle: "border-gray-200 hover:border-gray-300 hover:shadow-lg", popular: false, icon: <FileText className="w-8 h-8 text-gray-600" /> },
+    { name: "Intelligent", price: "49€", period: "/mois", description: "IA avancée pour les PME", features: ["100 documents/mois", "Analyse IA 95%+ précision", "Auto-catégorisation intelligente", "Détection d'anomalies basique", "Exports multiples (CSV, JSON, Excel)", "Support email prioritaire", "Accès API basique"], buttonText: "Démarrer avec Smart", buttonStyle: "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-105 hover:shadow-xl", cardStyle: "border-blue-200 hover:border-blue-400 hover:shadow-2xl hover:-translate-y-2", popular: true, icon: <Brain className="w-8 h-8 text-blue-600" /> },
+    { name: "Professionnel", price: "149€", period: "/mois", description: "IA premium pour les cabinets", features: ["500 documents/mois", "Analyse IA 97%+ précision", "Détection d'anomalies avancée", "Rapprochement bancaire IA", "API complète + webhooks", "10 utilisateurs inclus", "Options marque blanche", "Support téléphone prioritaire", "SLA 99.5%"], buttonText: "Passer Pro", buttonStyle: "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 hover:scale-105 hover:shadow-xl", cardStyle: "border-purple-200 hover:border-purple-400 hover:shadow-2xl hover:-translate-y-2", popular: false, icon: <Crown className="w-8 h-8 text-purple-600" /> },
+    { name: "Entreprise", price: "399€", period: "/mois", description: "IA sur-mesure + CSM dédié", features: ["Documents illimités", "IA affinée sur vos données", "Règles de catégorisation personnalisées", "Utilisateurs illimités", "Intégrations ERP personnalisées", "CSM dédié + formation", "SLA 99.9% + support 24/7", "Déploiement sur site en option", "Audit de conformité inclus"], buttonText: "Contacter l'équipe", buttonStyle: "bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600 hover:scale-105 hover:shadow-xl", cardStyle: "border-yellow-200 hover:border-yellow-400 hover:shadow-2xl hover:-translate-y-2", popular: false, icon: <Sparkles className="w-8 h-8 text-yellow-600" /> }
   ];
 
   return (
@@ -119,14 +53,12 @@ const PricingSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            <Zap className="w-6 h-6 text-blue-600" /><span className="text-sm font-semibold uppercase tracking-wide">Pricing IA-Powered</span>
+            <Zap className="w-6 h-6 text-blue-600" /><span className="text-sm font-semibold uppercase tracking-wide">Tarifs boostés à l'IA</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">Choisissez votre puissance <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">IA</span></h2>
-          {/* CORRECTION : Remplacement de ' par &apos; */}
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">De l&apos;analyse basique à l&apos;IA sur-mesure, trouvez le plan parfait pour automatiser vos relevés bancaires avec une précision révolutionnaire.</p>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">De l'analyse basique à l'IA sur-mesure, trouvez le plan parfait pour automatiser vos relevés bancaires avec une précision révolutionnaire.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* CORRECTION : 'index' a été retiré car non utilisé */}
           {plans.map((plan) => {
             const cardClasses = `relative bg-white rounded-2xl border-2 p-8 transition-all duration-500 ease-out transform ${plan.cardStyle} ${plan.popular ? 'ring-2 ring-blue-500 ring-opacity-50' : ''} group cursor-pointer`;
             return (
@@ -164,6 +96,7 @@ const PricingSection = () => {
 };
 
 const Footer = () => {
+  // ... (Le code du Footer ne change pas)
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -173,17 +106,16 @@ const Footer = () => {
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl"><Brain className="w-6 h-6 text-white" /></div>
               <div><h3 className="text-xl font-bold">Bank Statement Converter IA</h3></div>
             </div>
-            {/* CORRECTION : Remplacement de ' par &apos; */}
-            <p className="text-gray-400 mb-6 leading-relaxed">La première solution qui utilise l&apos;IA pour convertir vos relevés bancaires avec 99%+ de précision. Automatisez votre comptabilité en quelques clics.</p>
+            <p className="text-gray-400 mb-6 leading-relaxed">La première solution qui utilise l'IA pour convertir vos relevés bancaires avec 99%+ de précision. Automatisez votre comptabilité en quelques clics.</p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors"><Twitter className="w-5 h-5" /></a>
               <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
               <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors"><Github className="w-5 h-5" /></a>
             </div>
           </div>
-          <div><h4 className="text-lg font-semibold mb-6">Produit</h4><ul className="space-y-4"><li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Fonctionnalités</a></li><li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li><li><a href="#demo" className="text-gray-400 hover:text-white transition-colors">Démo en direct</a></li></ul></div>
-          <div><h4 className="text-lg font-semibold mb-6">Support</h4><ul className="space-y-4"><li><a href="#help" className="text-gray-400 hover:text-white transition-colors">Centre d&apos;aide</a></li><li><a href="#contact" className="text-gray-400 hover:text-white transition-colors">Nous contacter</a></li><li><a href="#status" className="text-gray-400 hover:text-white transition-colors">Statut du service</a></li></ul></div>
-          <div><h4 className="text-lg font-semibold mb-6">Légal</h4><ul className="space-y-4"><li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">Politique de confidentialité</Link></li><li><a href="#terms" className="text-gray-400 hover:text-white transition-colors">Conditions d&apos;utilisation</a></li><li><a href="#cookies" className="text-gray-400 hover:text-white transition-colors">Politique des cookies</a></li><li><a href="#gdpr" className="text-gray-400 hover:text-white transition-colors">Conformité RGPD</a></li><li><a href="#refund" className="text-gray-400 hover:text-white transition-colors">Politique de remboursement</a></li></ul></div>
+          <div><h4 className="text-lg font-semibold mb-6">Produit</h4><ul className="space-y-4"><li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Fonctionnalités</a></li><li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Tarifs</a></li><li><a href="#demo" className="text-gray-400 hover:text-white transition-colors">Démo en direct</a></li></ul></div>
+          <div><h4 className="text-lg font-semibold mb-6">Support</h4><ul className="space-y-4"><li><a href="#help" className="text-gray-400 hover:text-white transition-colors">Centre d'aide</a></li><li><a href="#contact" className="text-gray-400 hover:text-white transition-colors">Nous contacter</a></li><li><a href="#status" className="text-gray-400 hover:text-white transition-colors">Statut du service</a></li></ul></div>
+          <div><h4 className="text-lg font-semibold mb-6">Légal</h4><ul className="space-y-4"><li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">Politique de confidentialité</Link></li><li><a href="#terms" className="text-gray-400 hover:text-white transition-colors">Conditions d'utilisation</a></li><li><a href="#cookies" className="text-gray-400 hover:text-white transition-colors">Politique des cookies</a></li><li><a href="#gdpr" className="text-gray-400 hover:text-white transition-colors">Conformité RGPD</a></li><li><a href="#refund" className="text-gray-400 hover:text-white transition-colors">Politique de remboursement</a></li></ul></div>
         </div>
         <div className="border-t border-gray-800 mt-12 pt-8"><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="flex items-center space-x-3"><Mail className="w-5 h-5 text-blue-400" /><span className="text-gray-400">contact@bankstatement-ai.fr</span></div></div></div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center"><p className="text-gray-400">© 2024 Bank Statement Converter IA. Tous droits réservés.</p></div>
@@ -192,22 +124,35 @@ const Footer = () => {
   );
 };
 
+// --- COMPOSANT PRINCIPAL DE LA PAGE ---
 const BankStatementConverter = () => {
+  // ... (Toute la logique de BankStatementConverter reste ici et ne change pas)
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-  // CORRECTION : Utilisation de l'interface AnalysisResults pour typer l'état
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [processingStep, setProcessingStep] = useState('');
   const [confidence, setConfidence] = useState(0);
 
+  const [credits, setCredits] = useState(3);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCredits = localStorage.getItem('anonymousUserCredits');
+      if (savedCredits !== null) {
+        setCredits(parseInt(savedCredits, 10));
+      }
+    }
+  }, []);
+
   const simulateAIProcessing = async () => {
     const steps = [
-      { step: 'OCR Analysis with Google Vision...', duration: 2000, confidence: 25 },
-      { step: 'Bank Detection with AI...', duration: 1500, confidence: 45 },
-      { step: 'GPT-4 Intelligent Parsing...', duration: 3000, confidence: 75 },
-      { step: 'Auto-Categorization...', duration: 1000, confidence: 85 },
-      { step: 'Anomaly Detection...', duration: 800, confidence: 92 },
-      { step: 'Final Validation...', duration: 500, confidence: 97 }
+      { step: 'Analyse OCR avec Google Vision...', duration: 2000, confidence: 25 },
+      { step: 'Détection de la banque par IA...', duration: 1500, confidence: 45 },
+      { step: 'Analyse intelligente par GPT-4...', duration: 3000, confidence: 75 },
+      { step: 'Catégorisation automatique...', duration: 1000, confidence: 85 },
+      { step: 'Détection des anomalies...', duration: 800, confidence: 92 },
+      { step: 'Validation finale...', duration: 500, confidence: 97 }
     ];
     for (const { step, duration, confidence: conf } of steps) {
       setProcessingStep(step);
@@ -237,7 +182,17 @@ const BankStatementConverter = () => {
   }, []);
 
   const processDocument = async () => {
+    if (credits <= 0) {
+      setIsModalOpen(true);
+      return;
+    }
+
     if (!file) return;
+
+    const newCredits = credits - 1;
+    setCredits(newCredits);
+    localStorage.setItem('anonymousUserCredits', newCredits.toString());
+
     setProcessing(true);
     setResults(null);
     setConfidence(0);
@@ -263,6 +218,8 @@ const BankStatementConverter = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Navigation />
+      <SignUpModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
       <main className="pt-24 md:pt-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div id="features" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -270,8 +227,17 @@ const BankStatementConverter = () => {
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                 <div className="text-center">
                   <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-6"><Upload className="w-8 h-8 text-white" /></div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload votre relevé bancaire</h2>
-                  <p className="text-gray-600 mb-8">Notre IA supporte automatiquement toutes les banques</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Téléversez votre relevé bancaire</h2>
+                  
+                  <SignedOut>
+                    <p className="text-gray-600 mb-8">
+                      Il vous reste <span className="font-bold text-blue-600">{credits}</span> analyse{credits > 1 ? 's' : ''} gratuite{credits > 1 ? 's' : ''}.
+                    </p>
+                  </SignedOut>
+                  <SignedIn>
+                    <p className="text-gray-600 mb-8">Notre IA supporte automatiquement toutes les banques.</p>
+                  </SignedIn>
+
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors hover:border-blue-400 hover:bg-blue-50/50">
                     <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="fileInput" />
                     <label htmlFor="fileInput" className="cursor-pointer block">
@@ -281,14 +247,25 @@ const BankStatementConverter = () => {
                     </label>
                   </div>
                   {file && (<div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200"><div className="flex items-center justify-center space-x-3"><CheckCircle className="w-5 h-5 text-green-600" /><span className="text-green-800 font-medium">{file.name}</span><span className="text-green-600 text-sm">({(file.size / 1024 / 1024).toFixed(2)} MB)</span></div></div>)}
-                  <button onClick={processDocument} disabled={!file || processing} className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2">
-                    {processing ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Processing IA...</span></>) : (<><Brain className="w-5 h-5" /><span>Analyser avec l&apos;IA</span></>)}
+                  
+                  <button 
+                    onClick={processDocument} 
+                    disabled={!file || processing} 
+                    className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+                  >
+                    {processing ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /><span>Analyse IA en cours...</span></>
+                    ) : (credits <= 0 && file) ? (
+                      <span>Limite de crédits atteinte</span>
+                    ) : (
+                      <><Brain className="w-5 h-5" /><span>Analyser avec l'IA</span></>
+                    )}
                   </button>
                 </div>
               </div>
               {processing && (
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-                  <div className="flex items-center space-x-3 mb-4"><div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div><h3 className="text-lg font-semibold text-gray-900">Processing IA en cours...</h3></div>
+                  <div className="flex items-center space-x-3 mb-4"><div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div><h3 className="text-lg font-semibold text-gray-900">Analyse IA en cours...</h3></div>
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm"><span className="text-gray-600">{processingStep}</span><span className="text-blue-600 font-medium">{confidence}%</span></div>
                     <div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300" style={{ width: `${confidence}%` }}></div></div>
@@ -303,7 +280,7 @@ const BankStatementConverter = () => {
                     <div className="flex items-center space-x-3 mb-6"><CheckCircle className="w-6 h-6 text-green-600" /><h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3></div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200"><div className="text-2xl font-bold text-green-700">{results.confidence}%</div><div className="text-sm text-green-600">Confiance IA</div></div>
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200"><div className="text-2xl font-bold text-blue-700">{results.processingTime}s</div><div className="text-sm text-blue-600">Temps processing</div></div>
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200"><div className="text-2xl font-bold text-blue-700">{results.processingTime}s</div><div className="text-sm text-blue-600">Temps d'analyse</div></div>
                       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200"><div className="text-2xl font-bold text-purple-700">€{results.aiCost}</div><div className="text-sm text-purple-600">Coût IA</div></div>
                       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200"><div className="text-2xl font-bold text-orange-700">{results.summary.anomaliesDetected}</div><div className="text-sm text-orange-600">Anomalies détectées</div></div>
                     </div>
@@ -316,7 +293,7 @@ const BankStatementConverter = () => {
                     <h3 className="text-xl font-bold text-gray-900 mb-6">Transactions extraites</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead><tr className="border-b border-gray-200"><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Date</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Description</th><th className="text-right py-3 px-2 text-sm font-semibold text-gray-700">Montant</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Catégorie</th><th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">IA Score</th></tr></thead>
+                        <thead><tr className="border-b border-gray-200"><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Date</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Description</th><th className="text-right py-3 px-2 text-sm font-semibold text-gray-700">Montant</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Catégorie</th><th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Score IA</th></tr></thead>
                         <tbody>
                           {results.transactions.map((transaction: Transaction) => {
                             const rowClasses = `border-b border-gray-100 hover:bg-gray-50 ${transaction.anomalyScore > 5 ? 'bg-red-50 border-red-200' : ''}`;
@@ -341,9 +318,8 @@ const BankStatementConverter = () => {
               {!results && !processing && (
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
                   <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  {/* CORRECTION : Remplacement de ' par &apos; */}
-                  <h3 className="text-lg font-medium text-gray-500 mb-2">En attente d&apos;analyse</h3>
-                  <p className="text-gray-400">Uploadez un relevé bancaire PDF pour commencer</p>
+                  <h3 className="text-lg font-medium text-gray-500 mb-2">En attente d'une analyse</h3>
+                  <p className="text-gray-400">Téléversez un relevé bancaire PDF pour commencer.</p>
                 </div>
               )}
             </div>
@@ -351,11 +327,11 @@ const BankStatementConverter = () => {
           <PricingSection />
           <div id="demo" className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
             <h2 className="text-2xl font-bold mb-4">🚀 BankStatement - Mon Banquier IA</h2>
-            <p className="text-blue-100 max-w-3xl mx-auto">pipeline IA complet : OCR → Détection banque → Parsing GPT-4 → Catégorisation → Détection anomalies. Dans la version production, intégration réelle OpenAI + Google Cloud Vision.</p>
+            <p className="text-blue-100 max-w-3xl mx-auto">Pipeline IA complet : OCR → Détection banque → Analyse GPT-4 → Catégorisation → Détection d'anomalies. Dans la version de production, une intégration réelle avec OpenAI + Google Cloud Vision est utilisée.</p>
             <div className="mt-6 flex justify-center space-x-8 text-sm">
               <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Pipeline IA complet</span></div>
-              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Confidence scoring</span></div>
-              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Détection anomalies</span></div>
+              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Score de confiance</span></div>
+              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Détection d'anomalies</span></div>
               <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Export structuré</span></div>
             </div>
           </div>

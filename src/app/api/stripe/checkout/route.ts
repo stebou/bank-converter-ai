@@ -1,105 +1,67 @@
+// Fichier : src/app/api/stripe/checkout/route.ts
+
+import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
-import { PLANS } from '@/lib/plan';
-import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/lib/stripe';
 
-// Bonne pratique : Centraliser les messages pour éviter les chaînes de caractères "magiques"
-const ERROR_MESSAGES = {
-  UNAUTHORIZED: 'Accès non autorisé.',
-  INVALID_PLAN: 'Le plan sélectionné est invalide.',
-  INTERNAL_SERVER_ERROR: 'Une erreur interne est survenue.',
-  STRIPE_URL_MISSING: "La création de la session Stripe n'a pas retourné d'URL."
-};
+const dashboardUrl = new URL('/dashboard', process.env.NEXT_PUBLIC_APP_URL);
 
-/**
- * Interface définissant la structure attendue du corps de la requête POST.
- * Cela permet de typer le résultat de req.json() et d'éviter l'erreur `no-explicit-any`.
- */
-interface CheckoutRequestBody {
-  planId: string;
-}
-
-/**
- * Récupère un utilisateur depuis la base de données ou le crée s'il n'existe pas encore.
- * Cette fonction est réutilisable et clarifie la logique de la fonction POST.
- * @param clerkId - L'ID de l'utilisateur fourni par Clerk.
- * @returns L'objet utilisateur de la base de données.
- */
-async function getOrCreateUserInDb(clerkId: string) {
-  const existingUser = await prisma.user.findUnique({
-    where: { clerkId },
-  });
-
-  if (existingUser) {
-    return existingUser;
-  }
-
-  // Crée l'utilisateur avec des valeurs par défaut.
-  // Le webhook de Clerk se chargera de mettre à jour l'e-mail et le nom plus tard.
-  const newUser = await prisma.user.create({
-    data: {
-      clerkId,
-      email: '',
-      name: '',
-    },
-  });
-
-  return newUser;
-}
-
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: Request) {
   try {
     const { userId } = await auth();
+    // 1. On récupère le planId envoyé par le client
+    const { planId } = await req.json();
+
     if (!userId) {
-      return NextResponse.json({ error: ERROR_MESSAGES.UNAUTHORIZED }, { status: 401 });
+      return new NextResponse('Non autorisé', { status: 401 });
+    }
+    if (!planId) {
+      return new NextResponse('ID de plan manquant', { status: 400 });
     }
 
-    // --- CORRECTION APPLIQUÉE ICI ---
-    // On déstructure directement `planId` et on type le corps de la requête avec notre interface.
-    // Cela remplace les deux lignes précédentes et résout l'erreur ESLint.
-    const { planId } = await req.json() as CheckoutRequestBody;
+    // 2. On va chercher l'utilisateur ET le plan dans la base de données
+    const [user, plan] = await Promise.all([
+      prisma.user.findUnique({ where: { clerkId: userId } }),
+      prisma.plan.findUnique({ where: { id: planId } })
+    ]);
 
-    // Vérifie que le planId existe et qu'il est une clé valide de notre objet PLANS
-    if (!planId || !Object.keys(PLANS).includes(planId)) {
-      return NextResponse.json({ error: ERROR_MESSAGES.INVALID_PLAN }, { status: 400 });
+    if (!user) {
+      return new NextResponse('Utilisateur non trouvé', { status: 404 });
+    }
+    if (!plan) {
+      return new NextResponse('Plan non trouvé dans la base de données', { status: 404 });
     }
 
-    const planToSubscribe = PLANS[planId as keyof typeof PLANS];
-    const user = await getOrCreateUserInDb(userId);
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({ email: user.email! });
+      stripeCustomerId = customer.id;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId },
+      });
+    }
 
+    // 3. On crée la session de paiement avec les informations DYNAMIQUES du plan
     const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId ?? undefined,
-      mode: 'subscription',
+      customer: stripeCustomerId,
       payment_method_types: ['card'],
-      line_items: [{
-        price: planToSubscribe.stripePriceId,
-        quantity: 1,
-      }],
-      success_url: `${req.nextUrl.origin}/dashboard?payment_success=true`,
-      cancel_url: `${req.nextUrl.origin}/dashboard?payment_canceled=true`,
+      mode: 'subscription', // Mode abonnement
+      // LA CORRECTION EST ICI : On utilise `plan.stripePriceId` de notre BDD
+      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       metadata: {
         userId: user.id,
-        planId,
+        planId: plan.id, // On passe l'ID de notre plan au webhook
       },
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
+      success_url: `${dashboardUrl.origin}?payment=success`,
+      cancel_url: `${dashboardUrl.origin}?payment=cancelled`,
     });
-
-    if (!session.url) {
-      throw new Error(ERROR_MESSAGES.STRIPE_URL_MISSING);
-    }
 
     return NextResponse.json({ url: session.url });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('[STRIPE_CHECKOUT_ERROR]', error);
-    // Vérifie le type de l'erreur avant d'en extraire le message
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    return NextResponse.json(
-      { error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR, details: errorMessage },
-      { status: 500 }
-    );
+    return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

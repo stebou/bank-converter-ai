@@ -1,97 +1,93 @@
+// Fichier : prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  // URL pour votre application (utilise le pooler)
-  url       = env("DATABASE_URL")
- 
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  clerkId            String   @unique
+  email              String   @unique
+  name               String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // --- Champs Stripe ---
+  // MODIFICATION : Ajout de @map pour une convention de nommage propre en base de données.
+  stripeCustomerId   String?  @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?  @unique @map("stripe_subscription_id")
+  subscriptionStatus String?  @map("subscription_status")
   
-  // Subscription
-  stripeCustomerId   String?
-  stripeSubscriptionId String?
-  subscriptionStatus String? // active, canceled, incomplete
-  currentPlan        String  @default("free") // free, smart, professional, enterprise
-  documentsUsed      Int     @default(0)
-  documentsLimit     Int     @default(5) // Free plan limit
-  
-  // Relations
-  documents Document[]
-  
+  // --- Limites et Plans ---
+  currentPlan        String   @default("free")
+  documentsUsed      Int      @default(0)
+  documentsLimit     Int      @default(5)
+
+  // --- Relations ---
+  documents          Document[]
+
   @@map("users")
 }
 
 model Document {
-  id         String   @id @default(cuid())
-  userId     String
-  filename   String
-  status     String   // processing, completed, failed
-  createdAt  DateTime @default(now())
-  
-  // File info
-  originalName    String
-  fileSize        Int
-  mimeType        String
-  
-  // AI Processing results
-  bankDetected    String?
-  aiConfidence    Float?
-  processingTime  Float?
-  aiCost          Float?
-  ocrConfidence   Float?
-  
-  // Results
+  id                String   @id @default(cuid())
+  userId            String
+  filename          String
+  status            String   
+  createdAt         DateTime @default(now())
+  originalName      String
+  fileSize          Int
+  mimeType          String
+  bankDetected      String?
+  aiConfidence      Float?
+  processingTime    Float?
+  aiCost            Float?
+  ocrConfidence     Float?
   totalTransactions Int      @default(0)
   anomaliesDetected Int      @default(0)
-  
-  // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  
+
+  // --- Relations ---
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+
   @@map("documents")
 }
 
 model Transaction {
   id            String   @id @default(cuid())
   documentId    String
-  
-  // Transaction data
   date          DateTime
   amount        Float
   description   String
   originalDesc  String
-  
-  // AI Enhancement
   category      String?
   subcategory   String?
   aiConfidence  Float?
   anomalyScore  Float?
-  
-  // Relations
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
+
+  // --- Relations ---
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@map("transactions")
 }
 
+// MODIFICATION : Votre modèle Plan est parfait. J'ai juste rendu la description optionnelle.
 model Plan {
-  id              String @id @default(cuid())
-  name            String @unique
-  description     String
+  id              String  @id @default(cuid())
+  name            String  @unique // Ex: "Pack 50 Crédits", "Abonnement Pro"
+  description     String?
   price           Float
-  documentsLimit  Int
-  features        Json
-  stripeProductId String
-  stripePriceId   String
+  documentsLimit  Int     // Le nombre de crédits que ce plan donne/ajoute
+  features        Json?   // Vous pouvez garder ça pour plus tard
   
+  // --- Champs Stripe ---
+  stripeProductId String  @unique @map("stripe_product_id")
+  stripePriceId   String  @unique @map("stripe_price_id")
+
   @@map("plans")
 }
