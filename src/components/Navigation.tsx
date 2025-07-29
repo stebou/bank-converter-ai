@@ -1,35 +1,44 @@
+// Fichier : src/components/Navigation.tsx
+
 'use client';
 
-// CORRECTION : Ajout de tous les imports manquants
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Brain, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Le composant est maintenant exporté pour pouvoir être importé ailleurs
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // STYLE MIS À JOUR : Thème clair pour être cohérent avec la page
-  const navClasses = `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-    isScrolled
-      ? 'bg-white/70 backdrop-blur-lg border-b border-gray-200/80 shadow-md'
-      : 'bg-transparent'
-  }`;
-  
-  const textClasses = `transition-colors duration-300 ${
-    isScrolled ? 'text-gray-800' : 'text-gray-900'
-  }`;
+  // --- ANIMATION CORRIGÉE POUR L'EFFET DE RÉTRÉCISSEMENT ---
+  const navVariants = {
+    // État initial : la barre est large et flottante
+    initial: {
+      y: 16,
+      width: '95%',
+      borderRadius: '9999px',
+      paddingTop: '1rem',
+      paddingBottom: '1rem',
+    },
+    // État au scroll : la barre se resserre vers le centre
+    scrolled: {
+      y: 0,
+      width: '60%', // Se resserre significativement
+      borderRadius: '12px',
+      paddingTop: '0.5rem',
+      paddingBottom: '0.5rem',
+    },
+  };
 
   const navLinks = [
     { href: "#features", text: "Fonctionnalités" },
@@ -37,46 +46,60 @@ export const Navigation = () => {
   ];
 
   return (
-    <header className={navClasses}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors duration-300 ${isScrolled ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white' : 'bg-white shadow-sm'}`}>
-              <Brain className="w-6 h-6" />
-            </div>
-            <span className={`text-xl font-bold ${textClasses}`}>Bank-IA</span>
-          </Link>
+    // --- STRUCTURE STICKY CORRIGÉE : C'EST LA CLÉ ! ---
+    <div className="sticky top-0 z-50 w-full flex justify-center pt-4">
+      <motion.div
+        className="bg-black/50 backdrop-blur-lg border border-white/10 shadow-2xl"
+        variants={navVariants}
+        animate={isScrolled ? 'scrolled' : 'initial'}
+        transition={{ 
+          duration: 0.35, 
+          ease: [0.16, 1, 0.3, 1] // Courbe d'animation professionnelle
+        }}
+        style={{
+          maxWidth: '72rem', // Contrainte de largeur maximale
+        }}
+      >
+        <div className="flex items-center justify-between px-6">
+          {/* Section Gauche : Logo + Liens de navigation */}
+          <div className="flex items-center space-x-6">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+                <Brain className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-white">Bank-IA</span>
+            </Link>
+            
+            {/* Liens de navigation à côté du logo */}
+            <nav className="hidden md:flex items-center space-x-4">
+              {navLinks.map((link) => (
+                <a 
+                  key={link.href} 
+                  href={link.href} 
+                  className="relative rounded-lg px-3 py-2 text-sm text-white/80 transition-colors duration-300 hover:text-white group"
+                >
+                  {link.text}
+                  <span className="absolute bottom-1 left-0 h-0.5 w-full origin-center scale-x-0 bg-gradient-to-r from-blue-400 to-purple-400 transition-transform duration-300 ease-out group-hover:scale-x-50" />
+                </a>
+              ))}
+            </nav>
+          </div>
 
-          {/* Navigation Bureau */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={`relative px-4 py-2 rounded-lg transition-colors duration-300 group ${isScrolled ? 'text-gray-600 hover:text-black' : 'text-gray-700 hover:text-black'}`}
-              >
-                {link.text}
-                <span className="absolute bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 scale-x-0 group-hover:scale-x-50 transition-transform duration-300 ease-out origin-center" />
-              </a>
-            ))}
-          </nav>
-
-          {/* Boutons d'authentification Bureau */}
+          {/* Section Droite : Authentification */}
           <div className="hidden md:flex items-center space-x-4">
             <SignedOut>
-              <Link href="/sign-in" className={`${textClasses} hover:text-blue-600 font-medium transition-colors duration-300`}>
+              <Link href="/sign-in" className="text-sm font-medium text-white/80 transition-colors duration-300 hover:text-white">
                 Se connecter
               </Link>
               <Link href="/sign-up">
-                <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                <button className="transform rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:opacity-90">
                   Commencer
                 </button>
               </Link>
             </SignedOut>
             <SignedIn>
               <Link href="/dashboard">
-                 <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                <button className="transform rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:opacity-90">
                   Mon Dashboard
                 </button>
               </Link>
@@ -86,73 +109,65 @@ export const Navigation = () => {
 
           {/* Bouton du menu mobile */}
           <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`${textClasses} focus:outline-none`}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="text-white focus:outline-none"
+              aria-label="Toggle menu"
             >
-              {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Menu Mobile avec animation */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="md:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-xl"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden absolute top-full left-4 right-4 mt-2 bg-black/90 backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl z-50"
           >
             <nav className="flex flex-col items-center p-8 space-y-6">
-              {navLinks.map((link, i) => (
-                 <motion.a
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * (i + 1), duration: 0.2 }}
-                    className="text-2xl text-gray-800 hover:text-blue-600"
-                 >
-                    {link.text}
-                </motion.a>
+              {navLinks.map((link) => (
+                <a 
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-xl text-white hover:text-blue-400 transition-colors"
+                >
+                  {link.text}
+                </a>
               ))}
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
-                className="pt-8 border-t border-gray-200 w-full flex flex-col items-center space-y-6"
-              >
+              
+              <div className="pt-4 border-t border-white/20 w-full flex flex-col items-center space-y-4">
                 <SignedOut>
-                  <Link href="/sign-in" onClick={() => setIsMenuOpen(false)} className="text-xl text-gray-700 hover:text-blue-600">
-                    Se connecter
+                  <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>
+                    <button className="text-lg text-white hover:text-blue-400">
+                      Se connecter
+                    </button>
                   </Link>
                   <Link href="/sign-up" onClick={() => setIsMenuOpen(false)}>
-                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-3 rounded-xl font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-lg">
-                      Commencer gratuitement
+                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold">
+                      Commencer
                     </button>
                   </Link>
                 </SignedOut>
                 <SignedIn>
-                   <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-3 rounded-xl font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-lg">
-                       Mon Dashboard
+                  <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold">
+                      Mon Dashboard
                     </button>
                   </Link>
-                  <div className="flex items-center justify-between w-full max-w-xs pt-4">
-                    <span className="text-xl text-gray-800">Mon Compte</span>
-                    <UserButton afterSignOutUrl="/" />
-                  </div>
+                  <UserButton afterSignOutUrl="/" />
                 </SignedIn>
-              </motion.div>
+              </div>
             </nav>
           </motion.div>
         )}
       </AnimatePresence>
-    </header>
+    </div>
   );
 };

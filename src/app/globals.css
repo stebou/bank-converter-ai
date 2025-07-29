@@ -54,3 +54,16 @@ body {
     animation: fade-in-up 0.5s ease-out forwards;
   }
 }
+
+@layer components {
+  .grid-background {
+    /* Un fond violet très sombre pour la profondeur */
+    background-color: #0c001f;
+    /* Lignes de la grille avec une couleur lumineuse et faible opacité */
+    background-image:
+      linear-gradient(to right, rgba(128, 90, 213, 0.15) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(128, 90, 213, 0.15) 1px, transparent 1px);
+    /* Taille des carrés de la grille */
+    background-size: 3rem 3rem;
+  }
+}
