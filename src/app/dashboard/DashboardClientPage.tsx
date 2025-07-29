@@ -156,14 +156,14 @@ const CreditsStatus = ({ credits }: { credits: number }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Gérer l'abonnement</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Gérer l abonnement</h3>
       <div className="text-center">
         <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{credits}</p>
-        <p className="text-sm text-gray-500 mt-1">crédits d'analyse restants</p>
+        <p className="text-sm text-gray-500 mt-1">crédits d analyse restants</p>
       </div>
       <button onClick={handlePurchase} disabled={loading} className="w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed">
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-        Souscrire à l'abonnement Smart
+        Souscrire à l abonnement Smart
       </button>
     </div>
   );
@@ -220,7 +220,7 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
     <div className="p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-full">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Bonjour, {userName} !</h1>
-        <p className="text-gray-600 mt-1">Bienvenue sur votre tableau de bord d'analyse IA.</p>
+        <p className="text-gray-600 mt-1">Bienvenue sur votre tableau de bord d analyse IA.</p>
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
