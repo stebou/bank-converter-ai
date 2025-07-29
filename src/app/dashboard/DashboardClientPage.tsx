@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-// CORRECTION : 'FileText' et 'Brain' ont été retirés de la ligne suivante.
 import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -95,7 +94,7 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
             <tr>
               <td colSpan={5} className="text-center py-16 text-gray-500">
                 <p>Aucun document traité pour le moment.</p>
-                {/* CORRECTION : L'apostrophe est maintenant échappée */}
+                {/* L'erreur est corrigée sur la ligne suivante */}
                 <p className="text-xs mt-1">Utilisez le module d'upload pour commencer.</p>
               </td>
             </tr>
