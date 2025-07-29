@@ -3,16 +3,13 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
 import Link from 'next/link';
+import type { DocumentType } from '@/types'; // <-- IMPORTATION du type partagé
 
 // --- Types ---
-type DocumentType = {
-  id: string | number;
-  filename: string;
-  date: string;
-  confidence: number;
-  anomalies: number;
-};
+// La définition de DocumentType a été supprimée de ce fichier pour éviter les conflits.
+// Nous utilisons maintenant la version importée depuis '@/'types'.
 
+// Types spécifiques à ce composant client
 type UploadModuleProps = {
   onUpload: () => void;
   processing: boolean;
@@ -21,7 +18,7 @@ type UploadModuleProps = {
 };
 
 type DocumentHistoryTableProps = {
-  documents: DocumentType[];
+  documents: DocumentType[]; // <-- Utilise le DocumentType importé
 };
 
 type CreditsStatusProps = {
@@ -30,7 +27,7 @@ type CreditsStatusProps = {
 
 type DashboardClientPageProps = {
   userName: string;
-  initialDocuments: DocumentType[];
+  initialDocuments: DocumentType[]; // <-- Utilise le DocumentType importé
 };
 
 // --- SOUS-COMPOSANTS DU DASHBOARD ---
@@ -94,8 +91,7 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
             <tr>
               <td colSpan={5} className="text-center py-16 text-gray-500">
                 <p>Aucun document traité pour le moment.</p>
-                {/* L'erreur est corrigée sur la ligne suivante */}
-                <p className="text-xs mt-1">Utilisez le module d&aposupload pour commencer.</p>
+                <p className="text-xs mt-1">Utilisez le module d'upload pour commencer.</p>
               </td>
             </tr>
           )}

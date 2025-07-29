@@ -1,23 +1,30 @@
-// src/app/dashboard/page.tsx
+// Dans : /src/app/dashboard/page.tsx
 
-// 'use client'; // On peut maintenant retirer 'use client' si le reste de la page n'est pas interactif,
-// ou le laisser si d'autres composants en ont besoin.
-// Pour cet exemple, nous allons le structurer pour que la page soit un Server Component.
+import React from 'react';
+import { currentUser } from '@clerk/nextjs/server';
+import DashboardClientPage from './DashboardClientPage';
+import { redirect } from 'next/navigation';
+import type { DocumentType } from '@/types'; // <-- IMPORTATION DU TYPE ICI
 
-import { currentUser } from '@clerk/nextjs/server'; // Importe la fonction serveur
-import DashboardClientPage from './DashboardClientPage'; // Nous allons créer ce composant
-
-// Cette fonction s'exécute sur le serveur
+// Cette page est un Composant Serveur
 export default async function DashboardPage() {
-  // Récupère l'utilisateur connecté. C'est asynchrone !
   const user = await currentUser();
 
-  // On passe le prénom de l'utilisateur au composant client
-  // On prévoit un fallback si le prénom n'est pas défini
-  const firstName = user?.firstName || 'Utilisateur';
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  const firstName = user.firstName || user.fullName || 'Utilisateur';
+
+  // LA CORRECTION EST APPLIQUÉE ICI :
+  // On dit explicitement à TypeScript que cette variable est un tableau
+  // d'objets de type DocumentType, même s'il est vide.
+  const initialDocuments: DocumentType[] = [];
 
   return (
-    // On passe les données au composant qui gère l'état et l'interactivité
-    <DashboardClientPage userName={firstName} />
+    <DashboardClientPage 
+      userName={firstName} 
+      initialDocuments={initialDocuments} 
+    />
   );
 }
