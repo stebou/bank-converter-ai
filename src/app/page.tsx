@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github } from 'lucide-react';
 import Link from 'next/link'; 
 import { SignedIn, SignedOut } from '@clerk/nextjs';
 import { SignUpModal } from '@/components/SignUpModal';
 import { Navigation } from '@/components/Navigation';
 import AnimatedGradientBackground from '@/components/AnimatedGradientBackground';
-import { motion, useInView } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // --- TYPES ---
 interface Transaction {

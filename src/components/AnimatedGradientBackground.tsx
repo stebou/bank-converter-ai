@@ -2,6 +2,27 @@
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 
+// Types TypeScript pour remplacer 'any'
+interface Square {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+}
+
+interface HorizontalLine {
+  id: string;
+  y: number;
+  delay: number;
+}
+
+interface VerticalLine {
+  id: string;
+  x: number;
+  delay: number;
+}
+
 // Composant optimisé pour un carré lumineux
 const FastSquare = ({
   x,
@@ -89,9 +110,9 @@ const FastVerticalLine = ({ x, delay }: { x: number; delay: number }) => (
 );
 
 const AnimatedGridBackground = () => {
-  const [squares, setSquares] = useState<any[]>([]);
-  const [horizontalLines, setHorizontalLines] = useState<any[]>([]);
-  const [verticalLines, setVerticalLines] = useState<any[]>([]);
+  const [squares, setSquares] = useState<Square[]>([]);
+  const [horizontalLines, setHorizontalLines] = useState<HorizontalLine[]>([]);
+  const [verticalLines, setVerticalLines] = useState<VerticalLine[]>([]);
 
   // Réduit le nombre d'éléments pour les performances
   const numSquares = 15;
@@ -100,7 +121,7 @@ const AnimatedGridBackground = () => {
 
   useEffect(() => {
     // Génération optimisée
-    const newSquares = Array.from({ length: numSquares }).map((_, i) => ({
+    const newSquares: Square[] = Array.from({ length: numSquares }).map((_, i) => ({
       id: `square-${i}`,
       x: Math.random() * 85,
       y: Math.random() * 85,
@@ -108,13 +129,13 @@ const AnimatedGridBackground = () => {
       delay: i * 0.1, // Délais échelonnés pour éviter les pics de calcul
     }));
 
-    const newHorizontalLines = Array.from({ length: numHorizontalLines }).map((_, i) => ({
+    const newHorizontalLines: HorizontalLine[] = Array.from({ length: numHorizontalLines }).map((_, i) => ({
       id: `h-line-${i}`,
       y: (i + 1) * (100 / (numHorizontalLines + 1)),
       delay: i * 0.15,
     }));
 
-    const newVerticalLines = Array.from({ length: numVerticalLines }).map((_, i) => ({
+    const newVerticalLines: VerticalLine[] = Array.from({ length: numVerticalLines }).map((_, i) => ({
       id: `v-line-${i}`,
       x: (i + 1) * (100 / (numVerticalLines + 1)),
       delay: i * 0.12,
