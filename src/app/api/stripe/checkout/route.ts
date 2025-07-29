@@ -31,8 +31,8 @@ async function getOrCreateUserInDb(clerkId: string) {
   // Le webhook de Clerk se chargera de mettre à jour l'e-mail et le nom plus tard.
   const newUser = await prisma.user.create({
     data: {
-      clerkId: clerkId,
-      email: '', 
+      clerkId,
+      email: '',
       name: '',
     },
   });
@@ -40,7 +40,6 @@ async function getOrCreateUserInDb(clerkId: string) {
   return newUser;
 }
 
-// Bonne pratique : Le type de retour de la fonction est explicitement défini
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await auth();
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const body = await req.json();
-    const { planId } = body;
+    const { planId } = body as { planId: string };
 
     // Vérifie que le planId existe et qu'il est une clé valide de notre objet PLANS
     if (!planId || !Object.keys(PLANS).includes(planId)) {
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const user = await getOrCreateUserInDb(userId);
 
     const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId ?? undefined, 
+      customer: user.stripeCustomerId ?? undefined,
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{
@@ -70,8 +69,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       success_url: `${req.nextUrl.origin}/dashboard?payment_success=true`,
       cancel_url: `${req.nextUrl.origin}/dashboard?payment_canceled=true`,
       metadata: {
-        userId: user.id, 
-        planId: planId,
+        userId: user.id,
+        planId,
       },
       allow_promotion_codes: true,
       billing_address_collection: 'required',
@@ -87,8 +86,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     console.error('[STRIPE_CHECKOUT_ERROR]', error);
     // Vérifie le type de l'erreur avant d'en extraire le message
     const errorMessage = error instanceof Error ? error.message : String(error);
+
     return NextResponse.json(
-      { error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR, details: errorMessage }, 
+      { error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR, details: errorMessage },
       { status: 500 }
     );
   }
