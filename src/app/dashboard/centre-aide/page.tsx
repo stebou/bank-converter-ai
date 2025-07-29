@@ -8,7 +8,7 @@ import { Search, ChevronDown, FileText, CreditCard, Shield, Settings, Mail, Mess
 const HelpCenterHeader = () => (
   <div className="text-center py-16 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-12">
     {/* L'apostrophe est maintenant corrigée dans la ligne suivante */}
-    <h1 className="text-4xl font-bold text-gray-900">Centre d&aposAide</h1>
+    <h1 className="text-4xl font-bold text-gray-900">Centre d Aide</h1>
     <p className="text-lg text-gray-600 mt-2">Comment pouvons-nous vous aider ?</p>
     <div className="mt-8 max-w-2xl mx-auto relative">
       <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
