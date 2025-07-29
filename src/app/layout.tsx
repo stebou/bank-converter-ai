@@ -1,7 +1,10 @@
+// Fichier : src/app/layout.tsx
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers } from './providers'; // Importe ton nouveau composant
+import { Providers } from './providers';
 import './globals.css';
+import CookieBanner from '@/components/CookieBanner'; // 1. Importer le composant
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,9 +21,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
-        {/* Enveloppe tes enfants avec le nouveau Provider */}
         <Providers>
           {children}
+          {/* 2. Ajouter la bannière ici, à l'intérieur du Provider mais après les enfants */}
+          <CookieBanner />
         </Providers>
       </body>
     </html>
