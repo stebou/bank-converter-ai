@@ -36,7 +36,7 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Crédits gratuits épuisés !</h2>
             <p className="text-gray-600 mb-6">
-              Passez au niveau supérieur. Créez un compte pour débloquer plus d'analyses chaque mois.
+              Passez au niveau supérieur. Créez un compte pour débloquer plus d analyses chaque mois.
             </p>
           </div>
 
@@ -59,7 +59,7 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
           
           <Link href="/sign-up">
             <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2 group">
-              <span>S'inscrire gratuitement</span>
+              <span>S inscrire gratuitement</span>
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </button>
           </Link>

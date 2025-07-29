@@ -53,10 +53,10 @@ const PricingSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            <Zap className="w-6 h-6 text-blue-600" /><span className="text-sm font-semibold uppercase tracking-wide">Tarifs boostés à l'IA</span>
+            <Zap className="w-6 h-6 text-blue-600" /><span className="text-sm font-semibold uppercase tracking-wide">Tarifs boostés à l IA</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">Choisissez votre puissance <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">IA</span></h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">De l'analyse basique à l'IA sur-mesure, trouvez le plan parfait pour automatiser vos relevés bancaires avec une précision révolutionnaire.</p>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">De l analyse basique à l IA sur-mesure, trouvez le plan parfait pour automatiser vos relevés bancaires avec une précision révolutionnaire.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {plans.map((plan) => {
@@ -106,7 +106,7 @@ const Footer = () => {
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl"><Brain className="w-6 h-6 text-white" /></div>
               <div><h3 className="text-xl font-bold">Bank Statement Converter IA</h3></div>
             </div>
-            <p className="text-gray-400 mb-6 leading-relaxed">La première solution qui utilise l'IA pour convertir vos relevés bancaires avec 99%+ de précision. Automatisez votre comptabilité en quelques clics.</p>
+            <p className="text-gray-400 mb-6 leading-relaxed">La première solution qui utilise l IA pour convertir vos relevés bancaires avec 99%+ de précision. Automatisez votre comptabilité en quelques clics.</p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors"><Twitter className="w-5 h-5" /></a>
               <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
@@ -114,8 +114,8 @@ const Footer = () => {
             </div>
           </div>
           <div><h4 className="text-lg font-semibold mb-6">Produit</h4><ul className="space-y-4"><li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Fonctionnalités</a></li><li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Tarifs</a></li><li><a href="#demo" className="text-gray-400 hover:text-white transition-colors">Démo en direct</a></li></ul></div>
-          <div><h4 className="text-lg font-semibold mb-6">Support</h4><ul className="space-y-4"><li><a href="#help" className="text-gray-400 hover:text-white transition-colors">Centre d'aide</a></li><li><a href="#contact" className="text-gray-400 hover:text-white transition-colors">Nous contacter</a></li><li><a href="#status" className="text-gray-400 hover:text-white transition-colors">Statut du service</a></li></ul></div>
-          <div><h4 className="text-lg font-semibold mb-6">Légal</h4><ul className="space-y-4"><li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">Politique de confidentialité</Link></li><li><a href="#terms" className="text-gray-400 hover:text-white transition-colors">Conditions d'utilisation</a></li><li><a href="#cookies" className="text-gray-400 hover:text-white transition-colors">Politique des cookies</a></li><li><a href="#gdpr" className="text-gray-400 hover:text-white transition-colors">Conformité RGPD</a></li><li><a href="#refund" className="text-gray-400 hover:text-white transition-colors">Politique de remboursement</a></li></ul></div>
+          <div><h4 className="text-lg font-semibold mb-6">Support</h4><ul className="space-y-4"><li><a href="#help" className="text-gray-400 hover:text-white transition-colors">Centre d aide</a></li><li><a href="#contact" className="text-gray-400 hover:text-white transition-colors">Nous contacter</a></li><li><a href="#status" className="text-gray-400 hover:text-white transition-colors">Statut du service</a></li></ul></div>
+          <div><h4 className="text-lg font-semibold mb-6">Légal</h4><ul className="space-y-4"><li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">Politique de confidentialité</Link></li><li><a href="#terms" className="text-gray-400 hover:text-white transition-colors">Conditions d utilisation</a></li><li><a href="#cookies" className="text-gray-400 hover:text-white transition-colors">Politique des cookies</a></li><li><a href="#gdpr" className="text-gray-400 hover:text-white transition-colors">Conformité RGPD</a></li><li><a href="#refund" className="text-gray-400 hover:text-white transition-colors">Politique de remboursement</a></li></ul></div>
         </div>
         <div className="border-t border-gray-800 mt-12 pt-8"><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="flex items-center space-x-3"><Mail className="w-5 h-5 text-blue-400" /><span className="text-gray-400">contact@bankstatement-ai.fr</span></div></div></div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center"><p className="text-gray-400">© 2024 Bank Statement Converter IA. Tous droits réservés.</p></div>
@@ -258,7 +258,7 @@ const BankStatementConverter = () => {
                     ) : (credits <= 0 && file) ? (
                       <span>Limite de crédits atteinte</span>
                     ) : (
-                      <><Brain className="w-5 h-5" /><span>Analyser avec l'IA</span></>
+                      <><Brain className="w-5 h-5" /><span>Analyser avec l IA</span></>
                     )}
                   </button>
                 </div>
@@ -280,7 +280,7 @@ const BankStatementConverter = () => {
                     <div className="flex items-center space-x-3 mb-6"><CheckCircle className="w-6 h-6 text-green-600" /><h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3></div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200"><div className="text-2xl font-bold text-green-700">{results.confidence}%</div><div className="text-sm text-green-600">Confiance IA</div></div>
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200"><div className="text-2xl font-bold text-blue-700">{results.processingTime}s</div><div className="text-sm text-blue-600">Temps d'analyse</div></div>
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200"><div className="text-2xl font-bold text-blue-700">{results.processingTime}s</div><div className="text-sm text-blue-600">Temps d analyse</div></div>
                       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200"><div className="text-2xl font-bold text-purple-700">€{results.aiCost}</div><div className="text-sm text-purple-600">Coût IA</div></div>
                       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200"><div className="text-2xl font-bold text-orange-700">{results.summary.anomaliesDetected}</div><div className="text-sm text-orange-600">Anomalies détectées</div></div>
                     </div>
@@ -318,7 +318,7 @@ const BankStatementConverter = () => {
               {!results && !processing && (
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
                   <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-500 mb-2">En attente d'une analyse</h3>
+                  <h3 className="text-lg font-medium text-gray-500 mb-2">En attente d une analyse</h3>
                   <p className="text-gray-400">Téléversez un relevé bancaire PDF pour commencer.</p>
                 </div>
               )}
@@ -327,11 +327,11 @@ const BankStatementConverter = () => {
           <PricingSection />
           <div id="demo" className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
             <h2 className="text-2xl font-bold mb-4">🚀 BankStatement - Mon Banquier IA</h2>
-            <p className="text-blue-100 max-w-3xl mx-auto">Pipeline IA complet : OCR → Détection banque → Analyse GPT-4 → Catégorisation → Détection d'anomalies. Dans la version de production, une intégration réelle avec OpenAI + Google Cloud Vision est utilisée.</p>
+            <p className="text-blue-100 max-w-3xl mx-auto">Pipeline IA complet : OCR → Détection banque → Analyse GPT-4 → Catégorisation → Détection d anomalies. Dans la version de production, une intégration réelle avec OpenAI + Google Cloud Vision est utilisée.</p>
             <div className="mt-6 flex justify-center space-x-8 text-sm">
               <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Pipeline IA complet</span></div>
               <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Score de confiance</span></div>
-              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Détection d'anomalies</span></div>
+              <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Détection d anomalies</span></div>
               <div className="flex items-center space-x-2"><CheckCircle className="w-5 h-5" /><span>Export structuré</span></div>
             </div>
           </div>
