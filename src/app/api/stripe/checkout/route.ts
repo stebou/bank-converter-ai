@@ -44,14 +44,13 @@ async function getOrCreateUserInDb(clerkId: string) {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await auth();
-    
     if (!userId) {
       return NextResponse.json({ error: ERROR_MESSAGES.UNAUTHORIZED }, { status: 401 });
     }
 
     const body = await req.json();
     const { planId } = body;
-    
+
     // Vérifie que le planId existe et qu'il est une clé valide de notre objet PLANS
     if (!planId || !Object.keys(PLANS).includes(planId)) {
       return NextResponse.json({ error: ERROR_MESSAGES.INVALID_PLAN }, { status: 400 });
@@ -79,18 +78,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!session.url) {
-        throw new Error(ERROR_MESSAGES.STRIPE_URL_MISSING);
+      throw new Error(ERROR_MESSAGES.STRIPE_URL_MISSING);
     }
 
     return NextResponse.json({ url: session.url });
 
-  } catch (error) {
-    // ✅ CORRECTION APPLIQUÉE ICI : On traite l'erreur comme 'unknown'
+  } catch (error: unknown) {
     console.error('[STRIPE_CHECKOUT_ERROR]', error);
-    
-    // Bonne pratique : On vérifie le type de l'erreur avant d'extraire le message
+    // Vérifie le type de l'erreur avant d'en extraire le message
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
     return NextResponse.json(
       { error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR, details: errorMessage }, 
       { status: 500 }
