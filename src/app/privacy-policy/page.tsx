@@ -1,8 +1,10 @@
 'use client';
 
+
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Eye, Lock, Database, Users, Mail, FileText } from 'lucide-react';
+
 
 const PrivacyPolicyPage = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-900">
@@ -21,12 +23,14 @@ const PrivacyPolicyPage = () => (
           <Link href="/" passHref>
             <button className="flex items-center space-x-2 bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 font-medium border border-white/20 transition-all">
               <ArrowLeft className="w-4 h-4" />
-              <span>Retour à l'accueil</span>
+              {/* Correction de l'erreur 24:31 */}
+              <span>Retour à l&apos;accueil</span>
             </button>
           </Link>
         </div>
       </div>
     </header>
+
 
     {/* Main Content */}
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -53,6 +57,7 @@ const PrivacyPolicyPage = () => (
         </div>
       </div>
 
+
       <div className="space-y-8">
         {/* Responsable du traitement */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
@@ -77,6 +82,7 @@ const PrivacyPolicyPage = () => (
           </div>
         </section>
 
+
         {/* Données collectées */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           <div className="flex items-start space-x-4 mb-6">
@@ -93,6 +99,7 @@ const PrivacyPolicyPage = () => (
             </div>
           </div>
         </section>
+
 
         {/* Finalité */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
@@ -113,6 +120,7 @@ const PrivacyPolicyPage = () => (
           </div>
         </section>
 
+
         {/* Base légale */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           <div className="flex items-start space-x-4 mb-6">
@@ -130,6 +138,7 @@ const PrivacyPolicyPage = () => (
             </div>
           </div>
         </section>
+
 
         {/* Conservation */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
@@ -153,7 +162,8 @@ const PrivacyPolicyPage = () => (
                   </tr>
                   <tr>
                     <td className="border px-2 py-2">Données compte</td>
-                    <td className="border px-2 py-2">Jusqu'à suppression du compte</td>
+                    {/* Correction de l'erreur 156:59 */}
+                    <td className="border px-2 py-2">Jusqu&apos;à suppression du compte</td>
                   </tr>
                   <tr>
                     <td className="border px-2 py-2">Données navigation</td>
@@ -169,6 +179,7 @@ const PrivacyPolicyPage = () => (
           </div>
         </section>
 
+
         {/* Droits RGPD */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           <div className="flex items-start space-x-4 mb-6">
@@ -178,9 +189,11 @@ const PrivacyPolicyPage = () => (
             <div>
               <h2 className="text-2xl font-bold mb-4">6. Vos droits</h2>
               <ul className="list-disc ml-5 space-y-1">
-                <li>Droit d'accès, de rectification, d'effacement</li>
+                {/* Correction des erreurs 181:28 et 181:55 */}
+                <li>Droit d&apos;accès, de rectification, d&apos;effacement</li>
                 <li>Droit de portabilité</li>
-                <li>Droit d'opposition, de limitation</li>
+                {/* Correction de l'erreur 183:28 */}
+                <li>Droit d&apos;opposition, de limitation</li>
                 <li>Retrait du consentement à tout moment</li>
                 <li>Droit de réclamation auprès de la CNIL</li>
               </ul>
@@ -190,6 +203,7 @@ const PrivacyPolicyPage = () => (
             </div>
           </div>
         </section>
+
 
         {/* Sécurité */}
         <section className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
@@ -208,6 +222,7 @@ const PrivacyPolicyPage = () => (
             </div>
           </div>
         </section>
+
 
         {/* Contact */}
         <section className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
@@ -229,17 +244,20 @@ const PrivacyPolicyPage = () => (
         </section>
       </div>
 
+
       {/* Back to top/home */}
       <div className="text-center mt-12">
         <Link href="/" passHref>
           <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center space-x-2 mx-auto">
             <ArrowLeft className="w-5 h-5" />
-            <span>Retour à l'accueil</span>
+            {/* Correction de l'erreur 237:29 */}
+            <span>Retour à l&apos;accueil</span>
           </button>
         </Link>
       </div>
     </main>
   </div>
 );
+
 
 export default PrivacyPolicyPage;

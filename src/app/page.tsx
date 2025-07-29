@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-// CORRECTION : 'Facebook' a été retiré des imports car il n'était pas utilisé.
-import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Target, TrendingUp, Check, Crown, Sparkles, ArrowRight, Menu, X, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react';
+// CORRECTION : Imports inutilisés (Target, TrendingUp, Phone, MapPin, Facebook) ont été retirés
+import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Check, Crown, Sparkles, ArrowRight, Menu, X, Mail, Twitter, Linkedin, Github } from 'lucide-react';
 import Link from 'next/link'; 
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
@@ -318,7 +318,6 @@ const BankStatementConverter = () => {
                       <table className="w-full">
                         <thead><tr className="border-b border-gray-200"><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Date</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Description</th><th className="text-right py-3 px-2 text-sm font-semibold text-gray-700">Montant</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Catégorie</th><th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">IA Score</th></tr></thead>
                         <tbody>
-                          {/* CORRECTION : Utilisation du type Transaction pour 'transaction' */}
                           {results.transactions.map((transaction: Transaction) => {
                             const rowClasses = `border-b border-gray-100 hover:bg-gray-50 ${transaction.anomalyScore > 5 ? 'bg-red-50 border-red-200' : ''}`;
                             const amountClasses = `py-3 px-2 text-sm font-semibold text-right ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`;

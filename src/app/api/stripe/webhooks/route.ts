@@ -1,51 +1,54 @@
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { PLANS } from '@/lib/plan';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-export async function POST(req: Request) {
+// Bonne pratique : Centraliser les messages pour la cohérence et la maintenance
+const WEBHOOK_MESSAGES = {
+  NO_SIGNATURE: 'Aucune signature Stripe fournie.',
+  SIGNATURE_VERIFICATION_FAILED: 'Échec de la vérification de la signature du webhook.',
+  PROCESSING_FAILED: 'Le traitement du webhook a échoué.',
+  SUCCESS: 'Webhook traité avec succès.'
+};
+
+/**
+ * Gère les événements entrants des webhooks Stripe pour les abonnements.
+ * @param req - La requête entrante contenant le corps du webhook et les en-têtes.
+ * @returns Une réponse JSON indiquant le statut du traitement.
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    // ✅ Next.js 14 App Router - Bonne méthode
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
 
     if (!signature) {
-      console.error('No stripe signature found');
-      return NextResponse.json(
-        { error: 'No signature provided' }, 
-        { status: 400 }
-      );
+      console.error(WEBHOOK_MESSAGES.NO_SIGNATURE);
+      return NextResponse.json({ error: WEBHOOK_MESSAGES.NO_SIGNATURE }, { status: 400 });
     }
 
     let event: Stripe.Event;
 
     try {
-      // ✅ Vérification signature Stripe
       event = stripe.webhooks.constructEvent(
         body,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET! // Le '!' indique à TS que cette variable existe
       );
-    } catch (error: any) {
-      console.error('Webhook signature verification failed:', error.message);
-      return NextResponse.json(
-        { error: `Webhook Error: ${error.message}` }, 
-        { status: 400 }
-      );
+    } catch (error) {
+      // ✅ CORRECTION 1 : On traite l'erreur comme 'unknown'
+      console.error(`❌ ${WEBHOOK_MESSAGES.SIGNATURE_VERIFICATION_FAILED}`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return NextResponse.json({ error: `${WEBHOOK_MESSAGES.SIGNATURE_VERIFICATION_FAILED}: ${errorMessage}` }, { status: 400 });
     }
 
-    console.log(`Processing event: ${event.type}`);
-
-    // ✅ Gestion des événements Stripe
+    // Gestion des différents types d'événements Stripe
     switch (event.type) {
-      case 'checkout.session.completed':
+      case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        
         if (session.metadata?.userId && session.metadata?.planId) {
           const planId = session.metadata.planId as keyof typeof PLANS;
           const plan = PLANS[planId];
-          
           await prisma.user.update({
             where: { id: session.metadata.userId },
             data: {
@@ -53,75 +56,66 @@ export async function POST(req: Request) {
               stripeSubscriptionId: session.subscription as string,
               subscriptionStatus: 'active',
               currentPlan: planId,
-              documentsLimit: plan.documentsLimit
-            }
+              documentsLimit: plan.documentsLimit,
+            },
           });
-
-          console.log(`✅ Subscription activated for user ${session.metadata.userId}`);
+          console.log(`✅ Abonnement activé pour l'utilisateur ${session.metadata.userId}`);
         }
         break;
+      }
 
-      case 'invoice.payment_succeeded':
+      case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        
-        // ✅ Gestion correcte du type selon documentation officielle
-        const subscriptionId = typeof invoice.subscription === 'string' 
-          ? invoice.subscription 
-          : invoice.subscription?.id;
-          
+        const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
         if (subscriptionId) {
           await prisma.user.updateMany({
             where: { stripeSubscriptionId: subscriptionId },
-            data: { subscriptionStatus: 'active' }
+            data: { subscriptionStatus: 'active' },
           });
-          
-          console.log(`✅ Payment succeeded for subscription ${subscriptionId}`);
+          console.log(`✅ Paiement réussi pour l'abonnement ${subscriptionId}`);
         }
         break;
+      }
 
-      case 'invoice.payment_failed':
+      case 'invoice.payment_failed': {
         const failedInvoice = event.data.object as Stripe.Invoice;
-        
-        // ✅ Gestion correcte du type selon documentation officielle
-        const failedSubscriptionId = typeof failedInvoice.subscription === 'string' 
-          ? failedInvoice.subscription 
-          : failedInvoice.subscription?.id;
-          
-        if (failedSubscriptionId) {
+        const subscriptionId = typeof failedInvoice.subscription === 'string' ? failedInvoice.subscription : failedInvoice.subscription?.id;
+        if (subscriptionId) {
           await prisma.user.updateMany({
-            where: { stripeSubscriptionId: failedSubscriptionId },
-            data: { subscriptionStatus: 'past_due' }
+            where: { stripeSubscriptionId: subscriptionId },
+            data: { subscriptionStatus: 'past_due' },
           });
-          
-          console.log(`❌ Payment failed for subscription ${failedSubscriptionId}`);
+          console.log(`❌ Échec de paiement pour l'abonnement ${subscriptionId}`);
         }
         break;
+      }
 
-      case 'customer.subscription.deleted':
+      case 'customer.subscription.deleted': {
         const deletedSub = event.data.object as Stripe.Subscription;
-        
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: deletedSub.id },
-          data: { 
+          data: {
             subscriptionStatus: 'canceled',
             currentPlan: 'free',
-            documentsLimit: PLANS.free.documentsLimit
-          }
+            documentsLimit: PLANS.free.documentsLimit,
+          },
         });
-        
-        console.log(`🚫 Subscription canceled: ${deletedSub.id}`);
+        console.log(`🚫 Abonnement annulé : ${deletedSub.id}`);
         break;
+      }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.warn(`Unhandled event type: ${event.type}`);
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ message: WEBHOOK_MESSAGES.SUCCESS, received: true });
 
-  } catch (error: any) {
-    console.error('Webhook processing error:', error);
+  } catch (error) {
+    // ✅ CORRECTION 2 : On traite l'erreur principale comme 'unknown'
+    console.error(`[STRIPE_WEBHOOK_ERROR] ${WEBHOOK_MESSAGES.PROCESSING_FAILED}`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Webhook processing failed' }, 
+      { error: WEBHOOK_MESSAGES.PROCESSING_FAILED, details: errorMessage },
       { status: 500 }
     );
   }

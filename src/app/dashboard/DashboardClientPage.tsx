@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, Brain, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
+// CORRECTION : 'FileText' et 'Brain' ont été retirés car ils n'étaient pas utilisés.
+import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 // --- Types ---
+// Il est préférable de définir les types en dehors du composant pour la clarté.
 type DocumentType = {
-  id: number;
+  id: string | number; // L'ID peut être une chaîne de caractères (depuis la BDD) ou un nombre (simulation)
   filename: string;
   date: string;
   confidence: number;
@@ -28,8 +30,11 @@ type CreditsStatusProps = {
   credits: number;
 };
 
+// Les props pour le composant de page principal.
+// Il reçoit le nom de l'utilisateur et la liste initiale des documents depuis le serveur.
 type DashboardClientPageProps = {
   userName: string;
+  initialDocuments: DocumentType[];
 };
 
 // --- SOUS-COMPOSANTS DU DASHBOARD ---
@@ -54,7 +59,7 @@ const UploadModule: React.FC<UploadModuleProps> = ({ onUpload, processing, file,
           </label>
           {file && <p className="mt-2 text-gray-500">{file.name}</p>}
         </div>
-        <button onClick={onUpload} disabled={processing || !file} className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+        <button onClick={onUpload} disabled={processing || !file} className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
           {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
           Téléverser
         </button>
@@ -78,7 +83,7 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {documents.length > 0 ? documents.map((doc: DocumentType) => (
+          {documents.length > 0 ? documents.map((doc) => (
             <tr key={doc.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{doc.filename}</td>
               <td className="px-6 py-4 whitespace-nowrap text-gray-600">{doc.date}</td>
@@ -93,7 +98,8 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
             <tr>
               <td colSpan={5} className="text-center py-16 text-gray-500">
                 <p>Aucun document traité pour le moment.</p>
-                <p className="text-xs mt-1">Utilisez le module d'upload pour commencer.</p>
+                {/* CORRECTION : L'apostrophe a été remplacée par &apos; */}
+                <p className="text-xs mt-1">Utilisez le module d&apos;upload pour commencer.</p>
               </td>
             </tr>
           )}
@@ -119,15 +125,20 @@ const CreditsStatus: React.FC<CreditsStatusProps> = ({ credits }) => (
   </div>
 );
 
-export default function DashboardClientPage({ userName }: DashboardClientPageProps) {
-  const [documents, setDocuments] = useState<DocumentType[]>([]);
+export default function DashboardClientPage({ userName, initialDocuments = [] }: DashboardClientPageProps) {
+  // L'état est initialisé avec les documents passés depuis le serveur
+  const [documents, setDocuments] = useState<DocumentType[]>(initialDocuments);
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
-  const credits = 10 - documents.length; // Simulation
+  
+  // La logique des crédits est maintenant cohérente avec les données affichées
+  const credits = 10 - documents.length; 
 
   const handleUpload = async () => {
     if (!file) return;
     setProcessing(true);
+    // Dans une application réelle, ceci serait un appel API pour uploader le fichier
+    // et créer une entrée dans la base de données. L'API retournerait le nouveau document.
     setTimeout(() => {
       const newDoc: DocumentType = {
         id: Date.now(),
@@ -136,7 +147,7 @@ export default function DashboardClientPage({ userName }: DashboardClientPagePro
         confidence: 97.3,
         anomalies: Math.random() > 0.8 ? 1 : 0,
       };
-      setDocuments((prev: DocumentType[]) => [newDoc, ...prev]);
+      setDocuments((prev) => [newDoc, ...prev]);
       setFile(null);
       setProcessing(false);
     }, 2000);
@@ -153,24 +164,15 @@ export default function DashboardClientPage({ userName }: DashboardClientPagePro
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
           <div className="p-3 bg-blue-100 rounded-lg"><BarChart2 className="w-6 h-6 text-blue-600" /></div>
-          <div>
-            <p className="text-sm text-gray-600">Documents traités</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </div>
+          <div><p className="text-sm text-gray-600">Documents traités</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
           <div className="p-3 bg-red-100 rounded-lg"><AlertCircle className="w-6 h-6 text-red-600" /></div>
-          <div>
-            <p className="text-sm text-gray-600">Anomalies détectées</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.anomalies}</p>
-          </div>
+          <div><p className="text-sm text-gray-600">Anomalies détectées</p><p className="text-2xl font-bold text-gray-900">{stats.anomalies}</p></div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
           <div className="p-3 bg-green-100 rounded-lg"><CheckCircle className="w-6 h-6 text-green-600" /></div>
-          <div>
-            <p className="text-sm text-gray-600">Crédits restants</p>
-            <p className="text-2xl font-bold text-gray-900">{credits}</p>
-          </div>
+          <div><p className="text-sm text-gray-600">Crédits restants</p><p className="text-2xl font-bold text-gray-900">{credits}</p></div>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

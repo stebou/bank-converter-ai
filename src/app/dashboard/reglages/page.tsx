@@ -23,9 +23,6 @@ const SettingsHeader = () => (
   </header>
 );
 
-// Système d'onglets pour la navigation
-// (Supprimé car la version typée de Tabs est définie plus bas)
-
 // --- CONTENU DES ONGLETS ---
 
 const AccountTab = () => (
@@ -72,13 +69,13 @@ const SecurityTab = () => (
         Activer la 2FA
       </button>
     </div>
-    {/* On pourrait ajouter ici la liste des sessions actives */}
   </div>
 );
 
 const BillingTab = () => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-    <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l'abonnement</h3>
+    {/* CORRECTION 1 : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
+    <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l&apos;abonnement</h3>
     <div className="space-y-4">
       <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
         <p className="font-medium text-gray-700">Plan actuel</p>
@@ -105,8 +102,10 @@ const AppearanceTab = () => {
 
     return (
          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thème de l'application</h3>
-            <p className="text-sm text-gray-600 mb-6">Choisissez votre préférence d'affichage.</p>
+            {/* CORRECTION 2 : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thème de l&apos;application</h3>
+            {/* CORRECTION 3 : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
+            <p className="text-sm text-gray-600 mb-6">Choisissez votre préférence d&apos;affichage.</p>
             <div className="flex space-x-4">
                 <button onClick={() => setTheme('light')} className={`flex-1 p-4 border-2 rounded-lg flex flex-col items-center justify-center transition-all ${theme === 'light' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
                     <Sun className="w-8 h-8 text-gray-700 mb-2"/>
@@ -167,7 +166,6 @@ export default function SettingsPage() {
     <div className="p-8 max-w-4xl mx-auto">
       <SettingsHeader />
       <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
       <div>
         {activeTab === 'account' && <AccountTab />}
         {activeTab === 'security' && <SecurityTab />}

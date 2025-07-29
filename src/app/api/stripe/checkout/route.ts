@@ -4,65 +4,95 @@ import { prisma } from '@/lib/prisma';
 import { PLANS } from '@/lib/plan';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+// Bonne pratique : Centraliser les messages pour éviter les chaînes de caractères "magiques"
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Accès non autorisé.',
+  INVALID_PLAN: 'Le plan sélectionné est invalide.',
+  INTERNAL_SERVER_ERROR: 'Une erreur interne est survenue.',
+  STRIPE_URL_MISSING: "La création de la session Stripe n'a pas retourné d'URL."
+};
+
+/**
+ * Récupère un utilisateur depuis la base de données ou le crée s'il n'existe pas encore.
+ * Cette fonction est réutilisable et clarifie la logique de la fonction POST.
+ * @param clerkId - L'ID de l'utilisateur fourni par Clerk.
+ * @returns L'objet utilisateur de la base de données.
+ */
+async function getOrCreateUserInDb(clerkId: string) {
+  const existingUser = await prisma.user.findUnique({
+    where: { clerkId },
+  });
+
+  if (existingUser) {
+    return existingUser;
+  }
+
+  // Crée l'utilisateur avec des valeurs par défaut.
+  // Le webhook de Clerk se chargera de mettre à jour l'e-mail et le nom plus tard.
+  const newUser = await prisma.user.create({
+    data: {
+      clerkId: clerkId,
+      email: '', 
+      name: '',
+    },
+  });
+
+  return newUser;
+}
+
+// Bonne pratique : Le type de retour de la fonction est explicitement défini
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    // ✅ Next.js 14 + Clerk moderne
     const { userId } = await auth();
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: ERROR_MESSAGES.UNAUTHORIZED }, { status: 401 });
     }
 
-    const { planId } = await req.json();
+    const body = await req.json();
+    const { planId } = body;
     
-    // Validation du plan
-    if (!planId || !(planId in PLANS)) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    // Vérifie que le planId existe et qu'il est une clé valide de notre objet PLANS
+    if (!planId || !Object.keys(PLANS).includes(planId)) {
+      return NextResponse.json({ error: ERROR_MESSAGES.INVALID_PLAN }, { status: 400 });
     }
 
-    const plan = PLANS[planId as keyof typeof PLANS];
-    
-    // ✅ Trouver ou créer l'utilisateur
-    let user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    });
+    const planToSubscribe = PLANS[planId as keyof typeof PLANS];
+    const user = await getOrCreateUserInDb(userId);
 
-    if (!user) {
-      // Créer l'utilisateur s'il n'existe pas
-      user = await prisma.user.create({
-        data: {
-          clerkId: userId,
-          email: '', // Sera mis à jour par webhook Clerk
-          name: '',
-        }
-      });
-    }
-
-    // ✅ Créer la session Stripe Checkout
     const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId || undefined,
+      customer: user.stripeCustomerId ?? undefined, 
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{
-        price: plan.stripePriceId,
+        price: planToSubscribe.stripePriceId,
         quantity: 1,
       }],
-      success_url: `${req.nextUrl.origin}/dashboard?success=true`,
-      cancel_url: `${req.nextUrl.origin}/pricing?canceled=true`,
+      success_url: `${req.nextUrl.origin}/dashboard?payment_success=true`,
+      cancel_url: `${req.nextUrl.origin}/dashboard?payment_canceled=true`,
       metadata: {
-        userId: user.id,
+        userId: user.id, 
         planId: planId,
       },
       allow_promotion_codes: true,
       billing_address_collection: 'required',
     });
 
+    if (!session.url) {
+        throw new Error(ERROR_MESSAGES.STRIPE_URL_MISSING);
+    }
+
     return NextResponse.json({ url: session.url });
 
-  } catch (error: any) {
-    console.error('Stripe checkout error:', error);
+  } catch (error) {
+    // ✅ CORRECTION APPLIQUÉE ICI : On traite l'erreur comme 'unknown'
+    console.error('[STRIPE_CHECKOUT_ERROR]', error);
+    
+    // Bonne pratique : On vérifie le type de l'erreur avant d'extraire le message
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     return NextResponse.json(
-      { error: 'Internal Server Error' }, 
+      { error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR, details: errorMessage }, 
       { status: 500 }
     );
   }
