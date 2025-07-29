@@ -20,16 +20,18 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   // Étape 1 : Vérifier la signature pour s'assurer que la requête vient bien de Stripe.
-  try {
+try {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Si la signature est invalide, on rejette la requête.
     // Le littéral de modèle ici est correctement formaté.
-    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
+    const errorMessage =
+      error instanceof Error ? error.message : 'Erreur inconnue';
+    return new NextResponse(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
 
   // Étape 2 : Gérer l'événement spécifique qui nous intéresse.
