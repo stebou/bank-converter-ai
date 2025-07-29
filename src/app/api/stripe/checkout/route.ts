@@ -13,6 +13,14 @@ const ERROR_MESSAGES = {
 };
 
 /**
+ * Interface définissant la structure attendue du corps de la requête POST.
+ * Cela permet de typer le résultat de req.json() et d'éviter l'erreur `no-explicit-any`.
+ */
+interface CheckoutRequestBody {
+  planId: string;
+}
+
+/**
  * Récupère un utilisateur depuis la base de données ou le crée s'il n'existe pas encore.
  * Cette fonction est réutilisable et clarifie la logique de la fonction POST.
  * @param clerkId - L'ID de l'utilisateur fourni par Clerk.
@@ -47,8 +55,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: ERROR_MESSAGES.UNAUTHORIZED }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { planId } = body as { planId: string };
+    // --- CORRECTION APPLIQUÉE ICI ---
+    // On déstructure directement `planId` et on type le corps de la requête avec notre interface.
+    // Cela remplace les deux lignes précédentes et résout l'erreur ESLint.
+    const { planId } = await req.json() as CheckoutRequestBody;
 
     // Vérifie que le planId existe et qu'il est une clé valide de notre objet PLANS
     if (!planId || !Object.keys(PLANS).includes(planId)) {
