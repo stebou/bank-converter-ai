@@ -75,7 +75,7 @@ const SecurityTab = () => (
 const BillingTab = () => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
     {/* Correction 1 : Apostrophe remplacée */}
-    <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l'abonnement</h3>
+    <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l&aposabonnement</h3>
     <div className="space-y-4">
       <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
         <p className="font-medium text-gray-700">Plan actuel</p>
@@ -103,9 +103,9 @@ const AppearanceTab = () => {
     return (
          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             {/* Correction 2 : Apostrophe remplacée */}
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thème de l'application</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thème de l&aposapplication</h3>
             {/* Correction 3 : Apostrophe remplacée */}
-            <p className="text-sm text-gray-600 mb-6">Choisissez votre préférence d'affichage.</p>
+            <p className="text-sm text-gray-600 mb-6">Choisissez votre préférence d&aposaffichage.</p>
             <div className="flex space-x-4">
                 <button onClick={() => setTheme('light')} className={`flex-1 p-4 border-2 rounded-lg flex flex-col items-center justify-center transition-all ${theme === 'light' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
                     <Sun className="w-8 h-8 text-gray-700 mb-2"/>

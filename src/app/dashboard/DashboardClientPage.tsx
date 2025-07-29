@@ -95,7 +95,7 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
               <td colSpan={5} className="text-center py-16 text-gray-500">
                 <p>Aucun document traité pour le moment.</p>
                 {/* L'erreur est corrigée sur la ligne suivante */}
-                <p className="text-xs mt-1">Utilisez le module d'upload pour commencer.</p>
+                <p className="text-xs mt-1">Utilisez le module d&aposupload pour commencer.</p>
               </td>
             </tr>
           )}

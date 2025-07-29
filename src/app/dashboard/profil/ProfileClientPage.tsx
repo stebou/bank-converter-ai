@@ -80,7 +80,7 @@ const ProfileInfoForm = ({ initialName, initialEmail }: ProfileInfoFormProps) =>
                 </div>
                 <div>
                     {/* Correction 1 : Apostrophe remplacée */}
-                    <label className="text-sm font-medium text-gray-700">Adresse e'mail</label>
+                    <label className="text-sm font-medium text-gray-700">Adresse email</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!isEditing} className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"/>
                 </div>
             </div>
@@ -116,7 +116,7 @@ const NotificationPreferences = () => {
                     <div>
                         <p className="font-medium text-gray-800">Analyse terminée</p>
                         {/* Correction 2 : Apostrophe remplacée */}
-                        <p className="text-sm text-gray-500">Être notifié quand l'IA a fini son travail.</p>
+                        <p className="text-sm text-gray-500">Être notifié quand l&aposIA a fini son travail.</p>
                     </div>
                     <button onClick={() => togglePref('analysisComplete')} className={`w-12 h-6 rounded-full flex items-center transition-colors ${prefs.analysisComplete ? 'bg-blue-600' : 'bg-gray-300'}`}>
                         <span className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${prefs.analysisComplete ? 'translate-x-6' : 'translate-x-1'}`}></span>

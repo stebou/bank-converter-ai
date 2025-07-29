@@ -30,7 +30,7 @@ const Sidebar = () => (
       <Link href="/dashboard/centre-aide" className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
         <HelpCircle className="w-5 h-5 mr-3" />
         {/* L'apostrophe est maintenant corrigée dans la ligne ci-dessous */}
-        Centre d'aide
+        Centre d&aposaide
       </Link>
     </nav>
     <div className="px-4 py-6 border-t border-gray-200">
