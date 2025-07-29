@@ -5,7 +5,7 @@ import { LayoutDashboard, User, Settings, HelpCircle, Brain, LogOut } from 'luci
 import { SignOutButton } from '@clerk/nextjs'; 
 import Link from 'next/link';
 
-// Composant Sidebar (mis à jour)
+// Composant Sidebar
 const Sidebar = () => (
   <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
     <div className="h-20 flex items-center justify-center px-6 border-b border-gray-200">
@@ -15,7 +15,7 @@ const Sidebar = () => (
       </div>
     </div>
     <nav className="flex-1 px-4 py-6 space-y-2">
-       <Link href="/dashboard" className="flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
+      <Link href="/dashboard" className="flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
         <LayoutDashboard className="w-5 h-5 mr-3" />
         Dashboard
       </Link>
@@ -29,22 +29,22 @@ const Sidebar = () => (
       </Link>
       <Link href="/dashboard/centre-aide" className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
         <HelpCircle className="w-5 h-5 mr-3" />
-        {/* CORRECTION : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
-        Centre d&apos;aide
+        {/* L'apostrophe a été remplacée par son équivalent HTML ' */}
+        Centre d'aide
       </Link>
     </nav>
     <div className="px-4 py-6 border-t border-gray-200">
-       <SignOutButton>
-          <button className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <LogOut className="w-5 h-5 mr-3" />
-            Déconnexion
-          </button>
-       </SignOutButton>
+      <SignOutButton>
+        <button className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <LogOut className="w-5 h-5 mr-3" />
+          Déconnexion
+        </button>
+      </SignOutButton>
     </div>
   </aside>
 );
 
-// Le reste du fichier DashboardLayout ne change pas
+// Le reste du fichier DashboardLayout
 export default function DashboardLayout({
   children,
 }: {

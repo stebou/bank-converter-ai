@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-// CORRECTION : Import du composant Image de Next.js
 import Image from 'next/image'; 
 import { User, Lock, Bell, Edit, Save, Camera } from 'lucide-react';
 
@@ -32,19 +31,21 @@ type NotificationPrefs = {
 // --- SOUS-COMPOSANTS DE LA PAGE PROFIL ---
 
 const ProfileHeader = () => (
-    <header className="mb-10"><h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1><p className="text-gray-600 mt-1">Gérez vos informations personnelles et vos paramètres de sécurité.</p></header>
+    <header className="mb-10">
+        <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
+        <p className="text-gray-600 mt-1">Gérez vos informations personnelles et vos paramètres de sécurité.</p>
+    </header>
 );
 
 const AvatarSection = ({ name, email, avatar }: AvatarSectionProps) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center gap-6">
             <div className="relative">
-                {/* CORRECTION : Remplacement de <img> par <Image /> pour l'optimisation */}
                 <Image 
                   src={avatar} 
                   alt="Avatar utilisateur" 
-                  width={96} // La taille en pixels (w-24 = 96px)
-                  height={96} // La taille en pixels (h-24 = 96px)
+                  width={96}
+                  height={96}
                   className="rounded-full object-cover border-4 border-white shadow-md" 
                 />
                 <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition transform hover:scale-110">
@@ -78,8 +79,7 @@ const ProfileInfoForm = ({ initialName, initialEmail }: ProfileInfoFormProps) =>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={!isEditing} className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"/>
                 </div>
                 <div>
-                    {/* CORRECTION : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
-                    <label className="text-sm font-medium text-gray-700">Adresse e&apos;mail</label>
+                    <label className="text-sm font-medium text-gray-700">Adresse e'mail</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!isEditing} className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"/>
                 </div>
             </div>
@@ -114,7 +114,7 @@ const NotificationPreferences = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="font-medium text-gray-800">Analyse terminée</p>
-                        <p className="text-sm text-gray-500">Être notifié quand l&apos;IA a fini son travail.</p>
+                        <p className="text-sm text-gray-500">Être notifié quand l'IA a fini son travail.</p>
                     </div>
                     <button onClick={() => togglePref('analysisComplete')} className={`w-12 h-6 rounded-full flex items-center transition-colors ${prefs.analysisComplete ? 'bg-blue-600' : 'bg-gray-300'}`}>
                         <span className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${prefs.analysisComplete ? 'translate-x-6' : 'translate-x-1'}`}></span>

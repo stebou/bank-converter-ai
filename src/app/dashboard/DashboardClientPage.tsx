@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-// CORRECTION : 'FileText' et 'Brain' ont été retirés car ils n'étaient pas utilisés.
+// CORRECTION : 'FileText' et 'Brain' ont été retirés de la ligne suivante.
 import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 // --- Types ---
-// Il est préférable de définir les types en dehors du composant pour la clarté.
 type DocumentType = {
-  id: string | number; // L'ID peut être une chaîne de caractères (depuis la BDD) ou un nombre (simulation)
+  id: string | number;
   filename: string;
   date: string;
   confidence: number;
@@ -30,8 +29,6 @@ type CreditsStatusProps = {
   credits: number;
 };
 
-// Les props pour le composant de page principal.
-// Il reçoit le nom de l'utilisateur et la liste initiale des documents depuis le serveur.
 type DashboardClientPageProps = {
   userName: string;
   initialDocuments: DocumentType[];
@@ -98,8 +95,8 @@ const DocumentHistoryTable: React.FC<DocumentHistoryTableProps> = ({ documents }
             <tr>
               <td colSpan={5} className="text-center py-16 text-gray-500">
                 <p>Aucun document traité pour le moment.</p>
-                {/* CORRECTION : L'apostrophe a été remplacée par &apos; */}
-                <p className="text-xs mt-1">Utilisez le module d&apos;upload pour commencer.</p>
+                {/* CORRECTION : L'apostrophe est maintenant échappée */}
+                <p className="text-xs mt-1">Utilisez le module d'upload pour commencer.</p>
               </td>
             </tr>
           )}
@@ -126,19 +123,16 @@ const CreditsStatus: React.FC<CreditsStatusProps> = ({ credits }) => (
 );
 
 export default function DashboardClientPage({ userName, initialDocuments = [] }: DashboardClientPageProps) {
-  // L'état est initialisé avec les documents passés depuis le serveur
   const [documents, setDocuments] = useState<DocumentType[]>(initialDocuments);
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
   
-  // La logique des crédits est maintenant cohérente avec les données affichées
   const credits = 10 - documents.length; 
 
   const handleUpload = async () => {
     if (!file) return;
     setProcessing(true);
-    // Dans une application réelle, ceci serait un appel API pour uploader le fichier
-    // et créer une entrée dans la base de données. L'API retournerait le nouveau document.
+    
     setTimeout(() => {
       const newDoc: DocumentType = {
         id: Date.now(),

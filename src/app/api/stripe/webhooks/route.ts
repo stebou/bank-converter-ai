@@ -4,7 +4,6 @@ import { PLANS } from '@/lib/plan';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Bonne pratique : Centraliser les messages pour la cohérence et la maintenance
 const WEBHOOK_MESSAGES = {
   NO_SIGNATURE: 'Aucune signature Stripe fournie.',
   SIGNATURE_VERIFICATION_FAILED: 'Échec de la vérification de la signature du webhook.',
@@ -12,11 +11,6 @@ const WEBHOOK_MESSAGES = {
   SUCCESS: 'Webhook traité avec succès.'
 };
 
-/**
- * Gère les événements entrants des webhooks Stripe pour les abonnements.
- * @param req - La requête entrante contenant le corps du webhook et les en-têtes.
- * @returns Une réponse JSON indiquant le statut du traitement.
- */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.text();
@@ -33,27 +27,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       event = stripe.webhooks.constructEvent(
         body,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET! // Le '!' indique à TS que cette variable existe
+        process.env.STRIPE_WEBHOOK_SECRET!
       );
-    } catch (error) {
-      // ✅ CORRECTION 1 : On traite l'erreur comme 'unknown'
+    } catch (error: unknown) { // --- CORRECTION 1 : Type 'any' remplacé par 'unknown' ---
       console.error(`❌ ${WEBHOOK_MESSAGES.SIGNATURE_VERIFICATION_FAILED}`, error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during signature verification.';
       return NextResponse.json({ error: `${WEBHOOK_MESSAGES.SIGNATURE_VERIFICATION_FAILED}: ${errorMessage}` }, { status: 400 });
     }
 
-    // Gestion des différents types d'événements Stripe
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.metadata?.userId && session.metadata?.planId) {
+        
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+
+        if (session.metadata?.userId && session.metadata?.planId && customerId && subscriptionId) {
           const planId = session.metadata.planId as keyof typeof PLANS;
           const plan = PLANS[planId];
           await prisma.user.update({
             where: { id: session.metadata.userId },
             data: {
-              stripeCustomerId: session.customer as string,
-              stripeSubscriptionId: session.subscription as string,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
               subscriptionStatus: 'active',
               currentPlan: planId,
               documentsLimit: plan.documentsLimit,
@@ -110,10 +106,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ message: WEBHOOK_MESSAGES.SUCCESS, received: true });
 
-  } catch (error) {
-    // ✅ CORRECTION 2 : On traite l'erreur principale comme 'unknown'
+  } catch (error: unknown) { // --- CORRECTION 2 : Type 'any' remplacé par 'unknown' ---
     console.error(`[STRIPE_WEBHOOK_ERROR] ${WEBHOOK_MESSAGES.PROCESSING_FAILED}`, error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error during webhook processing.';
     return NextResponse.json(
       { error: WEBHOOK_MESSAGES.PROCESSING_FAILED, details: errorMessage },
       { status: 500 }

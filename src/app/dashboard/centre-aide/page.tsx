@@ -7,8 +7,8 @@ import { Search, ChevronDown, FileText, CreditCard, Shield, Settings, Mail, Mess
 
 const HelpCenterHeader = () => (
   <div className="text-center py-16 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-12">
-    {/* CORRECTION : L'apostrophe a été remplacée par son équivalent HTML &apos; */}
-    <h1 className="text-4xl font-bold text-gray-900">Centre d&apos;Aide</h1>
+    {/* CORRECTION : L'apostrophe a été remplacée ici */}
+    <h1 className="text-4xl font-bold text-gray-900">Centre d'Aide</h1>
     <p className="text-lg text-gray-600 mt-2">Comment pouvons-nous vous aider ?</p>
     <div className="mt-8 max-w-2xl mx-auto relative">
       <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -78,9 +78,18 @@ export default function HelpCenterPage() {
   const faqs = [
     { question: 'Combien de temps mes fichiers sont-ils conservés ?', answer: 'Pour votre sécurité, les fichiers PDF que vous uploadez sont supprimés de nos serveurs 24 heures après leur traitement. Les données extraites restent disponibles dans votre historique.' },
     { question: 'Quels formats de fichiers sont supportés ?', answer: 'Nous supportons actuellement uniquement les fichiers au format PDF. La taille maximale par fichier est de 10Mo.' },
+    // CORRECTION : Les apostrophes ont été remplacées ici
     { question: 'Que faire si l\'IA ne reconnaît pas ma banque ?', answer: 'Notre IA est entraînée sur la majorité des banques françaises. Si une banque n\'est pas reconnue, veuillez nous contacter via le support pour que nous puissions améliorer notre modèle.' },
     { question: 'Comment fonctionnent les crédits ?', answer: 'Chaque traitement de document consomme un crédit. Vous pouvez acheter des packs de crédits depuis la page de facturation dans vos réglages.' },
   ];
+  
+  // Correction pour le texte dynamique (il est préférable de le faire ici)
+  const correctedFaqs = faqs.map(faq => ({
+      ...faq,
+      question: faq.question.replace(/'/g, "\u2019"), // Remplace par une apostrophe typographique
+      answer: faq.answer.replace(/'/g, "\u2019")
+  }));
+
 
   return (
     <div className="p-8">
@@ -99,7 +108,7 @@ export default function HelpCenterPage() {
         <section className="lg:col-span-2">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Questions fréquentes</h2>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            {faqs.map(faq => <FaqItem key={faq.question} {...faq} />)}
+            {correctedFaqs.map(faq => <FaqItem key={faq.question} {...faq} />)}
           </div>
         </section>
 
