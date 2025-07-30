@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { User, Shield, CreditCard, Sun, Moon, Trash2, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Shield, CreditCard, Sun, Moon, Trash2, Download, Loader2, ExternalLink } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 // Données simulées pour l'exemple
 const userSettings = {
@@ -72,30 +73,161 @@ const SecurityTab = () => (
   </div>
 );
 
-const BillingTab = () => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-    {/* Correction 1 : Apostrophe remplacée */}
-    <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l&aposabonnement</h3>
-    <div className="space-y-4">
-      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-        <p className="font-medium text-gray-700">Plan actuel</p>
-        <p className="font-semibold text-blue-600">{userSettings.plan}</p>
+interface SubscriptionData {
+  currentPlan: string;
+  subscriptionStatus: string | null;
+  documentsLimit: number;
+  documentsUsed: number;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+}
+
+const BillingTab = () => {
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const { user } = useUser();
+
+  useEffect(() => {
+    // Récupérer les données d'abonnement de l'utilisateur
+    const fetchSubscriptionData = async () => {
+      try {
+        const response = await fetch('/api/user/subscription');
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptionData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchSubscriptionData();
+    }
+  }, [user]);
+
+  const handleManageSubscription = async () => {
+    if (!subscriptionData?.stripeCustomerId) return;
+    
+    setPortalLoading(true);
+    try {
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          customerId: subscriptionData.stripeCustomerId,
+          returnUrl: window.location.href 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Impossible d\'accéder au portail de gestion');
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Chargement des informations de facturation...</span>
+        </div>
       </div>
-       <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-        <p className="font-medium text-gray-700">Prochaine facture</p>
-        <p className="font-semibold text-gray-800">{userSettings.billingDate}</p>
+    );
+  }
+
+  const hasActiveSubscription = subscriptionData?.subscriptionStatus === 'active';
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Gestion de l&apos;abonnement</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <p className="font-medium text-gray-700">Plan actuel</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-blue-600">
+                {subscriptionData?.currentPlan || 'Gratuit'}
+              </p>
+              {hasActiveSubscription && (
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                  Actif
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {subscriptionData && (
+            <>
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-gray-700">Crédits disponibles</p>
+                <p className="font-semibold text-gray-800">
+                  {subscriptionData.documentsLimit - subscriptionData.documentsUsed} / {subscriptionData.documentsLimit}
+                </p>
+              </div>
+              
+              {hasActiveSubscription && subscriptionData.stripeCustomerId && (
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-gray-700">Statut de l&apos;abonnement</p>
+                  <p className="font-semibold text-green-600 capitalize">
+                    {subscriptionData.subscriptionStatus}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-        <p className="font-medium text-gray-700">Moyen de paiement</p>
-        <p className="font-semibold text-gray-800">{userSettings.paymentMethod.type} se terminant par {userSettings.paymentMethod.last4}</p>
-      </div>
-      <div className="pt-4 flex space-x-4">
-        <button className="flex-1 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Changer de plan</button>
-        <button className="flex-1 bg-gray-200 text-gray-800 font-semibold py-2.5 rounded-lg hover:bg-gray-300 transition">Voir les factures</button>
+
+      {/* Portail de gestion Stripe */}
+      {hasActiveSubscription && subscriptionData?.stripeCustomerId && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
+          <h4 className="text-lg font-semibold text-gray-900 mb-3">Portail de gestion</h4>
+          <p className="text-sm text-gray-600 mb-4">
+            Gérez votre abonnement, mettez à jour vos moyens de paiement, téléchargez vos factures et plus encore.
+          </p>
+          <button 
+            onClick={handleManageSubscription}
+            disabled={portalLoading}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            {portalLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <ExternalLink className="w-5 h-5" />
+            )}
+            {portalLoading ? 'Ouverture...' : 'Ouvrir le portail de gestion'}
+          </button>
+        </div>
+      )}
+
+      {/* Aide et support */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h4 className="text-lg font-semibold text-gray-900 mb-3">Besoin d&apos;aide ?</h4>
+        <p className="text-sm text-gray-600 mb-4">
+          Questions sur votre facturation ? Contactez notre équipe support.
+        </p>
+        <button className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition">
+          Contacter le support
+        </button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AppearanceTab = () => {
     const [theme, setTheme] = useState(userSettings.theme);
