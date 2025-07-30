@@ -14,6 +14,8 @@ export async function GET() {
         stripeSubscriptionId: true,
         subscriptionStatus: true,
         currentPlan: true,
+        documentsLimit: true,
+        documentsUsed: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
