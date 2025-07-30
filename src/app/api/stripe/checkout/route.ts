@@ -54,8 +54,8 @@ export async function POST(req: Request) {
         userId: user.id,
         planId: plan.id, // On passe l'ID de notre plan au webhook
       },
-      success_url: `${dashboardUrl.origin}?payment=success`,
-      cancel_url: `${dashboardUrl.origin}?payment=cancelled`,
+      success_url: `${dashboardUrl.origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${dashboardUrl.origin}/dashboard?payment=cancelled`,
     });
 
     return NextResponse.json({ url: session.url });

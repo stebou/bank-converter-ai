@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, FileText, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import type { DocumentType } from '@/types';
+import PaymentSuccessModal from '@/components/PaymentSuccessModal';
 
 // Types spécifiques à ce composant client
 type DashboardClientPageProps = {
@@ -177,6 +179,44 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<{planName: string; amount: number} | null>(null);
+  
+  const searchParams = useSearchParams();
+
+  // Vérifier les paramètres de paiement au chargement
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
+
+    if (paymentStatus === 'success' && sessionId) {
+      // Récupérer les détails du paiement
+      fetch(`/api/stripe/session?session_id=${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setPaymentDetails({
+              planName: data.plan.name,
+              amount: data.plan.price
+            });
+            setShowPaymentSuccess(true);
+            
+            // Nettoyer l'URL pour éviter de réafficher la modal au refresh
+            window.history.replaceState({}, '', '/dashboard');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching payment details:', error);
+          // Afficher quand même la modal avec des données par défaut
+          setPaymentDetails({
+            planName: 'Plan Souscrit',
+            amount: 0
+          });
+          setShowPaymentSuccess(true);
+          window.history.replaceState({}, '', '/dashboard');
+        });
+    }
+  }, [searchParams]);
 
   const handleUpload = async () => {
     if (!file) return;
@@ -251,6 +291,16 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           <CreditsStatus credits={credits} />
         </div>
       </div>
+
+      {/* Modal de succès de paiement */}
+      {showPaymentSuccess && paymentDetails && (
+        <PaymentSuccessModal
+          isOpen={showPaymentSuccess}
+          onClose={() => setShowPaymentSuccess(false)}
+          planName={paymentDetails.planName}
+          amount={paymentDetails.amount}
+        />
+      )}
     </div>
   );
 }
