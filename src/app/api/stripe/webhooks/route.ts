@@ -13,9 +13,9 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
 
   // On récupère la signature Stripe depuis les en-têtes.
-  // Dans les Route Handlers de Next.js, `headers()` est synchrone.
-  const headerList = headers();
-  const signature = (await headerList).get('Stripe-Signature') as string;
+  // Dans Next.js 15, headers() retourne une Promise
+  const headerList = await headers();
+  const signature = headerList.get('Stripe-Signature') as string;
 
   let event: Stripe.Event;
 

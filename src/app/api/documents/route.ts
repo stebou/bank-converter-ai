@@ -2,7 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma'; // Assurez-vous que c'est bien `prisma` qui est exporté
+import { prisma } from '@/lib/prisma';
+// Import dynamique sera fait dans la fonction
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,6 +33,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
+    // Extraire le texte du PDF si c'est un PDF
+    let extractedText: string | null = null;
+    if (file.type === 'application/pdf') {
+      try {
+        // Import dynamique pour éviter les erreurs de build
+        const pdfParse = (await import('pdf-parse')).default;
+        const buffer = await file.arrayBuffer();
+        const pdfData = await pdfParse(Buffer.from(buffer));
+        extractedText = pdfData.text;
+        console.log('[PDF_EXTRACTION] Extracted text length:', extractedText.length);
+      } catch (error) {
+        console.error('[PDF_EXTRACTION] Error extracting PDF text:', error);
+        // Continue without extracted text
+      }
+    }
+
     const [newDocument] = await prisma.$transaction([
       prisma.document.create({
         data: {
@@ -41,6 +58,12 @@ export async function POST(req: NextRequest) {
           originalName: file.name,
           fileSize: file.size,
           mimeType: file.type,
+          extractedText: extractedText,
+          // Données simulées pour la démonstration
+          aiConfidence: Math.random() * 30 + 70, // 70-100%
+          anomaliesDetected: Math.floor(Math.random() * 3),
+          totalTransactions: Math.floor(Math.random() * 50) + 10,
+          bankDetected: ['BNP Paribas', 'Crédit Agricole', 'LCL', 'Société Générale'][Math.floor(Math.random() * 4)],
         },
       }),
       prisma.user.update({
@@ -56,7 +79,11 @@ export async function POST(req: NextRequest) {
       }),
     ]);
     
-    return NextResponse.json(newDocument, { status: 201 });
+    return NextResponse.json({
+      ...newDocument,
+      hasExtractedText: !!extractedText,
+      extractedTextLength: extractedText?.length || 0,
+    }, { status: 201 });
 
   } catch (error) {
     console.error('[DOCUMENTS_POST_ERROR]', error);

@@ -31,6 +31,7 @@ model User {
   // --- Relations ---
   documents          Document[]
   payments           Payment[]
+  chatMessages       ChatMessage[]
 
   @@map("users")
 }
@@ -51,12 +52,35 @@ model Document {
   ocrConfidence     Float?
   totalTransactions Int      @default(0)
   anomaliesDetected Int      @default(0)
+  
+  // --- Nouveau : Contenu extrait pour l'IA ---
+  extractedText     String?  // Texte complet extrait du PDF
+  summary           String?  // Résumé généré par l'IA
+  lastAnalyzedAt    DateTime? // Dernière analyse IA
 
   // --- Relations ---
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions      Transaction[]
+  chatMessages      ChatMessage[]
 
   @@map("documents")
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  documentId  String?  // Optionnel, pour les questions spécifiques à un document
+  role        String   // "user" ou "assistant"
+  content     String   // Le message
+  tokens      Int?     // Nombre de tokens utilisés
+  cost        Float?   // Coût du message
+  createdAt   DateTime @default(now())
+
+  // --- Relations ---
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
 }
 
 model Transaction {

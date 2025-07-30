@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import type { DocumentType } from '@/types';
 import PaymentSuccessModal from '@/components/PaymentSuccessModal';
 import SubscriptionBadge from '@/components/SubscriptionBadge';
+import AIChat from '@/components/AIChat';
 
 // Types spécifiques à ce composant client
 type SubscriptionData = {
@@ -409,6 +410,17 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           amount={paymentDetails.amount}
         />
       )}
+
+      {/* Assistant IA Chat */}
+      <AIChat 
+        documents={documents.map(doc => ({
+          id: doc.id,
+          filename: doc.filename,
+          originalName: doc.originalName,
+          createdAt: doc.createdAt.toISOString(),
+        }))}
+        userId="current-user" // L'authentification se fait côté serveur dans l'API
+      />
     </div>
   );
 }
