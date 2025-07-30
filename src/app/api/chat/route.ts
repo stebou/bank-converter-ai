@@ -159,15 +159,33 @@ ${document.extractedText ? `CONTENU EXTRAIT:\n${document.extractedText.substring
   } catch (error: unknown) {
     console.error('[CHAT_API] Error:', error);
     
-    if (error instanceof Error && error.message.includes('API key')) {
-      return NextResponse.json({ 
-        error: 'Configuration IA manquante' 
-      }, { status: 500 });
+    // Gestion spécifique de l'erreur OpenAI quota exceeded
+    if (error instanceof Error) {
+      if (error.message.includes('429') || error.message.includes('quota')) {
+        return NextResponse.json({ 
+          content: "⚠️ **Quota OpenAI dépassé**\n\nLe service d'IA a atteint sa limite d'utilisation. Cela peut arriver si:\n- La clé API OpenAI n'a plus de crédit\n- Le quota mensuel/journalier est dépassé\n\n**Solutions:**\n1. Vérifiez votre compte OpenAI sur platform.openai.com\n2. Ajoutez des crédits à votre compte\n3. Contactez l'administrateur\n\nEn attendant, vous pouvez toujours uploader des documents pour les analyser plus tard.",
+          tokensUsed: 0,
+          cost: 0,
+          documentContext: false,
+        });
+      }
+      
+      if (error.message.includes('API key')) {
+        return NextResponse.json({ 
+          content: "❌ **Configuration manquante**\n\nLa clé API OpenAI n'est pas configurée correctement. Contactez l'administrateur.",
+          tokensUsed: 0,
+          cost: 0,
+          documentContext: false,
+        });
+      }
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
     return NextResponse.json({ 
-      error: `Erreur du service IA: ${errorMessage}` 
-    }, { status: 500 });
+      content: `❌ **Erreur du service IA**\n\n${errorMessage}\n\nVeuillez réessayer dans quelques instants.`,
+      tokensUsed: 0,
+      cost: 0,
+      documentContext: false,
+    });
   }
 }
