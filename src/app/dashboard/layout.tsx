@@ -2,11 +2,37 @@
 
 'use client'; // <-- ÉTAPE 1: On transforme le layout en composant client
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation'; // <-- On importe le hook pour le lien actif
 import { LayoutDashboard, User, Settings, HelpCircle, Brain, LogOut, ChevronLeft, Menu } from 'lucide-react';
-import { SignOutButton, UserButton } from '@clerk/nextjs'; 
+import { SignOutButton, UserButton, useUser } from '@clerk/nextjs'; 
 import Link from 'next/link';
+
+// Fonction pour synchroniser l'utilisateur avec la base de données
+async function syncUserToDatabase(clerkUser: {
+  id: string;
+  emailAddresses: Array<{ emailAddress: string }>;
+  firstName?: string | null;
+  lastName?: string | null;
+}) {
+  try {
+    const response = await fetch('/api/sync-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkId: clerkUser.id,
+        email: clerkUser.emailAddresses[0]?.emailAddress,
+        name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'Utilisateur'
+      })
+    });
+    
+    if (response.ok) {
+      console.log('[SYNC] User synchronized successfully');
+    }
+  } catch (error) {
+    console.error('[SYNC] Error syncing user:', error);
+  }
+}
 
 // --- NOUVELLE SIDEBAR MODULAIRE (déplacée à l'intérieur pour la clarté) ---
 const Sidebar = ({ isOpen, toggle }: { isOpen: boolean, toggle: () => void }) => {
@@ -61,10 +87,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user, isLoaded } = useUser();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  // Synchroniser l'utilisateur dès que les données Clerk sont chargées
+  useEffect(() => {
+    if (isLoaded && user) {
+      syncUserToDatabase(user);
+    }
+  }, [isLoaded, user]);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
