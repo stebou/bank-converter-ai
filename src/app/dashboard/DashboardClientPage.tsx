@@ -336,6 +336,13 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
+        
+        // Gestion spéciale pour les documents rejetés
+        if (errorData.error === 'DOCUMENT_REJECTED') {
+          alert(`🚫 Document rejeté\n\n${errorData.message}\n\nVeuillez uploader un relevé bancaire ou une facture valide.`);
+          return; // Ne pas décrémenter les crédits car ils ont été remboursés
+        }
+        
         throw new Error(errorData.error);
       }
 
