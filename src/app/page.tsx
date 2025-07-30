@@ -101,7 +101,7 @@ const TestimonialsSection = () => {
           viewport={{ once: true, margin: "-100px" }}
         >
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-            Des résultats concrets, d'équipes comme la vôtre.
+            Des résultats concrets, d équipes comme la vôtre.
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Découvrez comment nos clients transforment leur processus comptable avec notre IA
