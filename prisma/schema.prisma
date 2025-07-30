@@ -30,6 +30,7 @@ model User {
 
   // --- Relations ---
   documents          Document[]
+  payments           Payment[]
 
   @@map("users")
 }
@@ -89,5 +90,26 @@ model Plan {
   stripeProductId String  @unique @map("stripe_product_id")
   stripePriceId   String  @unique @map("stripe_price_id")
 
+  // --- Relations ---
+  payments        Payment[]
+
   @@map("plans")
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  planId          String?
+  stripeSessionId String?  @unique @map("stripe_session_id")
+  amount          Float
+  currency        String   @default("eur")
+  status          String   // "pending", "completed", "failed"
+  description     String
+  createdAt       DateTime @default(now())
+  
+  // --- Relations ---
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            Plan?    @relation(fields: [planId], references: [id])
+
+  @@map("payments")
 }

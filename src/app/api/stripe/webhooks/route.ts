@@ -34,36 +34,108 @@ try {
     return new NextResponse(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
 
-  // Étape 2 : Gérer l'événement spécifique qui nous intéresse.
+  console.log(`[STRIPE_WEBHOOK] Received event: ${event.type}`);
+
+  // Étape 2 : Gérer les différents événements
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const { userId, planId } = session.metadata || {};
 
     if (!userId || !planId) {
-      // Sécurité : on ne fait rien si les informations nécessaires sont manquantes.
+      console.error('[STRIPE_WEBHOOK] Missing metadata:', { userId, planId });
       return new NextResponse('Métadonnées userId ou planId manquantes', { status: 400 });
     }
 
     try {
-      // On récupère les détails du plan acheté depuis notre propre base de données.
-      const plan = await prisma.plan.findUnique({ where: { id: planId } });
+      // Récupérer les détails du plan et de l'utilisateur
+      const [user, plan] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId } }),
+        prisma.plan.findUnique({ where: { id: planId } })
+      ]);
 
-      if (!plan) {
-        console.error(`Webhook a reçu un paiement pour un plan inexistant. ID: ${planId}`);
-        // On renvoie une erreur mais on répond 200 à Stripe pour ne pas qu'il réessaie.
-        return new NextResponse(`Plan non trouvé: ${planId}`, { status: 404 });
+      if (!user || !plan) {
+        console.error(`[STRIPE_WEBHOOK] User or plan not found:`, { userId, planId });
+        return new NextResponse(`User or plan not found`, { status: 404 });
       }
 
-      // On met à jour les crédits de l'utilisateur.
-      await prisma.user.update({
-        where: { id: userId },
-        data: { documentsLimit: { increment: plan.documentsLimit } },
+      // Mettre à jour le customer ID si pas déjà fait
+      if (!user.stripeCustomerId && session.customer) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId: session.customer as string }
+        });
+      }
+
+      // Si c'est un abonnement, récupérer l'ID de subscription
+      if (session.mode === 'subscription' && session.subscription) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            stripeSubscriptionId: session.subscription as string,
+            subscriptionStatus: 'active',
+            currentPlan: plan.name,
+          }
+        });
+        console.log(`[STRIPE_WEBHOOK] Subscription created for user ${userId}`);
+      } else {
+        // Paiement unique - ajouter des crédits
+        await prisma.user.update({
+          where: { id: userId },
+          data: { documentsLimit: { increment: plan.documentsLimit } },
+        });
+        console.log(`[STRIPE_WEBHOOK] Credits added for user ${userId}`);
+      }
+
+      // Créer un enregistrement de paiement
+      await prisma.payment.create({
+        data: {
+          userId: user.id,
+          planId: plan.id,
+          stripeSessionId: session.id,
+          amount: (session.amount_total || 0) / 100, // Convertir de centimes en euros
+          currency: session.currency || 'eur',
+          status: 'completed',
+          description: `Achat du plan: ${plan.name}`,
+        }
       });
 
     } catch (error) {
-      console.error("Erreur de base de données dans le webhook Stripe :", error);
-      // En cas d'erreur de BDD, on veut que Stripe réessaie plus tard.
+      console.error("[STRIPE_WEBHOOK] Database error:", error);
       return new NextResponse('Erreur de base de données lors de la mise à jour.', { status: 500 });
+    }
+  }
+
+  // Gérer les événements d'abonnement
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    
+    try {
+      await prisma.user.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: {
+          subscriptionStatus: subscription.status,
+        }
+      });
+      console.log(`[STRIPE_WEBHOOK] Subscription ${subscription.id} updated to ${subscription.status}`);
+    } catch (error) {
+      console.error("[STRIPE_WEBHOOK] Error updating subscription:", error);
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription;
+    
+    try {
+      await prisma.user.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: {
+          subscriptionStatus: 'cancelled',
+          stripeSubscriptionId: null,
+        }
+      });
+      console.log(`[STRIPE_WEBHOOK] Subscription ${subscription.id} cancelled`);
+    } catch (error) {
+      console.error("[STRIPE_WEBHOOK] Error cancelling subscription:", error);
     }
   }
 
