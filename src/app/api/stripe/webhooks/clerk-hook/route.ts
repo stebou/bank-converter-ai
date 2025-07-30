@@ -3,7 +3,13 @@ import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+
+// Types TypeScript pour les données de mise à jour
+interface UserUpdateData {
+  name?: string;
+  email?: string;
+}
 
 export async function POST(req: NextRequest) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -98,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const updateData: any = {
+      const updateData: UserUpdateData = {
         name: `${first_name || ''} ${last_name || ''}`.trim(),
       };
 
