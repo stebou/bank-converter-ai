@@ -1,6 +1,14 @@
 // Route de debug pour tester le webhook et la DB
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+
+interface DatabaseTest {
+  status: 'SUCCESS' | 'ERROR';
+  users_count?: number;
+  sample_users?: Array<{ id: string; clerkId: string; email: string }>;
+  error?: string;
+  code?: string;
+}
 
 export async function GET() {
   const results = {
@@ -9,8 +17,7 @@ export async function GET() {
       DATABASE_URL: process.env.DATABASE_URL ? 'PRESENT' : 'MISSING',
       CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET ? 'PRESENT' : 'MISSING',
     },
-    database_test: null as any,
-    prisma_version: null as any,
+    database_test: null as DatabaseTest | null,
   };
 
   try {
@@ -33,12 +40,17 @@ export async function GET() {
       }))
     };
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[DEBUG] Database error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = error && typeof error === 'object' && 'code' in error 
+      ? String(error.code) 
+      : undefined;
+    
     results.database_test = {
       status: 'ERROR',
-      error: error.message,
-      code: error.code
+      error: errorMessage,
+      code: errorCode
     };
   } finally {
     await prisma.$disconnect();
@@ -47,7 +59,7 @@ export async function GET() {
   return NextResponse.json(results, { status: 200 });
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   console.log('[DEBUG] POST request received');
   
   try {
@@ -74,11 +86,12 @@ export async function POST(req: NextRequest) {
       message: 'Database operations successful' 
     });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[DEBUG] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: errorMessage 
     }, { status: 500 });
   }
 }
