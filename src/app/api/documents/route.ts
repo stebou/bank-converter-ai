@@ -39,9 +39,6 @@ export async function POST(req: NextRequest) {
       try {
         console.log('[PDF_EXTRACTION] Starting PDF text extraction...');
         
-        // Approche sécurisée pour éviter les erreurs Vercel
-        const buffer = await file.arrayBuffer();
-        
         // Créer un texte de base pour l'IA même sans extraction complète
         extractedText = `=== DOCUMENT BANCAIRE PDF ===
 Nom du fichier: ${file.name}

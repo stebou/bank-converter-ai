@@ -41,11 +41,11 @@ const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onC
         <div className="text-sm text-green-600">Confiance IA</div>
       </div>
       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-        <div className="text-2xl font-bold text-orange-700">{document.anomaliesDetected}</div>
+        <div className="text-2xl font-bold text-orange-700">{document.anomaliesDetected ?? 0}</div>
         <div className="text-sm text-orange-600">Anomalies détectées</div>
       </div>
       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
-        <div className="text-2xl font-bold text-blue-700">{document.totalTransactions}</div>
+        <div className="text-2xl font-bold text-blue-700">{document.totalTransactions ?? 0}</div>
         <div className="text-sm text-blue-600">Transactions</div>
       </div>
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
@@ -341,10 +341,17 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
 
       const newDocument = await response.json();
       
-      setDocuments((prev) => [newDocument, ...prev]);
+      // Convertir les dates string en objets Date
+      const processedDocument = {
+        ...newDocument,
+        createdAt: new Date(newDocument.createdAt),
+        lastAnalyzedAt: newDocument.lastAnalyzedAt ? new Date(newDocument.lastAnalyzedAt) : null,
+      };
+      
+      setDocuments((prev) => [processedDocument, ...prev]);
       setCredits((prev) => prev - 1); 
       setFile(null);
-      setSelectedDocument(newDocument);
+      setSelectedDocument(processedDocument);
 
     } catch (error) {
       console.error("Erreur d'upload:", error);

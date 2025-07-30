@@ -20,4 +20,13 @@ export type DocumentType = {
 
   totalTransactions: number;
   anomaliesDetected: number; // <-- Changé de 'anomalies: number'
+  
+  // Nouveaux champs ajoutés
+  extractedText: string | null;
+  summary: string | null;
+  lastAnalyzedAt: Date | null;
+  
+  // Champs optionnels retournés par l'API
+  hasExtractedText?: boolean;
+  extractedTextLength?: number;
 };
