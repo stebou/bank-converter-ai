@@ -259,6 +259,22 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
   
   const searchParams = useSearchParams();
 
+  // Fonction pour rafraîchir les données utilisateur
+  const refreshUserData = async () => {
+    try {
+      const response = await fetch('/api/user/subscription');
+      if (response.ok) {
+        const userData = await response.json();
+        // Mettre à jour les crédits et les données d'abonnement
+        const newCredits = userData.documentsLimit - userData.documentsUsed;
+        setCredits(newCredits);
+        console.log('[REFRESH] Updated credits:', newCredits);
+      }
+    } catch (error) {
+      console.error('[REFRESH] Error refreshing user data:', error);
+    }
+  };
+
   // Vérifier les paramètres de paiement au chargement
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
@@ -276,6 +292,11 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
             });
             setShowPaymentSuccess(true);
             
+            // IMPORTANT : Rafraîchir les données utilisateur après paiement
+            setTimeout(() => {
+              refreshUserData();
+            }, 2000); // Attendre 2 secondes pour que le webhook se termine
+            
             // Nettoyer l'URL pour éviter de réafficher la modal au refresh
             window.history.replaceState({}, '', '/dashboard');
           }
@@ -288,6 +309,12 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
             amount: 0
           });
           setShowPaymentSuccess(true);
+          
+          // Rafraîchir les données même en cas d'erreur
+          setTimeout(() => {
+            refreshUserData();
+          }, 2000);
+          
           window.history.replaceState({}, '', '/dashboard');
         });
     }
