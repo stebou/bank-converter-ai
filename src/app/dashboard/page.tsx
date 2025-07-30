@@ -36,12 +36,23 @@ export default async function DashboardPage() {
   });
 
   const credits = dbUser ? (dbUser.documentsLimit - dbUser.documentsUsed) : 5;
+  
+  // Données d'abonnement
+  const subscriptionData = {
+    currentPlan: dbUser?.currentPlan || 'free',
+    subscriptionStatus: dbUser?.subscriptionStatus || null,
+    documentsLimit: dbUser?.documentsLimit || 5,
+    documentsUsed: dbUser?.documentsUsed || 0,
+    stripeCustomerId: dbUser?.stripeCustomerId || null,
+    stripeSubscriptionId: dbUser?.stripeSubscriptionId || null,
+  };
 
   return (
     <DashboardClientPage 
       userName={firstName} 
       initialDocuments={documents}
       initialCredits={credits}
+      subscriptionData={subscriptionData}
     />
   );
 }

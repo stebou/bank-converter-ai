@@ -1,16 +1,27 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, FileText, X } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, FileText, X, Settings } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type { DocumentType } from '@/types';
 import PaymentSuccessModal from '@/components/PaymentSuccessModal';
+import SubscriptionBadge from '@/components/SubscriptionBadge';
 
 // Types spécifiques à ce composant client
+type SubscriptionData = {
+  currentPlan: string;
+  subscriptionStatus: string | null;
+  documentsLimit: number;
+  documentsUsed: number;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+};
+
 type DashboardClientPageProps = {
   userName: string;
   initialDocuments: DocumentType[];
   initialCredits: number;
+  subscriptionData: SubscriptionData;
 };
 
 // --- COMPOSANT : VUE DÉTAILLÉE DU DOCUMENT ---
@@ -125,9 +136,10 @@ const DocumentHistoryTable = ({ documents, onSelectDocument }: { documents: Docu
   </div>
 );
 
-// --- COMPOSANT : STATUT DES CRÉDITS (avec l'ID du plan réel) ---
-const CreditsStatus = ({ credits }: { credits: number }) => {
+// --- COMPOSANT : STATUT DES CRÉDITS ET ABONNEMENT ---
+const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscriptionData: SubscriptionData }) => {
   const [loading, setLoading] = useState(false);
+  const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
 
   const handlePurchase = async () => {
     setLoading(true);
@@ -156,24 +168,87 @@ const CreditsStatus = ({ credits }: { credits: number }) => {
     }
   };
 
+  const handleManageSubscription = async () => {
+    setLoading(true);
+    try {
+      // Créer un lien vers le portail client Stripe
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          customerId: subscriptionData.stripeCustomerId,
+          returnUrl: window.location.href 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Impossible d\'accéder au portail de gestion');
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Gérer l abonnement</h3>
-      <div className="text-center">
-        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{credits}</p>
-        <p className="text-sm text-gray-500 mt-1">crédits d analyse restants</p>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        {hasActiveSubscription ? 'Mon Abonnement' : 'Gérer l&apos;abonnement'}
+      </h3>
+      
+      {/* Affichage des crédits */}
+      <div className="text-center mb-6">
+        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          {credits}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">crédits d&apos;analyse restants</p>
+        
+        {hasActiveSubscription && (
+          <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <p className="text-sm font-medium text-green-800">
+              Plan {subscriptionData.currentPlan}
+            </p>
+            <p className="text-xs text-green-600">
+              {subscriptionData.documentsUsed}/{subscriptionData.documentsLimit} analyses utilisées
+            </p>
+          </div>
+        )}
       </div>
-      <button onClick={handlePurchase} disabled={loading} className="w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed">
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-        Souscrire à l abonnement Smart
-      </button>
+
+      {/* Bouton d'action */}
+      {hasActiveSubscription ? (
+        <button 
+          onClick={handleManageSubscription} 
+          disabled={loading} 
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings className="w-5 h-5" />}
+          Gérer mon abonnement
+        </button>
+      ) : (
+        <button 
+          onClick={handlePurchase} 
+          disabled={loading} 
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+          Souscrire à l&apos;abonnement Smart
+        </button>
+      )}
     </div>
   );
 };
 
 
 // --- COMPOSANT DE PAGE PRINCIPAL ---
-export default function DashboardClientPage({ userName, initialDocuments, initialCredits }: DashboardClientPageProps) {
+export default function DashboardClientPage({ userName, initialDocuments, initialCredits, subscriptionData }: DashboardClientPageProps) {
   const [documents, setDocuments] = useState<DocumentType[]>(initialDocuments);
   const [credits, setCredits] = useState(initialCredits);
   const [file, setFile] = useState<File | null>(null);
@@ -259,8 +334,14 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
   return (
     <div className="p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-full">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Bonjour, {userName} !</h1>
-        <p className="text-gray-600 mt-1">Bienvenue sur votre tableau de bord d analyse IA.</p>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">Bonjour, {userName} !</h1>
+          <SubscriptionBadge 
+            currentPlan={subscriptionData.currentPlan} 
+            subscriptionStatus={subscriptionData.subscriptionStatus} 
+          />
+        </div>
+        <p className="text-gray-600">Bienvenue sur votre tableau de bord d&apos;analyse IA.</p>
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -288,7 +369,7 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           <DocumentHistoryTable documents={documents} onSelectDocument={setSelectedDocument} />
         </div>
         <div className="lg:col-span-1">
-          <CreditsStatus credits={credits} />
+          <CreditsStatus credits={credits} subscriptionData={subscriptionData} />
         </div>
       </div>
 
