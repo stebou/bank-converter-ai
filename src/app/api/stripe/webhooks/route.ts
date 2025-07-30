@@ -66,7 +66,7 @@ try {
         });
       }
 
-      // Si c'est un abonnement, récupérer l'ID de subscription
+      // Si c'est un abonnement, récupérer l'ID de subscription ET ajouter les crédits
       if (session.mode === 'subscription' && session.subscription) {
         await prisma.user.update({
           where: { id: userId },
@@ -74,9 +74,13 @@ try {
             stripeSubscriptionId: session.subscription as string,
             subscriptionStatus: 'active',
             currentPlan: plan.name,
+            // CORRECTION : Ajouter les crédits du plan aux crédits existants
+            documentsLimit: plan.documentsLimit,
+            // Réinitialiser le compteur d'utilisation pour le nouvel abonnement
+            documentsUsed: 0,
           }
         });
-        console.log(`[STRIPE_WEBHOOK] Subscription created for user ${userId}`);
+        console.log(`[STRIPE_WEBHOOK] Subscription created for user ${userId} with ${plan.documentsLimit} credits`);
       } else {
         // Paiement unique - ajouter des crédits
         await prisma.user.update({
