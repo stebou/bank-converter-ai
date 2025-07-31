@@ -18,36 +18,36 @@ export async function POST(req: NextRequest) {
 
     console.log('[VALIDATE_DOCUMENT] Processing file:', file.name, file.size, file.type);
 
-    // Convertir le PDF en image pour analyse GPT-4 Vision
-    let base64Image: string | null = null;
+    // Convertir le PDF pour analyse GPT-4 Vision
+    let base64Pdf: string | null = null;
     if (file.type === 'application/pdf') {
       try {
-        console.log('[VALIDATE_DOCUMENT] Starting PDF to image conversion...');
+        console.log('[VALIDATE_DOCUMENT] Starting PDF processing for GPT-4 Vision...');
         
         // Convertir le fichier en buffer
         const pdfBuffer = Buffer.from(await file.arrayBuffer());
         
-        // Convertir en image
-        base64Image = await convertPdfToImage(pdfBuffer);
+        // Traiter le PDF avec pdf-lib
+        base64Pdf = await convertPdfToImage(pdfBuffer);
         
-        if (base64Image) {
-          console.log('[VALIDATE_DOCUMENT] PDF successfully converted to image');
+        if (base64Pdf) {
+          console.log('[VALIDATE_DOCUMENT] PDF successfully processed for GPT-4 Vision');
         } else {
-          console.log('[VALIDATE_DOCUMENT] Failed to convert PDF to image, falling back to text analysis');
+          console.log('[VALIDATE_DOCUMENT] Failed to process PDF, falling back to filename analysis');
         }
         
       } catch (error) {
-        console.error('[VALIDATE_DOCUMENT] Error during PDF conversion:', error);
-        base64Image = null;
+        console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
+        base64Pdf = null;
       }
     }
 
     console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
-    console.log('[VALIDATE_DOCUMENT] - base64Image exists:', !!base64Image);
+    console.log('[VALIDATE_DOCUMENT] - base64Pdf exists:', !!base64Pdf);
     console.log('[VALIDATE_DOCUMENT] - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
-    // Faire l'analyse IA avec GPT-4 Vision si on a une image et la clé API
-    if (base64Image && process.env.OPENAI_API_KEY) {
+    // Faire l'analyse IA avec GPT-4 Vision si on a un PDF et la clé API
+    if (base64Pdf && process.env.OPENAI_API_KEY) {
       try {
         console.log('[VALIDATE_DOCUMENT] Starting GPT-4 Vision analysis...');
         
@@ -107,7 +107,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`
+                    url: `data:application/pdf;base64,${base64Pdf}`
                   }
                 }
               ]
@@ -190,8 +190,8 @@ Réponds UNIQUEMENT avec un JSON valide:
               anomaliesDetected: analysis.anomalies || 0,
               aiConfidence: analysis.confidence || 85,
               documentType: analysis.documentType,
-              hasExtractedText: !!base64Image,
-              extractedTextLength: base64Image?.length || 0,
+              hasExtractedText: !!base64Pdf,
+              extractedTextLength: base64Pdf?.length || 0,
               transactions: simulatedTransactions,
               processingTime: Math.random() * 2 + 1.5, // 1.5-3.5 secondes
               aiCost: Math.random() * 0.03 + 0.02, // 0.02-0.05€
@@ -271,8 +271,8 @@ Réponds UNIQUEMENT avec un JSON valide:
       anomaliesDetected: 0,
       aiConfidence: 85,
       documentType: 'document financier',
-      hasExtractedText: !!base64Image,
-      extractedTextLength: base64Image?.length || 0,
+      hasExtractedText: !!base64Pdf,
+      extractedTextLength: base64Pdf?.length || 0,
       transactions: fallbackTransactions,
       processingTime: 2.1,
       aiCost: 0.025,
