@@ -66,12 +66,17 @@ Note: Extraction de texte complète en cours de développement.
 L'IA peut analyser ce document de manière contextuelle.`;
 
         console.log('[VALIDATE_DOCUMENT] Generated text for validation');
+        console.log('[VALIDATE_DOCUMENT] Potential bank clues found:', potentialBankClues);
         
       } catch (error) {
         console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
         extractedText = `Document PDF: ${file.name} - Validation requise`;
       }
     }
+
+    console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
+    console.log('[VALIDATE_DOCUMENT] - extractedText exists:', !!extractedText);
+    console.log('[VALIDATE_DOCUMENT] - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
     // Faire l'analyse IA de validation si on a du texte et la clé API
     if (extractedText && process.env.OPENAI_API_KEY) {
@@ -146,6 +151,8 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
             
             const analysis = JSON.parse(cleanResponse);
             console.log('[VALIDATE_DOCUMENT] Parsed analysis:', analysis);
+            console.log('[VALIDATE_DOCUMENT] Bank name from AI:', analysis.bankName);
+            console.log('[VALIDATE_DOCUMENT] Document type:', analysis.documentType);
             
             // Vérifier si le document est valide
             if (analysis.isValidDocument === false) {
@@ -223,6 +230,32 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
     // Fallback si pas d'analyse IA - accepter le document avec données simulées
     console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI analysis)');
     
+    // Essayer d'utiliser les indices de banque même sans IA
+    const fileName = file.name.toLowerCase();
+    const potentialBankClues = [];
+    
+    // Même logique de détection que plus haut
+    if (fileName.includes('bnp') || fileName.includes('paribas')) potentialBankClues.push('BNP Paribas');
+    if (fileName.includes('credit') && fileName.includes('agricole')) potentialBankClues.push('Crédit Agricole');
+    if (fileName.includes('societe') || fileName.includes('generale') || fileName.includes('sg')) potentialBankClues.push('Société Générale');
+    if (fileName.includes('lcl') || fileName.includes('lyonnais')) potentialBankClues.push('LCL');
+    if (fileName.includes('credit') && fileName.includes('mutuel')) potentialBankClues.push('Crédit Mutuel');
+    if (fileName.includes('populaire') || fileName.includes('bp')) potentialBankClues.push('Banque Populaire');
+    if (fileName.includes('epargne') || fileName.includes('ce')) potentialBankClues.push('Caisse d\'Épargne');
+    if (fileName.includes('hsbc')) potentialBankClues.push('HSBC France');
+    if (fileName.includes('postale')) potentialBankClues.push('La Banque Postale');
+    if (fileName.includes('ing')) potentialBankClues.push('ING Direct');
+    if (fileName.includes('boursorama')) potentialBankClues.push('Boursorama');
+    if (fileName.includes('hello')) potentialBankClues.push('Hello bank!');
+    if (fileName.includes('n26')) potentialBankClues.push('N26');
+    if (fileName.includes('revolut')) potentialBankClues.push('Revolut');
+    if (fileName.includes('orange')) potentialBankClues.push('Orange Bank');
+    if (fileName.includes('fortuneo')) potentialBankClues.push('Fortuneo');
+    
+    const detectedBankName = potentialBankClues.length > 0 ? potentialBankClues[0] : 'Banque française détectée';
+    
+    console.log('[VALIDATE_DOCUMENT] Fallback bank detection:', detectedBankName);
+    
     // Générer quelques transactions basiques pour la démonstration
     const fallbackTransactions = [
       {
@@ -240,7 +273,7 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
         id: 2,
         date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         description: 'ACHAT CARTE BANCAIRE',
-        originalDesc: 'CB COMMERCE',
+        originalDesc: `CB ${detectedBankName.toUpperCase()}`,
         amount: -67.30,
         category: 'Dépenses',
         subcategory: 'Achat',
@@ -251,7 +284,7 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
     
     return NextResponse.json({
       success: true,
-      bankDetected: 'Document financier détecté',
+      bankDetected: detectedBankName,
       totalTransactions: 2,
       anomaliesDetected: 0,
       aiConfidence: 85,
