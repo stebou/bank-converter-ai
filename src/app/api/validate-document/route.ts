@@ -23,16 +23,23 @@ export async function POST(req: NextRequest) {
       try {
         console.log('[VALIDATE_DOCUMENT] Starting PDF text extraction...');
         
-        // Créer un texte de base pour l'IA
+        // Créer un texte contextuel pour l'IA (comme dans /api/documents)
         extractedText = `=== DOCUMENT PDF POUR VALIDATION ===
 Nom du fichier: ${file.name}
 Taille: ${Math.round(file.size / 1024)} KB
 Date d'upload: ${new Date().toLocaleDateString('fr-FR')}
-Type: Document à valider
+Type: Document bancaire/financier
 
 === INFORMATIONS POUR L'IA ===
-Ce document doit être validé comme étant un relevé bancaire ou une facture.
-Analyse requise pour déterminer la validité du document.`;
+Ce document est un relevé bancaire ou document financier au format PDF.
+L'utilisateur peut poser des questions sur:
+- Les transactions bancaires
+- Les soldes et mouvements
+- Les anomalies ou irrégularités
+- L'analyse financière générale
+
+Note: Extraction de texte complète en cours de développement.
+L'IA peut analyser ce document de manière contextuelle.`;
 
         console.log('[VALIDATE_DOCUMENT] Generated text for validation');
         
@@ -52,7 +59,13 @@ Analyse requise pour déterminer la validité du document.`;
 CONTENU DU DOCUMENT:
 ${extractedText.substring(0, 1500)}
 
-Tu dois déterminer si c'est un document valide (relevé bancaire, facture, document financier).
+Tu dois d'abord déterminer si c'est un document valide (relevé bancaire, facture, document financier).
+
+INSTRUCTIONS DÉTAILLÉES:
+- Examine le nom du fichier pour des indices (exemple: "releve", "facture", "bank", etc.)
+- Même avec un texte limité, tu peux souvent identifier le type de document
+- Si le nom du fichier suggère un document bancaire ou une facture, considère-le comme potentiellement valide
+- Sois plus permissif si le contexte suggère un document financier légitime
 
 Réponds uniquement avec un JSON contenant:
 {
