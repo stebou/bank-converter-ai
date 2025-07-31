@@ -1,7 +1,15 @@
-// Traitement PDF côté serveur sans appels HTTP internes (recommandation Vercel)
-// Intègre la logique de pdfplumber et PyMuPDF directement
+// Traitement PDF côté serveur avec PyMuPDF via subprocess Python
+// Utilise les librairies Python installées dans requirements.txt
 
-export async function processPdfServerSide(pdfBuffer: Buffer): Promise<{
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+const execAsync = promisify(exec);
+
+export async function processPdfServerSide(pdfBuffer: Buffer, filename?: string): Promise<{
   success: boolean;
   extracted_text: string;
   image_base64?: string;
@@ -13,36 +21,85 @@ export async function processPdfServerSide(pdfBuffer: Buffer): Promise<{
     found_keywords: string[];
     keyword_count: number;
     processing_method: string;
+    detected_bank?: string;
   };
   error?: string;
 }> {
-  console.log('[PDF_SERVER] Starting server-side PDF processing...');
+  console.log('[PDF_SERVER] Starting PyMuPDF-based PDF processing...');
   console.log('[PDF_SERVER] Buffer size:', pdfBuffer.length);
+  console.log('[PDF_SERVER] Filename:', filename || 'unknown');
   
   let extractedText = '';
-  const imageBase64 = '';
+  let imageBase64 = '';
   let pageCount = 0;
   let processingMethod = 'unknown';
+  let detectedBank = '';
   
-  // 1. TENTATIVE EXTRACTION TEXTE avec pdf-parse (TypeScript)
+  // 1. CRÉATION FICHIER TEMPORAIRE
+  const tempDir = os.tmpdir();
+  const tempPdfPath = path.join(tempDir, `pdf_${Date.now()}.pdf`);
+  
   try {
-    console.log('[PDF_SERVER] Attempting text extraction with pdf-parse...');
-    const pdfParse = await import('pdf-parse').catch(() => null);
+    // Écrire le buffer PDF dans un fichier temporaire
+    fs.writeFileSync(tempPdfPath, pdfBuffer);
+    console.log('[PDF_SERVER] Temporary PDF created:', tempPdfPath);
     
-    if (pdfParse) {
-      const data = await pdfParse.default(pdfBuffer);
-      extractedText = data.text || '';
-      pageCount = data.numpages || 1;
-      processingMethod = 'pdf-parse';
-      console.log('[PDF_SERVER] pdf-parse extraction successful:', extractedText.length, 'chars');
-    } else {
-      console.log('[PDF_SERVER] pdf-parse not available');
+    // 2. EXÉCUTION DU SCRIPT PYTHON
+    const pythonScriptPath = path.join(process.cwd(), 'python-pdf-processor.py');
+    const pythonCommand = `python3 "${pythonScriptPath}" "${tempPdfPath}" hybrid`;
+    
+    console.log('[PDF_SERVER] Executing Python script:', pythonCommand);
+    
+    const { stdout, stderr } = await execAsync(pythonCommand, {
+      timeout: 30000, // 30 secondes timeout
+      maxBuffer: 10 * 1024 * 1024 // 10MB buffer max
+    });
+    
+    if (stderr) {
+      console.log('[PDF_SERVER] Python stderr:', stderr);
     }
+    
+    // 3. PARSER LA RÉPONSE JSON
+    const pythonResult = JSON.parse(stdout);
+    console.log('[PDF_SERVER] Python processing completed:', pythonResult.success);
+    
+    if (pythonResult.success) {
+      extractedText = pythonResult.extracted_text || '';
+      imageBase64 = pythonResult.image_base64 || '';
+      pageCount = pythonResult.metadata?.page_count || 0;
+      processingMethod = pythonResult.metadata?.processing_method || 'python_success';
+      detectedBank = pythonResult.metadata?.detected_bank || '';
+      
+      console.log('[PDF_SERVER] Text extracted:', extractedText.length, 'chars');
+      console.log('[PDF_SERVER] Image converted:', imageBase64.length, 'chars base64');
+      console.log('[PDF_SERVER] Pages:', pageCount);
+      console.log('[PDF_SERVER] Processing method:', processingMethod);
+      console.log('[PDF_SERVER] Detected bank:', detectedBank);
+    } else {
+      console.error('[PDF_SERVER] Python processing failed:', pythonResult.error);
+      processingMethod = 'python_failed';
+    }
+    
   } catch (error) {
-    console.error('[PDF_SERVER] pdf-parse error:', error);
+    console.error('[PDF_SERVER] Python execution error:', error);
+    processingMethod = 'python_execution_failed';
+  } finally {
+    // Nettoyer le fichier temporaire
+    try {
+      if (fs.existsSync(tempPdfPath)) {
+        fs.unlinkSync(tempPdfPath);
+        console.log('[PDF_SERVER] Temporary file cleaned up');
+      }
+    } catch (cleanupError) {
+      console.error('[PDF_SERVER] Cleanup error:', cleanupError);
+    }
   }
   
-  // 2. ANALYSE DES MOTS-CLÉS FINANCIERS
+  // 2. ANALYSE ET VALIDATION DES RÉSULTATS
+  const hasText = extractedText.length > 50;
+  const hasImage = imageBase64.length > 1000;
+  
+  // Analyser les mots-clés depuis le texte extrait
   const text_lower = extractedText.toLowerCase();
   const bankingKeywords = [
     'bnp', 'paribas', 'crédit agricole', 'société générale', 'lcl',
@@ -54,72 +111,19 @@ export async function processPdfServerSide(pdfBuffer: Buffer): Promise<{
   ];
   
   const foundKeywords = bankingKeywords.filter(keyword => text_lower.includes(keyword));
-  console.log('[PDF_SERVER] Banking keywords found:', foundKeywords);
   
-  // 3. FALLBACK GÉNÉRATION DE CONTENU si extraction courte
-  if (extractedText.length < 100 && foundKeywords.length > 0) {
-    console.log('[PDF_SERVER] Generating enhanced content based on keywords...');
-    
-    // Déterminer la banque principale
-    let mainBank = 'Document Financier';
-    if (foundKeywords.some(k => k.includes('bnp') || k.includes('paribas'))) {
-      mainBank = 'BNP Paribas';
-    } else if (foundKeywords.some(k => k.includes('crédit') && k.includes('agricole'))) {
-      mainBank = 'Crédit Agricole';
-    } else if (foundKeywords.some(k => k.includes('société') || k.includes('générale'))) {
-      mainBank = 'Société Générale';
-    } else if (foundKeywords.some(k => k.includes('revolut'))) {
-      mainBank = 'Revolut';
-    } else if (foundKeywords.some(k => k.includes('boursorama'))) {
-      mainBank = 'Boursorama';
-    }
-    
-    // Générer un contenu enrichi
-    const enhancedContent = `${mainBank}
-RELEVÉ DE COMPTE - ${mainBank}
-M. DUPONT Martin
-123 Avenue des Champs
-75008 PARIS
-
-Compte courant n° 30004 12345 67890123456 78
-Période du 01/01/2024 au 31/01/2024
-
-DÉTAIL DES OPÉRATIONS
-Solde précédent: 1 247,50 €
-
-MOUVEMENTS DU COMPTE
-DATE    LIBELLÉ                           MONTANT      SOLDE
-03/01   VIR SEPA SALAIRE                 +2 300,00   3 547,50
-04/01   PAIEMENT CB COMMERCE              -89,70     3 457,80
-05/01   PREL SEPA FACTURE EDF             -98,40     3 359,40
-10/01   RETRAIT DAB ${mainBank}           -80,00     3 279,40
-15/01   VIR REÇU                         +150,00     3 429,40
-20/01   PAIEMENT CB RESTAURANT            -45,30     3 384,10
-
-RÉSUMÉ
-Nombre d'opérations: 6
-Total débits: -313,40 €
-Total crédits: +2 450,00 €
-Nouveau solde: 2 384,10 €
-
-${mainBank} - Votre partenaire financier`;
-
-    extractedText = enhancedContent;
-    processingMethod = 'enhanced_generation';
-  }
-  
-  // 4. RÉSULTAT FINAL
-  const hasText = extractedText.length > 50;
-  const hasImage = imageBase64.length > 1000;
-  
-  console.log('[PDF_SERVER] Processing completed:');
-  console.log('[PDF_SERVER] - Has text:', hasText);
-  console.log('[PDF_SERVER] - Text length:', extractedText.length);
+  console.log('[PDF_SERVER] Final processing results:');
+  console.log('[PDF_SERVER] - Has text:', hasText, `(${extractedText.length} chars)`);
+  console.log('[PDF_SERVER] - Has image:', hasImage, `(${imageBase64.length} chars base64)`);
   console.log('[PDF_SERVER] - Keywords found:', foundKeywords.length);
   console.log('[PDF_SERVER] - Processing method:', processingMethod);
+  console.log('[PDF_SERVER] - Detected bank:', detectedBank || 'none');
+  
+  const willSucceed = hasText || hasImage || foundKeywords.length > 0;
+  console.log('[PDF_SERVER] - Final success decision:', willSucceed);
   
   return {
-    success: hasText || foundKeywords.length > 0,
+    success: willSucceed,
     extracted_text: extractedText,
     image_base64: imageBase64,
     metadata: {
@@ -129,7 +133,8 @@ ${mainBank} - Votre partenaire financier`;
       has_image: hasImage,
       found_keywords: foundKeywords,
       keyword_count: foundKeywords.length,
-      processing_method: processingMethod
+      processing_method: processingMethod,
+      detected_bank: detectedBank
     }
   };
 }

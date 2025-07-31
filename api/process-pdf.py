@@ -67,37 +67,28 @@ class handler(BaseHTTPRequestHandler):
             
             logging.info(f"Processing PDF, size: {len(pdf_data)} bytes")
             
-            # 1. EXTRACTION TEXTE avec pdfplumber (très précis)
+            # EXTRACTION HYBRIDE avec PyMuPDF (texte + image)
             extracted_text = ""
-            page_count = 0
-            
-            try:
-                with pdfplumber.open(io.BytesIO(pdf_data)) as pdf:
-                    page_count = len(pdf.pages)
-                    logging.info(f"PDF has {page_count} pages")
-                    
-                    # Extraire texte des 3 premières pages maximum
-                    for i, page in enumerate(pdf.pages[:3]):
-                        page_text = page.extract_text()
-                        if page_text and page_text.strip():
-                            extracted_text += f"PAGE {i+1}:\n{page_text}\n\n"
-                    
-                    logging.info(f"Extracted text length: {len(extracted_text)}")
-                            
-            except Exception as text_error:
-                logging.error(f"Text extraction error: {text_error}")
-                extracted_text = ""
-            
-            # 2. CONVERSION IMAGE avec PyMuPDF (si disponible)
             image_base64 = ""
+            page_count = 0
             
             if pymupdf:
                 try:
-                    # Ouvrir le PDF avec PyMuPDF pour conversion image
+                    # Ouvrir le PDF avec PyMuPDF
                     doc = pymupdf.open(stream=pdf_data, filetype="pdf")
+                    page_count = len(doc)
+                    logging.info(f"PyMuPDF: PDF has {page_count} pages")
                     
+                    # 1. EXTRACTION TEXTE avec PyMuPDF
+                    for i, page in enumerate(doc[:3]):  # Maximum 3 pages
+                        page_text = page.get_text()
+                        if page_text and page_text.strip():
+                            extracted_text += f"PAGE {i+1}:\n{page_text}\n\n"
+                    
+                    logging.info(f"PyMuPDF text extraction: {len(extracted_text)} chars")
+                    
+                    # 2. CONVERSION IMAGE de la première page
                     if len(doc) > 0:
-                        # Convertir première page en image haute qualité
                         page = doc[0]  # Première page
                         
                         # Créer une matrice pour la résolution (2.0 = 144 DPI)
@@ -112,18 +103,36 @@ class handler(BaseHTTPRequestHandler):
                         # Convertir en base64
                         image_base64 = base64.b64encode(img_data).decode('utf-8')
                         
-                        logging.info(f"PyMuPDF image converted, base64 length: {len(image_base64)}")
+                        logging.info(f"PyMuPDF image conversion: {len(image_base64)} chars base64")
                         
                         # Nettoyer la mémoire
                         pix = None
                     
                     doc.close()
                     
-                except Exception as img_error:
-                    logging.error(f"PyMuPDF image conversion error: {img_error}")
+                except Exception as pymupdf_error:
+                    logging.error(f"PyMuPDF processing error: {pymupdf_error}")
+                    extracted_text = ""
                     image_base64 = ""
-            else:
-                logging.info("PyMuPDF not available, skipping image conversion")
+            
+            # FALLBACK avec pdfplumber si PyMuPDF échoue
+            if not extracted_text and pdfplumber:
+                try:
+                    logging.info("Fallback to pdfplumber for text extraction...")
+                    with pdfplumber.open(io.BytesIO(pdf_data)) as pdf:
+                        page_count = len(pdf.pages)
+                        
+                        # Extraire texte des 3 premières pages maximum
+                        for i, page in enumerate(pdf.pages[:3]):
+                            page_text = page.extract_text()
+                            if page_text and page_text.strip():
+                                extracted_text += f"PAGE {i+1}:\n{page_text}\n\n"
+                        
+                        logging.info(f"pdfplumber fallback text: {len(extracted_text)} chars")
+                                
+                except Exception as text_error:
+                    logging.error(f"pdfplumber fallback error: {text_error}")
+                    extracted_text = ""
             
             # 3. ANALYSE ET VALIDATION
             has_text = len(extracted_text.strip()) > 50

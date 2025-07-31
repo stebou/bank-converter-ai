@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-import { FileText, Brain, CheckCircle, AlertCircle, Download, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github } from 'lucide-react';
+import { FileText, Brain, CheckCircle, AlertCircle, Download, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github, X } from 'lucide-react';
 import Link from 'next/link';
 import { SignUpModal } from '@/components/SignUpModal';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { Navigation } from '@/components/Navigation';
 import AnimatedGradientBackground from '@/components/AnimatedGradientBackground';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- TYPES ---
 interface Transaction {
@@ -374,7 +374,11 @@ const BankStatementConverter = () => {
     };
     
     setResults(realResults);
-  }, []);
+    
+    // Décrémenter les crédits après une analyse réussie
+    setCredits(prev => prev - 1);
+    console.log('[HOMEPAGE] Credits decremented, remaining:', credits - 1);
+  }, [credits]);
 
   const exportToCSV = () => {
     if (!results) return;
@@ -390,6 +394,148 @@ const BankStatementConverter = () => {
     a.click();
   };
 
+  const exportToExcel = async () => {
+    if (!results) return;
+    
+    try {
+      // Import dynamique pour éviter les erreurs SSR
+      const XLSX = await import('xlsx');
+      
+      // Préparer les données pour l'export
+      const exportData = results.transactions.map((transaction: Transaction, index: number) => ({
+        'N°': index + 1,
+        'Date': transaction.date,
+        'Description': transaction.description,
+        'Description originale': transaction.originalDesc,
+        'Montant (€)': transaction.amount,
+        'Catégorie': transaction.category,
+        'Sous-catégorie': transaction.subcategory,
+        'Confiance IA (%)': `${transaction.confidence}%`,
+        'Score anomalie': transaction.anomalyScore,
+      }));
+
+      // Créer le workbook et la worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Largeurs de colonnes optimisées
+      const colWidths = [
+        { wch: 5 },   // N°
+        { wch: 12 },  // Date
+        { wch: 30 },  // Description
+        { wch: 35 },  // Description originale
+        { wch: 15 },  // Montant
+        { wch: 20 },  // Catégorie
+        { wch: 20 },  // Sous-catégorie
+        { wch: 15 },  // Confiance IA
+        { wch: 15 },  // Score anomalie
+      ];
+      ws['!cols'] = colWidths;
+
+      // Ajouter la feuille au workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Générer le nom de fichier
+      const fileName = `transactions_${results.bankDetected.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Télécharger le fichier
+      XLSX.writeFile(wb, fileName);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Erreur lors de l\'export Excel');
+    }
+  };
+
+  // --- COMPOSANT : VUE DÉTAILLÉE DES RÉSULTATS ---
+  const ResultsDetailView = ({ results, onClose }: { 
+    results: AnalysisResults;
+    onClose: () => void;
+  }) => (
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 relative">
+      <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+        <X className="w-6 h-6" />
+      </button>
+      <div className="flex items-center space-x-3 mb-6">
+        <CheckCircle className="w-6 h-6 text-green-600" />
+        <h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+          <div className="text-2xl font-bold text-green-700">{results.confidence}%</div>
+          <div className="text-sm text-green-600">Confiance IA</div>
+        </div>
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+          <div className="text-2xl font-bold text-orange-700">{results.summary.anomaliesDetected}</div>
+          <div className="text-sm text-orange-600">Anomalies détectées</div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between p-4 bg-gray-50/90 backdrop-blur-sm rounded-xl">
+        <div>
+          <div className="font-semibold text-gray-900">Banque détectée: {results.bankDetected}</div>
+          <div className="text-sm text-gray-600">{results.summary.totalTransactions} transactions • Flux net: €{results.summary.netFlow}</div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button onClick={exportToCSV} className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 text-sm">
+            <Download className="w-4 h-4" />
+            <span>CSV</span>
+          </button>
+          <button onClick={exportToExcel} className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 text-sm">
+            <Download className="w-4 h-4" />
+            <span>Excel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // --- COMPOSANT : LISTE DES TRANSACTIONS ---
+  const TransactionsView = ({ results }: { results: AnalysisResults }) => (
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
+      <h3 className="text-xl font-bold text-gray-900 mb-6">Transactions extraites</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Date</th>
+              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Description</th>
+              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-700">Montant</th>
+              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Catégorie</th>
+              <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Score IA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.transactions.map((transaction: Transaction) => {
+              const rowClasses = `border-b border-gray-100 hover:bg-gray-50/50 ${transaction.anomalyScore > 5 ? 'bg-red-50/80 border-red-200' : ''}`;
+              const amountClasses = `py-3 px-2 text-sm font-semibold text-right ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`;
+              const confidenceClasses = `text-sm font-medium ${transaction.confidence > 95 ? 'text-green-600' : transaction.confidence > 90 ? 'text-yellow-600' : 'text-red-600'}`;
+              return (
+                <tr key={transaction.id} className={rowClasses}>
+                  <td className="py-3 px-2 text-sm text-gray-900">{transaction.date}</td>
+                  <td className="py-3 px-2">
+                    <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                    <div className="text-xs text-gray-500">{transaction.originalDesc}</div>
+                  </td>
+                  <td className={amountClasses}>€{transaction.amount.toFixed(2)}</td>
+                  <td className="py-3 px-2">
+                    <div className="text-sm font-medium text-gray-900">{transaction.category}</div>
+                    <div className="text-xs text-gray-500">{transaction.subcategory}</div>
+                  </td>
+                  <td className="py-3 px-2 text-center">
+                    <div className="flex items-center justify-center space-x-1">
+                      <span className={confidenceClasses}>{transaction.confidence.toFixed(1)}%</span>
+                      {transaction.anomalyScore > 5 && (<AlertCircle className="w-4 h-4 text-red-500" />)}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen relative">
       {/* Arrière-plan animé */}
@@ -401,82 +547,91 @@ const BankStatementConverter = () => {
 
       <main className="pt-24 md:pt-28 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <motion.div 
-            id="features" 
-            className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <motion.div 
-              className="space-y-6"
-              initial={{ opacity: 0, x: -50 }}
+          {/* Layout 2 colonnes comme le dashboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Colonne Loader/Résultat d'analyse avec transition */}
+            <div className="relative">
+              <AnimatePresence mode="wait">
+                {results ? (
+                  <motion.div
+                    key="results-view"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <ResultsDetailView 
+                      results={results} 
+                      onClose={() => setResults(null)}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="upload-form"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="space-y-4"
+                  >
+                    {/* Indicateur de crédits */}
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200 p-3 text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="text-sm text-gray-600">Crédits restants:</span>
+                        <span className={`text-lg font-bold ${credits <= 0 ? 'text-red-600' : credits <= 1 ? 'text-orange-600' : 'text-green-600'}`}>
+                          {credits}
+                        </span>
+                        {credits <= 0 && (
+                          <span className="text-xs text-red-500 ml-2">
+                            • Connectez-vous pour plus de crédits
+                          </span>
+                        )}
+                        {/* Bouton de test pour réinitialiser les crédits (développement) */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <button 
+                            onClick={() => setCredits(3)}
+                            className="ml-3 text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                          >
+                            Reset (dev)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <DocumentUpload
+                      credits={credits}
+                      onCreditsChange={setCredits}  
+                      onShowSignUpModal={() => {
+                        console.log('[HOMEPAGE] SignUpModal triggered - credits:', credits);
+                        setIsModalOpen(true);
+                      }}
+                      onDocumentUploaded={handleDocumentSuccess}
+                      className="transition-all duration-300 hover:scale-105 hover:border-blue-600 hover:shadow-2xl hover:shadow-purple-500/30 relative group border-4 border-gray-200"
+                      title="Téléversez votre relevé bancaire"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* Colonne Transactions avec animation */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              transition={{ duration: 0.4, delay: 0.2 }}
             >
-              <DocumentUpload
-                credits={credits}
-                onCreditsChange={setCredits}  
-                onShowSignUpModal={() => setIsModalOpen(true)}
-                onDocumentUploaded={handleDocumentSuccess}
-                className="transition-all duration-300 hover:scale-105 hover:border-blue-600 hover:shadow-2xl hover:shadow-purple-500/30 relative group border-4 border-gray-200"
-                title="Téléversez votre relevé bancaire"
-              />
-            </motion.div>
-            <motion.div 
-              className="space-y-6"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-            >
-              {results && (
-                <>
-                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-                    <div className="flex items-center space-x-3 mb-6"><CheckCircle className="w-6 h-6 text-green-600" /><h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3></div>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200"><div className="text-2xl font-bold text-green-700">{results.confidence}%</div><div className="text-sm text-green-600">Confiance IA</div></div>
-                      <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200"><div className="text-2xl font-bold text-orange-700">{results.summary.anomaliesDetected}</div><div className="text-sm text-orange-600">Anomalies détectées</div></div>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-gray-50/90 backdrop-blur-sm rounded-xl">
-                      <div><div className="font-semibold text-gray-900">Banque détectée: {results.bankDetected}</div><div className="text-sm text-gray-600">{results.summary.totalTransactions} transactions • Flux net: €{results.summary.netFlow}</div></div>
-                      <button onClick={exportToCSV} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"><Download className="w-4 h-4" /><span>Export CSV</span></button>
-                    </div>
+              {results ? (
+                <TransactionsView results={results} />
+              ) : (
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 h-full flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">En attente d&apos;analyse</h3>
+                    <p className="text-sm">Uploadez un document pour voir les transactions extraites</p>
                   </div>
-                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6">Transactions extraites</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead><tr className="border-b border-gray-200"><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Date</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Description</th><th className="text-right py-3 px-2 text-sm font-semibold text-gray-700">Montant</th><th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Catégorie</th><th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Score IA</th></tr></thead>
-                        <tbody>
-                          {results.transactions.map((transaction: Transaction) => {
-                            const rowClasses = `border-b border-gray-100 hover:bg-gray-50/50 ${transaction.anomalyScore > 5 ? 'bg-red-50/80 border-red-200' : ''}`;
-                            const amountClasses = `py-3 px-2 text-sm font-semibold text-right ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`;
-                            const confidenceClasses = `text-sm font-medium ${transaction.confidence > 95 ? 'text-green-600' : transaction.confidence > 90 ? 'text-yellow-600' : 'text-red-600'}`;
-                            return (
-                              <tr key={transaction.id} className={rowClasses}>
-                                <td className="py-3 px-2 text-sm text-gray-900">{transaction.date}</td>
-                                <td className="py-3 px-2"><div className="text-sm font-medium text-gray-900">{transaction.description}</div><div className="text-xs text-gray-500">{transaction.originalDesc}</div></td>
-                                <td className={amountClasses}>€{transaction.amount.toFixed(2)}</td>
-                                <td className="py-3 px-2"><div className="text-sm font-medium text-gray-900">{transaction.category}</div><div className="text-xs text-gray-500">{transaction.subcategory}</div></td>
-                                <td className="py-3 px-2 text-center"><div className="flex items-center justify-center space-x-1"><span className={confidenceClasses}>{transaction.confidence.toFixed(1)}%</span>{transaction.anomalyScore > 5 && (<AlertCircle className="w-4 h-4 text-red-500" />)}</div></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </>
-              )}
-              {!results && (
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-8 text-center transition-all duration-500 hover:translate-x-2 hover:shadow-lg hover:border-blue-200">
-                  <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-500 mb-2">En attente de notre analyse</h3>
-                  <p className="text-gray-400">Téléversez un relevé bancaire PDF pour commencer.</p>
                 </div>
               )}
             </motion.div>
-          </motion.div>
+          </div>
           <PricingSection />
           <TestimonialsSection />
           <motion.div 

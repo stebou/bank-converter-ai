@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, X, Settings } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { DocumentType } from '@/types';
 import PaymentSuccessModal from '@/components/PaymentSuccessModal';
 import SubscriptionBadge from '@/components/SubscriptionBadge';
 import AIChat from '@/components/AIChat';
 import { DocumentUpload } from '@/components/DocumentUpload';
+import { TransactionsList } from '@/components/TransactionsList';
 
 // Types spécifiques à ce composant client
 type SubscriptionData = {
@@ -26,9 +28,114 @@ type DashboardClientPageProps = {
   subscriptionData: SubscriptionData;
 };
 
+// Interface pour les transactions
+interface TransactionData {
+  id: string;
+  date: Date;
+  amount: number;
+  description: string;
+  originalDesc: string;
+  category: string | null;
+  subcategory: string | null;
+  aiConfidence: number | null;
+  anomalyScore: number | null;
+}
+
 // --- COMPOSANT : VUE DÉTAILLÉE DU DOCUMENT ---
-const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onClose: () => void }) => (
-  <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative">
+const DocumentDetailView = ({ documentData, onClose, transactions = [] }: { 
+  documentData: DocumentType;
+  onClose: () => void;
+  transactions?: TransactionData[];
+}) => {
+  
+  // Fonction d'export CSV
+  const exportToCSV = () => {
+    try {
+      // Préparer les données CSV
+      const csvContent = [
+        ['N°', 'Date', 'Description', 'Description originale', 'Montant (€)', 'Catégorie', 'Sous-catégorie', 'Confiance IA (%)', 'Score anomalie'],
+        ...transactions.map((transaction, index) => [
+          index + 1,
+          transaction.date instanceof Date ? transaction.date.toLocaleDateString('fr-FR') : transaction.date,
+          transaction.description,
+          transaction.originalDesc,
+          transaction.amount,
+          transaction.category || 'Non catégorisé',
+          transaction.subcategory || 'Divers',
+          transaction.aiConfidence ? `${transaction.aiConfidence.toFixed(1)}%` : 'N/A',
+          transaction.anomalyScore || 0
+        ])
+      ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+      // Créer et télécharger le fichier CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transactions_${documentData.bankDetected?.replace(/\s+/g, '_') || 'document'}_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'export CSV:', error);
+      alert('Erreur lors de l\'export CSV');
+    }
+  };
+
+  // Fonction d'export Excel
+  const exportToExcel = async () => {
+    try {
+      // Import dynamique pour éviter les erreurs SSR
+      const XLSX = await import('xlsx');
+      
+      // Préparer les données pour l'export
+      const exportData = transactions.map((transaction, index) => ({
+        'N°': index + 1,
+        'Date': transaction.date instanceof Date ? transaction.date.toLocaleDateString('fr-FR') : transaction.date,
+        'Description': transaction.description,
+        'Description originale': transaction.originalDesc,
+        'Montant (€)': transaction.amount,
+        'Catégorie': transaction.category || 'Non catégorisé',
+        'Sous-catégorie': transaction.subcategory || 'Divers',
+        'Confiance IA (%)': transaction.aiConfidence ? `${transaction.aiConfidence.toFixed(1)}%` : 'N/A',
+        'Score anomalie': transaction.anomalyScore || 0,
+      }));
+
+      // Créer le workbook et la worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Largeurs de colonnes optimisées
+      const colWidths = [
+        { wch: 5 },   // N°
+        { wch: 12 },  // Date
+        { wch: 30 },  // Description
+        { wch: 35 },  // Description originale
+        { wch: 15 },  // Montant
+        { wch: 20 },  // Catégorie
+        { wch: 20 },  // Sous-catégorie
+        { wch: 15 },  // Confiance IA
+        { wch: 15 },  // Score anomalie
+      ];
+      ws['!cols'] = colWidths;
+
+      // Ajouter la feuille au workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Générer le nom de fichier
+      const fileName = `transactions_${documentData.bankDetected?.replace(/\s+/g, '_') || 'document'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Télécharger le fichier
+      XLSX.writeFile(wb, fileName);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Erreur lors de l\'export Excel');
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative">
     <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
       <X className="w-6 h-6" />
     </button>
@@ -38,15 +145,15 @@ const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onC
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
-        <div className="text-2xl font-bold text-green-700">{document.aiConfidence?.toFixed(1) ?? 'N/A'}%</div>
+        <div className="text-2xl font-bold text-green-700">{documentData.aiConfidence?.toFixed(1) ?? 'N/A'}%</div>
         <div className="text-sm text-green-600">Confiance IA</div>
       </div>
       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-        <div className="text-2xl font-bold text-orange-700">{document.anomaliesDetected ?? 0}</div>
+        <div className="text-2xl font-bold text-orange-700">{documentData.anomaliesDetected ?? 0}</div>
         <div className="text-sm text-orange-600">Anomalies détectées</div>
       </div>
       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
-        <div className="text-2xl font-bold text-blue-700">{document.totalTransactions ?? 0}</div>
+        <div className="text-2xl font-bold text-blue-700">{documentData.totalTransactions ?? 0}</div>
         <div className="text-sm text-blue-600">Transactions</div>
       </div>
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
@@ -56,15 +163,34 @@ const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onC
     </div>
     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
       <div>
-        <div className="font-semibold text-gray-900">Banque détectée: {document.bankDetected ?? 'Non identifiée'}</div>
-        <div className="text-sm text-gray-600">{document.filename}</div>
+        <div className="font-semibold text-gray-900">Banque détectée: {documentData.bankDetected ?? 'Non identifiée'}</div>
+        <div className="text-sm text-gray-600">{documentData.filename}</div>
       </div>
-      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
-        <Download className="w-4 h-4" /><span>Export (à venir)</span>
-      </button>
+      <div className="flex items-center space-x-2">
+        <button 
+          onClick={exportToCSV}
+          disabled={transactions.length === 0}
+          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 text-sm"
+        >
+          <Download className="w-4 h-4" />
+          <span>CSV</span>
+        </button>
+        <button 
+          onClick={exportToExcel}
+          disabled={transactions.length === 0}
+          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 text-sm"
+        >
+          <Download className="w-4 h-4" />
+          <span>Excel</span>
+        </button>
+        {transactions.length === 0 && (
+          <span className="text-sm text-gray-500">Aucune transaction</span>
+        )}
+      </div>
     </div>
   </div>
-);
+  );
+};
 
 
 // --- COMPOSANT : HISTORIQUE DES DOCUMENTS ---
@@ -110,8 +236,8 @@ const DocumentHistoryTable = ({ documents, onSelectDocument }: { documents: Docu
   </div>
 );
 
-// --- COMPOSANT : STATUT DES CRÉDITS ET ABONNEMENT ---
-const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscriptionData: SubscriptionData }) => {
+// --- COMPOSANT : ABONNEMENT COMPACT ---
+const CompactSubscription = ({ credits, subscriptionData }: { credits: number, subscriptionData: SubscriptionData }) => {
   const [loading, setLoading] = useState(false);
   const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
 
@@ -121,7 +247,6 @@ const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscri
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // L'ID réel de votre plan a été inséré ici
         body: JSON.stringify({ planId: 'cmdozsf4f0001s6otqbuk575x' }),
       });
 
@@ -145,7 +270,6 @@ const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscri
   const handleManageSubscription = async () => {
     setLoading(true);
     try {
-      // Créer un lien vers le portail client Stripe
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,48 +296,48 @@ const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscri
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {hasActiveSubscription ? 'Mon Abonnement' : 'Gérer l&apos;abonnement'}
-      </h3>
-      
-      {/* Affichage des crédits */}
-      <div className="text-center mb-6">
-        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          {credits}
-        </p>
-        <p className="text-sm text-gray-500 mt-1">crédits d&apos;analyse restants</p>
-        
-        {hasActiveSubscription && (
-          <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-            <p className="text-sm font-medium text-green-800">
-              Plan {subscriptionData.currentPlan}
-            </p>
-            <p className="text-xs text-green-600">
-              {subscriptionData.documentsUsed}/{subscriptionData.documentsLimit} analyses utilisées
-            </p>
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+      {/* Header avec crédits intégrés */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Mon Abonnement</h3>
+        <div className="text-right">
+          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {credits}
           </div>
-        )}
+          <div className="text-xs text-gray-500">crédits</div>
+        </div>
       </div>
+      
+      {/* Infos abonnement */}
+      {hasActiveSubscription && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <p className="text-sm font-medium text-green-800">
+            Plan {subscriptionData.currentPlan}
+          </p>
+          <p className="text-xs text-green-600">
+            {subscriptionData.documentsUsed}/{subscriptionData.documentsLimit} analyses utilisées
+          </p>
+        </div>
+      )}
 
-      {/* Bouton d'action */}
+      {/* Bouton d'action compact */}
       {hasActiveSubscription ? (
         <button 
           onClick={handleManageSubscription} 
           disabled={loading} 
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings className="w-5 h-5" />}
-          Gérer mon abonnement
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4" />}
+          Gérer
         </button>
       ) : (
         <button 
           onClick={handlePurchase} 
           disabled={loading} 
-          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-          Souscrire à l&apos;abonnement Smart
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          Souscrire
         </button>
       )}
     </div>
@@ -228,8 +352,29 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<{planName: string; amount: number} | null>(null);
+  const [selectedDocumentIdForTransactions, setSelectedDocumentIdForTransactions] = useState<string>('all');
+  const [selectedDocumentTransactions, setSelectedDocumentTransactions] = useState<TransactionData[]>([]);
   
   const searchParams = useSearchParams();
+
+  // Fonction pour récupérer les transactions d'un document
+  const fetchDocumentTransactions = async (documentId: string) => {
+    try {
+      console.log('[DASHBOARD] Fetching transactions for document:', documentId);
+      const response = await fetch(`/api/documents/${documentId}/transactions`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[DASHBOARD] Received transactions:', data.transactions?.length || 0);
+        setSelectedDocumentTransactions(data.transactions || []);
+      } else {
+        console.error('[DASHBOARD] Failed to fetch transactions');
+        setSelectedDocumentTransactions([]);
+      }
+    } catch (error) {
+      console.error('[DASHBOARD] Error fetching transactions:', error);
+      setSelectedDocumentTransactions([]);
+    }
+  };
 
   // Fonction pour rafraîchir les données utilisateur
   const refreshUserData = async () => {
@@ -311,50 +456,124 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
         <p className="text-gray-600">Bienvenue sur votre tableau de bord d&apos;analyse IA.</p>
       </header>
       
+      {/* Niveau 1 : 3 colonnes - Stats + Abonnement avec animations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
+        <motion.div 
+          className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
           <div className="p-3 bg-blue-100 rounded-lg"><BarChart2 className="w-6 h-6 text-blue-600" /></div>
           <div><p className="text-sm text-gray-600">Documents traités</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
+        </motion.div>
+        <motion.div 
+          className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
           <div className="p-3 bg-red-100 rounded-lg"><AlertCircle className="w-6 h-6 text-red-600" /></div>
           <div><p className="text-sm text-gray-600">Anomalies détectées</p><p className="text-2xl font-bold text-gray-900">{stats.anomalies}</p></div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-4">
-          <div className="p-3 bg-green-100 rounded-lg"><CheckCircle className="w-6 h-6 text-green-600" /></div>
-          <div><p className="text-sm text-gray-600">Crédits restants</p><p className="text-2xl font-bold text-gray-900">{credits}</p></div>
-        </div>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+        >
+          <CompactSubscription credits={credits} subscriptionData={subscriptionData} />
+        </motion.div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {selectedDocument ? (
-            <DocumentDetailView document={selectedDocument} onClose={() => setSelectedDocument(null)} />
-          ) : (
-            <DocumentUpload 
-              onDocumentUploaded={(document) => {
-                // Convertir les dates string en objets Date
-                const processedDocument = {
-                  ...document,
-                  createdAt: typeof document.createdAt === 'string' ? new Date(document.createdAt) : new Date(),
-                  lastAnalyzedAt: document.lastAnalyzedAt && typeof document.lastAnalyzedAt === 'string' ? new Date(document.lastAnalyzedAt) : null,
-                } as DocumentType;
-                
-                setDocuments((prev) => [processedDocument, ...prev]);
-                setSelectedDocument(processedDocument);
-              }}
-              onCreditsDecrement={() => setCredits((prev) => prev - 1)}
-              className=""
-              title="Téléverser un relevé"
-              description="Utilisez un crédit pour analyser un document PDF."
-            />
-          )}
-          <DocumentHistoryTable documents={documents} onSelectDocument={setSelectedDocument} />
+      {/* Niveau 2 : 2 colonnes - Loader/Analyse + Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Colonne Loader/Résultat d'analyse avec transition */}
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            {selectedDocument ? (
+              <motion.div
+                key="detail-view"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <DocumentDetailView 
+                  documentData={selectedDocument} 
+                  onClose={() => {
+                    setSelectedDocument(null);
+                    setSelectedDocumentTransactions([]);
+                  }}
+                  transactions={selectedDocumentTransactions}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="upload-form"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <DocumentUpload 
+                  onDocumentUploaded={(uploadedDocument) => {
+                    // Convertir les dates string en objets Date
+                    const processedDocument = {
+                      ...uploadedDocument,
+                      createdAt: typeof uploadedDocument.createdAt === 'string' ? new Date(uploadedDocument.createdAt) : new Date(),
+                      lastAnalyzedAt: uploadedDocument.lastAnalyzedAt && typeof uploadedDocument.lastAnalyzedAt === 'string' ? new Date(uploadedDocument.lastAnalyzedAt) : null,
+                    } as DocumentType;
+                    
+                    setDocuments((prev) => [processedDocument, ...prev]);
+                    setSelectedDocument(processedDocument);
+                    
+                    // Auto-sélectionner le document dans TransactionsList et charger ses transactions
+                    if (processedDocument.id) {
+                      setSelectedDocumentIdForTransactions(processedDocument.id);
+                      fetchDocumentTransactions(processedDocument.id);
+                    }
+                  }}
+                  onCreditsDecrement={() => setCredits((prev) => prev - 1)}
+                  className=""
+                  title="Téléverser un relevé"
+                  description="Utilisez un crédit pour analyser un document PDF."
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <div className="lg:col-span-1">
-          <CreditsStatus credits={credits} subscriptionData={subscriptionData} />
-        </div>
+        
+        {/* Colonne Transactions avec animation */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <TransactionsList 
+            documents={documents} 
+            selectedDocumentId={selectedDocumentIdForTransactions}
+            onDocumentSelect={setSelectedDocumentIdForTransactions}
+          />
+        </motion.div>
       </div>
+      
+      {/* Niveau 3 : 1 colonne - Historique avec animation */}
+      <motion.div 
+        className="mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.4 }}
+      >
+        <DocumentHistoryTable 
+          documents={documents} 
+          onSelectDocument={(doc) => {
+            setSelectedDocument(doc);
+            if (doc.id) {
+              fetchDocumentTransactions(doc.id);
+            }
+          }} 
+        />
+      </motion.div>
 
       {/* Modal de succès de paiement */}
       {showPaymentSuccess && paymentDetails && (
