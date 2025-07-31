@@ -67,13 +67,14 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   }, []);
 
   const processDocument = async () => {
+    if (!file) return;
+
     // Vérification des crédits pour homepage (utilisateurs non connectés)
     if (!isSignedIn && credits !== undefined && credits <= 0) {
+      console.log('[DOCUMENT_UPLOAD] No credits remaining, showing SignUpModal');
       onShowSignUpModal?.();
       return;
     }
-
-    if (!file) return;
 
     setProcessing(true);
     setProcessingStep('Envoi du document pour analyse IA...');
@@ -197,7 +198,15 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           )}
           
           <button 
-            onClick={processDocument} 
+            onClick={() => {
+              // Vérification supplémentaire au clic pour UX immédiate
+              if (!isSignedIn && credits !== undefined && credits <= 0) {
+                console.log('[DOCUMENT_UPLOAD] Button clicked with no credits, showing SignUpModal immediately');
+                onShowSignUpModal?.();
+                return;
+              }
+              processDocument();
+            }}
             disabled={!file || processing || !hasCredits} 
             className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
           >

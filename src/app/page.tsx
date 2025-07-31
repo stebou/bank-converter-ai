@@ -376,8 +376,20 @@ const BankStatementConverter = () => {
     setResults(realResults);
     
     // Décrémenter les crédits après une analyse réussie
-    setCredits(prev => prev - 1);
-    console.log('[HOMEPAGE] Credits decremented, remaining:', credits - 1);
+    const newCredits = credits - 1;
+    setCredits(newCredits);
+    
+    // Sauvegarder en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('anonymousUserCredits', newCredits.toString());
+    }
+    
+    console.log('[HOMEPAGE] Credits decremented, remaining:', newCredits);
+    
+    // Si plus de crédits après cette analyse, préparer la modal pour la prochaine tentative
+    if (newCredits <= 0) {
+      console.log('[HOMEPAGE] No credits remaining after this analysis, next upload will show SignUpModal');
+    }
   }, [credits]);
 
   const exportToCSV = () => {
