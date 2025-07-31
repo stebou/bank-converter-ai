@@ -22,6 +22,8 @@ interface DocumentUploadProps {
   credits?: number;
   onCreditsChange?: (newCredits: number) => void;
   onShowSignUpModal?: () => void;
+  onProcessingStart?: () => void;
+  onProcessingUpdate?: (step: string) => void;
   
   // Props pour le mode dashboard
   onDocumentUploaded?: (document: { 
@@ -46,6 +48,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   credits,
   onCreditsChange,
   onShowSignUpModal,
+  onProcessingStart,
+  onProcessingUpdate,
   onDocumentUploaded,
   onCreditsDecrement,
   className = '',
@@ -77,6 +81,11 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
     setProcessing(true);
     setProcessingStep('Envoi du document pour analyse IA...');
+    
+    // Déclencher le début du processing dans la colonne 2 (homepage uniquement)
+    if (!isSignedIn) {
+      onProcessingStart?.();
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -223,22 +232,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
         </div>
       </div>
 
-      {processing && (
-        <div className="mt-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div>
-            <h3 className="text-lg font-semibold text-gray-900">Analyse IA en cours...</h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{processingStep}</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de rejet de document */}
       {showRejectionModal && rejectionDetails && (
