@@ -176,15 +176,15 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors hover:border-blue-400 hover:bg-blue-50/50">
             <input 
               type="file" 
-              accept=".pdf" 
+              accept=".pdf,.jpg,.jpeg,.png,.webp" 
               onChange={handleFileUpload} 
               className="hidden" 
               id="documentUpload" 
             />
             <label htmlFor="documentUpload" className="cursor-pointer block">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-700 mb-2">Cliquez pour sélectionner un PDF</p>
-              <p className="text-sm text-gray-500">Formats supportés : PDF • Taille max : 10MB</p>
+              <p className="text-lg font-medium text-gray-700 mb-2">Cliquez pour sélectionner un document</p>
+              <p className="text-sm text-gray-500">Formats supportés : PDF, JPG, PNG, WebP • Taille max : 10MB</p>
             </label>
           </div>
 

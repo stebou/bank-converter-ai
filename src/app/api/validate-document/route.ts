@@ -1,7 +1,6 @@
 // API de validation de document pour utilisateurs anonymes (homepage)
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { convertPdfToImage } from '@/lib/pdf-to-image';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,36 +17,48 @@ export async function POST(req: NextRequest) {
 
     console.log('[VALIDATE_DOCUMENT] Processing file:', file.name, file.size, file.type);
 
-    // Convertir le PDF pour analyse GPT-4 Vision
-    let base64Pdf: string | null = null;
+    // Traiter le fichier pour analyse GPT-4 Vision
+    let base64Image: string | null = null;
+    const fileType: string = file.type;
+    
     if (file.type === 'application/pdf') {
+      console.log('[VALIDATE_DOCUMENT] PDF detected - GPT-4 Vision cannot process PDFs directly');
+      console.log('[VALIDATE_DOCUMENT] Will use filename-based analysis instead');
+      // Pour les PDFs, on ne fait pas d'analyse GPT-4 Vision car ce n'est pas supporté
+      base64Image = null;
+    } else if (file.type.startsWith('image/')) {
       try {
-        console.log('[VALIDATE_DOCUMENT] Starting PDF processing for GPT-4 Vision...');
+        console.log('[VALIDATE_DOCUMENT] Image detected, processing for GPT-4 Vision...');
         
-        // Convertir le fichier en buffer
-        const pdfBuffer = Buffer.from(await file.arrayBuffer());
+        // Convertir l'image en buffer
+        const imageBuffer = Buffer.from(await file.arrayBuffer());
         
-        // Traiter le PDF avec pdf-lib
-        base64Pdf = await convertPdfToImage(pdfBuffer);
+        // Optimiser l'image avec sharp (comme dans l'exemple)
+        const sharp = await import('sharp');
+        const optimizedBuffer = await sharp.default(imageBuffer)
+          .resize(2048, 2048, { 
+            fit: 'inside', 
+            withoutEnlargement: true 
+          })
+          .jpeg({ quality: 90 })
+          .toBuffer();
         
-        if (base64Pdf) {
-          console.log('[VALIDATE_DOCUMENT] PDF successfully processed for GPT-4 Vision');
-        } else {
-          console.log('[VALIDATE_DOCUMENT] Failed to process PDF, falling back to filename analysis');
-        }
+        base64Image = optimizedBuffer.toString('base64');
+        console.log('[VALIDATE_DOCUMENT] Image successfully processed for GPT-4 Vision');
         
       } catch (error) {
-        console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
-        base64Pdf = null;
+        console.error('[VALIDATE_DOCUMENT] Error during image processing:', error);
+        base64Image = null;
       }
     }
 
     console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
-    console.log('[VALIDATE_DOCUMENT] - base64Pdf exists:', !!base64Pdf);
+    console.log('[VALIDATE_DOCUMENT] - base64Image exists:', !!base64Image);
+    console.log('[VALIDATE_DOCUMENT] - File type:', fileType);
     console.log('[VALIDATE_DOCUMENT] - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
-    // Faire l'analyse IA avec GPT-4 Vision si on a un PDF et la clé API
-    if (base64Pdf && process.env.OPENAI_API_KEY) {
+    // Faire l'analyse IA avec GPT-4 Vision si on a une image et la clé API
+    if (base64Image && process.env.OPENAI_API_KEY) {
       try {
         console.log('[VALIDATE_DOCUMENT] Starting GPT-4 Vision analysis...');
         
@@ -107,7 +118,8 @@ Réponds UNIQUEMENT avec un JSON valide:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:application/pdf;base64,${base64Pdf}`
+                    url: `data:image/jpeg;base64,${base64Image}`,
+                    detail: "high"
                   }
                 }
               ]
@@ -190,8 +202,8 @@ Réponds UNIQUEMENT avec un JSON valide:
               anomaliesDetected: analysis.anomalies || 0,
               aiConfidence: analysis.confidence || 85,
               documentType: analysis.documentType,
-              hasExtractedText: !!base64Pdf,
-              extractedTextLength: base64Pdf?.length || 0,
+              hasExtractedText: !!base64Image,
+              extractedTextLength: base64Image?.length || 0,
               transactions: simulatedTransactions,
               processingTime: Math.random() * 2 + 1.5, // 1.5-3.5 secondes
               aiCost: Math.random() * 0.03 + 0.02, // 0.02-0.05€
@@ -271,8 +283,8 @@ Réponds UNIQUEMENT avec un JSON valide:
       anomaliesDetected: 0,
       aiConfidence: 85,
       documentType: 'document financier',
-      hasExtractedText: !!base64Pdf,
-      extractedTextLength: base64Pdf?.length || 0,
+      hasExtractedText: !!base64Image,
+      extractedTextLength: base64Image?.length || 0,
       transactions: fallbackTransactions,
       processingTime: 2.1,
       aiCost: 0.025,
