@@ -5,6 +5,7 @@ import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Z
 import Link from 'next/link'; 
 import { SignedIn, SignedOut } from '@clerk/nextjs';
 import { SignUpModal } from '@/components/SignUpModal';
+import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
 import { Navigation } from '@/components/Navigation';
 import AnimatedGradientBackground from '@/components/AnimatedGradientBackground';
 import { motion } from 'framer-motion';
@@ -324,6 +325,8 @@ const BankStatementConverter = () => {
 
   const [credits, setCredits] = useState(3);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionDetails, setRejectionDetails] = useState<{message: string; documentType?: string} | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -334,33 +337,6 @@ const BankStatementConverter = () => {
     }
   }, []);
 
-  const simulateAIProcessing = async () => {
-    const steps = [
-      { step: 'Analyse OCR avec Google Vision...', duration: 2000, confidence: 25 },
-      { step: 'Détection de la banque par IA...', duration: 1500, confidence: 45 },
-      { step: 'Analyse intelligente par GPT-4...', duration: 3000, confidence: 75 },
-      { step: 'Catégorisation automatique...', duration: 1000, confidence: 85 },
-      { step: 'Détection des anomalies...', duration: 800, confidence: 92 },
-      { step: 'Validation finale...', duration: 500, confidence: 97 }
-    ];
-    for (const { step, duration, confidence: conf } of steps) {
-      setProcessingStep(step);
-      setConfidence(conf);
-      await new Promise(resolve => setTimeout(resolve, duration));
-    }
-    const mockResults: AnalysisResults = {
-      bankDetected: "BNP Paribas", confidence: 97.3, processingTime: 8.2, aiCost: 0.041,
-      transactions: [
-        { id: 1, date: "2024-01-15", description: "VIREMENT SALAIRE ENTREPRISE XYZ", originalDesc: "VIR SALAIRE ENTREPRISE XYZ REF:SAL240115", amount: 3250.00, category: "Revenus", subcategory: "Salaire", confidence: 98.5, anomalyScore: 0.1 },
-        { id: 2, date: "2024-01-16", description: "CARTE LECLERC PONTAULT", originalDesc: "CB LECLERC PONTAULT 15/01/24", amount: -87.45, category: "Alimentation", subcategory: "Supermarché", confidence: 95.2, anomalyScore: 0.0 },
-        { id: 3, date: "2024-01-17", description: "PRELEVEMENT EDF", originalDesc: "PREL EDF REF:FAC123456", amount: -142.30, category: "Charges", subcategory: "Électricité", confidence: 97.8, anomalyScore: 0.2 },
-        { id: 4, date: "2024-01-18", description: "VIREMENT SUSPECT MONTANT ÉLEVÉ", originalDesc: "VIR EXTERNE BENEFICIAIRE INCONNU", amount: -15000.00, category: "Virements", subcategory: "Externe", confidence: 89.1, anomalyScore: 9.7 },
-        { id: 5, date: "2024-01-19", description: "REMBOURSEMENT ASSURANCE SANTE", originalDesc: "VIR CPAM REMB SOINS", amount: 67.80, category: "Remboursements", subcategory: "Santé", confidence: 96.4, anomalyScore: 0.1 }
-      ],
-      summary: { totalTransactions: 5, totalDebits: -15229.75, totalCredits: 3317.80, netFlow: -11911.95, avgConfidence: 95.4, anomaliesDetected: 1 }
-    };
-    setResults(mockResults);
-  };
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -378,16 +354,83 @@ const BankStatementConverter = () => {
 
     if (!file) return;
 
-    const newCredits = credits - 1;
-    setCredits(newCredits);
-    localStorage.setItem('anonymousUserCredits', newCredits.toString());
-
     setProcessing(true);
     setResults(null);
     setConfidence(0);
-    await simulateAIProcessing();
-    setProcessing(false);
-    setProcessingStep('');
+    setProcessingStep('Envoi du document pour analyse IA...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/documents/validate', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
+        
+        // Gestion spéciale pour les documents rejetés
+        if (errorData.error === 'DOCUMENT_REJECTED') {
+          setRejectionDetails({
+            message: errorData.message,
+            documentType: errorData.documentType
+          });
+          setShowRejectionModal(true);
+          setProcessing(false);
+          setProcessingStep('');
+          return; // Ne pas décrémenter les crédits car ils ont été remboursés par l'API
+        }
+        
+        throw new Error(errorData.error);
+      }
+
+      const newDocument = await response.json();
+      
+      // Document accepté - décrémenter les crédits et simuler l'affichage des résultats
+      const newCredits = credits - 1;
+      setCredits(newCredits);
+      localStorage.setItem('anonymousUserCredits', newCredits.toString());
+
+      // Simuler le processus d'analyse pour l'UX (données déjà analysées par l'API)
+      setProcessingStep('Analyse IA terminée...');
+      setConfidence(100);
+      
+      // Convertir les données de l'API au format attendu par la homepage
+      const mockResults: AnalysisResults = {
+        bankDetected: newDocument.bankDetected || "Banque détectée",
+        confidence: newDocument.aiConfidence || 95,
+        processingTime: 3.2,
+        aiCost: 0.041,
+        transactions: [
+          // Simulation de transactions pour la démonstration
+          { id: 1, date: "2024-01-15", description: "VIREMENT SALAIRE ENTREPRISE", originalDesc: "VIR SALAIRE ENTREPRISE XYZ", amount: 3250.00, category: "Revenus", subcategory: "Salaire", confidence: 98.5, anomalyScore: 0.1 },
+          { id: 2, date: "2024-01-16", description: "CARTE SUPERMARCHÉ", originalDesc: "CB LECLERC PONTAULT", amount: -87.45, category: "Alimentation", subcategory: "Supermarché", confidence: 95.2, anomalyScore: 0.0 },
+          { id: 3, date: "2024-01-17", description: "PRELEVEMENT EDF", originalDesc: "PREL EDF REF:FAC123456", amount: -142.30, category: "Charges", subcategory: "Électricité", confidence: 97.8, anomalyScore: 0.2 }
+        ],
+        summary: { 
+          totalTransactions: newDocument.totalTransactions || 3, 
+          totalDebits: -229.75, 
+          totalCredits: 3250.00, 
+          netFlow: 3020.25, 
+          avgConfidence: 95.4, 
+          anomaliesDetected: newDocument.anomaliesDetected || 0 
+        }
+      };
+      
+      setTimeout(() => {
+        setResults(mockResults);
+        setProcessing(false);
+        setProcessingStep('');
+      }, 1000);
+
+    } catch (error) {
+      console.error("Erreur d'upload:", error);
+      alert(`Une erreur est survenue lors de l'analyse: ${error instanceof Error ? error.message : String(error)}`);
+      setProcessing(false);
+      setProcessingStep('');
+    }
   };
 
   const exportToCSV = () => {
@@ -411,6 +454,16 @@ const BankStatementConverter = () => {
       
       <Navigation />
       <SignUpModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      
+      {/* Modal de rejet de document */}
+      {showRejectionModal && rejectionDetails && (
+        <DocumentRejectionModal
+          isOpen={showRejectionModal}
+          onClose={() => setShowRejectionModal(false)}
+          message={rejectionDetails.message}
+          documentType={rejectionDetails.documentType}
+        />
+      )}
 
       <main className="pt-24 md:pt-28 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
