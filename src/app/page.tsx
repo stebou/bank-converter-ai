@@ -435,8 +435,6 @@ const BankStatementConverter = () => {
                     <div className="flex items-center space-x-3 mb-6"><CheckCircle className="w-6 h-6 text-green-600" /><h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3></div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200"><div className="text-2xl font-bold text-green-700">{results.confidence}%</div><div className="text-sm text-green-600">Confiance IA</div></div>
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200"><div className="text-2xl font-bold text-blue-700">{results.processingTime}s</div><div className="text-sm text-blue-600">Temps d analyse</div></div>
-                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200"><div className="text-2xl font-bold text-purple-700">€{results.aiCost}</div><div className="text-sm text-purple-600">Coût IA</div></div>
                       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200"><div className="text-2xl font-bold text-orange-700">{results.summary.anomaliesDetected}</div><div className="text-sm text-orange-600">Anomalies détectées</div></div>
                     </div>
                     <div className="flex items-center justify-between p-4 bg-gray-50/90 backdrop-blur-sm rounded-xl">
