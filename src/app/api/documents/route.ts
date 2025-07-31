@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { processPdfServerSide } from '@/lib/pdf-processing-vercel';
+import { processPdfNative } from '@/lib/pdf-processing-native';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,27 +22,29 @@ interface TransactionData {
   anomalyScore: number;
 }
 
-// Fonction pour extraire des transactions précises avec GPT-4 Vision (copiée de validate-document)
+// Fonction pour extraire des transactions précises avec GPT-4 Vision OU texte seul
 async function extractTransactionsWithAI(extractedText: string, imageBase64?: string): Promise<TransactionData[]> {
   console.log('[DOCUMENTS_API] Starting AI-powered transaction extraction...');
+  console.log('[DOCUMENTS_API] Text length:', extractedText.length);
+  console.log('[DOCUMENTS_API] Has image:', !!imageBase64);
   
-  if (!imageBase64) {
-    console.log('[DOCUMENTS_API] No image available, falling back to basic parsing...');
+  if (!extractedText || extractedText.length < 50) {
+    console.log('[DOCUMENTS_API] Insufficient text, falling back to basic parsing...');
     return generateBasicTransactions();
   }
 
   try {
-    const transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. Analyse cette image de relevé bancaire et extrait PRÉCISÉMENT toutes les transactions visibles.
+    let transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : 'Analyse ce TEXTE extrait d\'un relevé bancaire'} et extrait PRÉCISÉMENT toutes les transactions visibles.
 
 INSTRUCTIONS CRITIQUES :
-- Regarde attentivement l'image pour identifier les colonnes : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
+- ${imageBase64 && imageBase64.length > 100 ? 'Regarde attentivement l\'image pour identifier les colonnes' : 'Analyse attentivement le texte pour identifier les informations'} : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
 - Extrait UNIQUEMENT les vraies transactions (pas les en-têtes, totaux, ou métadonnées)
 - Les montants doivent être les vrais montants en euros (ex: 45.67, -123.45)
-- Les dates doivent être au format DD/MM ou DD/MM/YYYY visible dans l'image
+- Les dates doivent être au format DD/MM ou DD/MM/YYYY ${imageBase64 && imageBase64.length > 100 ? 'visible dans l\'image' : 'trouvées dans le texte'}
 - Les descriptions doivent être les vrais libellés des opérations
 
-TEXTE EXTRAIT (pour contexte) :
-${extractedText.substring(0, 2000)}
+TEXTE EXTRAIT ${imageBase64 && imageBase64.length > 100 ? '(pour contexte)' : '(source principale)'} :
+${extractedText.substring(0, 3000)}
 
 Réponds UNIQUEMENT avec un JSON valide contenant un array "transactions" :
 {
@@ -65,23 +67,28 @@ EXEMPLE de format attendu :
   ]
 }`;
 
+    // Préparer le contenu du message
+    const messageContent: any[] = [{
+      type: 'text',
+      text: transactionExtractionPrompt
+    }];
+    
+    // Ajouter l'image seulement si elle est disponible et valide
+    if (imageBase64 && imageBase64.length > 100) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/png;base64,${imageBase64}`,
+          detail: "high"
+        }
+      });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{
         role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: transactionExtractionPrompt
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/png;base64,${imageBase64}`,
-              detail: "high"
-            }
-          }
-        ]
+        content: messageContent
       }],
       max_tokens: 2000,
       temperature: 0.1,
@@ -282,10 +289,10 @@ export async function POST(req: NextRequest) {
         const pdfBuffer = Buffer.from(await file.arrayBuffer());
         console.log('[DOCUMENTS_API] PDF buffer size:', pdfBuffer.length);
         
-        // Traitement PDF avec PyMuPDF
-        console.log('[DOCUMENTS_API] Calling processPdfServerSide...');
-        const pdfProcessingResult = await processPdfServerSide(pdfBuffer, file.name);
-        console.log('[DOCUMENTS_API] processPdfServerSide completed');
+        // Traitement PDF avec solution JavaScript native
+        console.log('[DOCUMENTS_API] Calling processPdfNative...');
+        const pdfProcessingResult = await processPdfNative(pdfBuffer, file.name);
+        console.log('[DOCUMENTS_API] processPdfNative completed');
         
         if (pdfProcessingResult.success && pdfProcessingResult.extracted_text) {
           const extractedText = pdfProcessingResult.extracted_text;

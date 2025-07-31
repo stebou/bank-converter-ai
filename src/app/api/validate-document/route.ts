@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 // import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { processPdfServerSide } from '@/lib/pdf-processing-vercel';
+import { processPdfNative } from '@/lib/pdf-processing-native';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,27 +22,29 @@ interface TransactionData {
   anomalyScore: number;
 }
 
-// Fonction pour extraire des transactions précises avec GPT-4 Vision
+// Fonction pour extraire des transactions précises avec GPT-4 Vision OU texte seul
 async function extractTransactionsWithAI(extractedText: string, imageBase64?: string): Promise<TransactionData[]> {
   console.log('[VALIDATE_DOCUMENT] Starting AI-powered transaction extraction...');
+  console.log('[VALIDATE_DOCUMENT] Text length:', extractedText.length);
+  console.log('[VALIDATE_DOCUMENT] Has image:', !!imageBase64);
   
-  if (!imageBase64) {
-    console.log('[VALIDATE_DOCUMENT] No image available, falling back to basic parsing...');
+  if (!extractedText || extractedText.length < 50) {
+    console.log('[VALIDATE_DOCUMENT] Insufficient text, falling back to basic parsing...');
     return generateBasicTransactions();
   }
 
   try {
-    const transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. Analyse cette image de relevé bancaire et extrait PRÉCISÉMENT toutes les transactions visibles.
+    let transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : 'Analyse ce TEXTE extrait d\'un relevé bancaire'} et extrait PRÉCISÉMENT toutes les transactions visibles.
 
 INSTRUCTIONS CRITIQUES :
-- Regarde attentivement l'image pour identifier les colonnes : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
+- ${imageBase64 && imageBase64.length > 100 ? 'Regarde attentivement l\'image pour identifier les colonnes' : 'Analyse attentivement le texte pour identifier les informations'} : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
 - Extrait UNIQUEMENT les vraies transactions (pas les en-têtes, totaux, ou métadonnées)
 - Les montants doivent être les vrais montants en euros (ex: 45.67, -123.45)
-- Les dates doivent être au format DD/MM ou DD/MM/YYYY visible dans l'image
+- Les dates doivent être au format DD/MM ou DD/MM/YYYY ${imageBase64 && imageBase64.length > 100 ? 'visible dans l\'image' : 'trouvées dans le texte'}
 - Les descriptions doivent être les vrais libellés des opérations
 
-TEXTE EXTRAIT (pour contexte) :
-${extractedText.substring(0, 2000)}
+TEXTE EXTRAIT ${imageBase64 && imageBase64.length > 100 ? '(pour contexte)' : '(source principale)'} :
+${extractedText.substring(0, 3000)}
 
 Réponds UNIQUEMENT avec un JSON valide contenant un array "transactions" :
 {
@@ -65,23 +67,28 @@ EXEMPLE de format attendu :
   ]
 }`;
 
+    // Préparer le contenu du message
+    const messageContent: any[] = [{
+      type: 'text',
+      text: transactionExtractionPrompt
+    }];
+    
+    // Ajouter l'image seulement si elle est disponible et valide
+    if (imageBase64 && imageBase64.length > 100) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/png;base64,${imageBase64}`,
+          detail: "high"
+        }
+      });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{
         role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: transactionExtractionPrompt
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/png;base64,${imageBase64}`,
-              detail: "high"
-            }
-          }
-        ]
+        content: messageContent
       }],
       max_tokens: 2000,
       temperature: 0.1,
@@ -364,9 +371,9 @@ export async function POST(req: NextRequest) {
         console.log('[VALIDATE_DOCUMENT] PDF buffer size:', pdfBuffer.length);
         
         // Traitement PDF intégré (évite les appels HTTP internes)
-        console.log('[VALIDATE_DOCUMENT] Calling processPdfServerSide...');
-        const pdfProcessingResult = await processPdfServerSide(pdfBuffer, file.name);
-        console.log('[VALIDATE_DOCUMENT] processPdfServerSide completed');
+        console.log('[VALIDATE_DOCUMENT] Calling processPdfNative...');
+        const pdfProcessingResult = await processPdfNative(pdfBuffer, file.name);
+        console.log('[VALIDATE_DOCUMENT] processPdfNative completed');
         console.log('[VALIDATE_DOCUMENT] Processing result:', JSON.stringify({
           success: pdfProcessingResult.success,
           hasText: !!pdfProcessingResult.extracted_text,
@@ -430,8 +437,8 @@ Réponds UNIQUEMENT avec un JSON valide:
             text: analysisPrompt
           }];
           
-          // Ajouter l'image si disponible
-          if (base64Image) {
+          // Ajouter l'image si disponible et non vide
+          if (base64Image && base64Image.length > 100) {
             messageContent.push({
               type: 'image_url',
               image_url: {
@@ -439,6 +446,15 @@ Réponds UNIQUEMENT avec un JSON valide:
                 detail: "high"
               }
             });
+          } else {
+            // Mode texte seulement - modifier le prompt
+            messageContent[0].text = messageContent[0].text.replace(
+              'Analyse cette image de relevé bancaire et extrait PRÉCISÉMENT toutes les transactions visibles.',
+              'Analyse ce TEXTE extrait d\'un relevé bancaire et extrait PRÉCISÉMENT toutes les transactions visibles.'
+            ).replace(
+              'Regarde attentivement l\'image pour identifier les colonnes',
+              'Analyse attentivement le texte pour identifier les informations'
+            );
           }
           
           const completion = await openai.chat.completions.create({

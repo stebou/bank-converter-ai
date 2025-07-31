@@ -1,10 +1,4 @@
 {
-  "functions": {
-    "api/process-pdf-vercel.py": {
-      "runtime": "@vercel/python@4.3.1",
-      "maxDuration": 30
-    }
-  },
   "build": {
     "env": {
       "NEXT_PUBLIC_VERCEL": "1"

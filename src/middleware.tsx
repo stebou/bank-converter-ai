@@ -11,9 +11,7 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 // 2. Définir les routes API publiques (non protégées)
-const isPublicApiRoute = createRouteMatcher([
-  '/api/process-pdf-vercel', // Fonction Python Vercel - accès public pour les appels internes
-]);
+const isPublicApiRoute = createRouteMatcher([]);
 
 // 3. Exporter le middleware. Notez que la fonction est maintenant `async`
 export default clerkMiddleware(async (auth, req) => {

@@ -5,20 +5,25 @@ L'erreur `python3: command not found` sur Vercel a été résolue en migrant ver
 
 ## Changements Effectués
 
-### 1. Fonction Vercel Python
-- **Fichier**: `/api/process-pdf-vercel.py`
-- **Runtime**: `@vercel/python@4.3.1`
-- **Dépendances**: PyMuPDF + pdfplumber
-- **Timeout**: 30 secondes max
+### 1. Fonction Vercel Python (Version Optimisée)
+- **Fichier**: `/api/process-pdf-light.py` (version légère)
+- **Runtime**: `@vercel/python@4.3.1`  
+- **Dépendances**: PyMuPDF seulement (v1.23.26)
+- **Timeout**: 25 secondes max
+- **Optimisations**: 
+  - Suppression de pdfplumber pour réduire la taille
+  - Limite à 5 pages maximum par document
+  - Résolution d'image réduite (1x au lieu de 2x)
+  - Dépendances minimales
 
 ### 2. Configuration Vercel
 - **Fichier**: `vercel.json`
 ```json
 {
   "functions": {
-    "api/process-pdf-vercel.py": {
+    "api/process-pdf-light.py": {
       "runtime": "@vercel/python@4.3.1",
-      "maxDuration": 30
+      "maxDuration": 25
     }
   }
 }
@@ -35,15 +40,21 @@ L'erreur `python3: command not found` sur Vercel a été résolue en migrant ver
 - `/api/validate-document/route.ts` - Import changé
 
 ## URL de la Fonction
-- **Production**: `https://[domain]/api/process-pdf-vercel`
-- **Développement**: `http://localhost:3000/api/process-pdf-vercel`
+- **Production**: `https://[domain]/api/process-pdf-light`
+- **Développement**: `http://localhost:3000/api/process-pdf-light`
 
 ## Test de la Fonction
 ```bash
-curl -X POST https://[domain]/api/process-pdf-vercel \
+curl -X POST https://[domain]/api/process-pdf-light \
   -H "Content-Type: application/json" \
   -d '{"pdf_base64": "base64_encoded_pdf", "output_mode": "hybrid"}'
 ```
+
+## Problème de Taille Résolu
+- **Problème**: Fonction serverless >250MB (limite Vercel)
+- **Cause**: pdfplumber + PyMuPDF trop volumineux
+- **Solution**: PyMuPDF seul + optimisations
+- **Résultat**: Fonction légère compatible Vercel
 
 ## Fichiers Ignorés
 Via `.vercelignore`:
