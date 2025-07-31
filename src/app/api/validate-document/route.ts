@@ -29,9 +29,12 @@ export async function POST(req: NextRequest) {
     } else if (file.type.startsWith('image/')) {
       try {
         console.log('[VALIDATE_DOCUMENT] Image detected, processing for GPT-4 Vision...');
+        console.log('[VALIDATE_DOCUMENT] Image type:', file.type);
+        console.log('[VALIDATE_DOCUMENT] Image size:', file.size);
         
         // Convertir l'image en buffer
         const imageBuffer = Buffer.from(await file.arrayBuffer());
+        console.log('[VALIDATE_DOCUMENT] Image buffer size:', imageBuffer.length);
         
         // Optimiser l'image avec sharp (comme dans l'exemple)
         const sharp = await import('sharp');
@@ -45,11 +48,16 @@ export async function POST(req: NextRequest) {
         
         base64Image = optimizedBuffer.toString('base64');
         console.log('[VALIDATE_DOCUMENT] Image successfully processed for GPT-4 Vision');
+        console.log('[VALIDATE_DOCUMENT] Base64 image length:', base64Image.length);
         
       } catch (error) {
         console.error('[VALIDATE_DOCUMENT] Error during image processing:', error);
         base64Image = null;
       }
+    } else {
+      console.log('[VALIDATE_DOCUMENT] Unknown file type:', file.type);
+      console.log('[VALIDATE_DOCUMENT] File name:', file.name);
+      base64Image = null;
     }
 
     console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
@@ -223,6 +231,29 @@ Réponds UNIQUEMENT avec un JSON valide:
 
     // Fallback si pas d'analyse IA Vision - utiliser la détection basée sur le nom de fichier
     console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI Vision analysis)');
+    
+    // Pour les PDFs, faire une validation basique du nom de fichier pour détecter les mauvais documents
+    if (file.type === 'application/pdf') {
+      const fileName = file.name.toLowerCase();
+      
+      // Mots-clés qui indiquent des documents NON bancaires
+      const invalidKeywords = [
+        'attestation', 'certificat', 'carte', 'identite', 'passeport', 
+        'permis', 'electoral', 'liste', 'inscription', 'diplome',
+        'bulletin', 'salaire', 'paie', 'contrat', 'cv', 'curriculum'
+      ];
+      
+      const hasInvalidKeyword = invalidKeywords.some(keyword => fileName.includes(keyword));
+      
+      if (hasInvalidKeyword) {
+        console.log('[VALIDATE_DOCUMENT] PDF rejected based on filename analysis:', fileName);
+        return NextResponse.json({
+          error: 'DOCUMENT_REJECTED',
+          message: 'Document non valide: Ce document ne semble pas être un relevé bancaire ou une facture.',
+          documentType: 'autre'
+        }, { status: 400 });
+      }
+    }
     
     // Essayer d'utiliser les indices de banque même sans IA
     const fileName = file.name.toLowerCase();
