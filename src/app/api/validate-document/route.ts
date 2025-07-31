@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { convertPdfToImageWithCanvas } from '@/lib/pdf-to-image-cloudconvert';
+// import { convertPdfToImageWithCanvas } from '@/lib/pdf-to-image-cloudconvert'; // Remplacé par PyMuPDF
 // Note: pdf-parse importé dynamiquement pour éviter les erreurs de build
 
 const openai = new OpenAI({
@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // Fonction pour générer des transactions réalistes basées sur le texte extrait
-function generateTransactionsFromText(extractedText: string, bankName: string) {
+function generateTransactionsFromText(extractedText: string) {
   console.log('[VALIDATE_DOCUMENT] Generating transactions from extracted text...');
   
   const transactions = [];
@@ -198,7 +198,7 @@ TEXTE EXTRAIT DU DOCUMENT:
 ${extractedText}
 
 ANALYSE REQUISE:
-1. ${base64Image ? 'Vérifie la cohérence entre le texte extrait et l\\'image' : 'Analyse la structure et cohérence du texte'}
+1. ${base64Image ? 'Vérifie la cohérence entre le texte extrait et l\'image' : 'Analyse la structure et cohérence du texte'}
 2. Identifie IMPÉRATIVEMENT le nom de la banque qui apparaît clairement dans le texte (première ligne, en-tête, ou plusieurs fois)
 3. Compte les transactions mentionnées dans le tableau des mouvements
 4. Détecte toute incohérence ou anomalie
@@ -293,7 +293,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                       extractedTextLength: extractedText.length,
                       analysisMethod: base64Image ? 'hybrid_text_and_vision' : 'text_analysis',
                       pythonProcessing: true,
-                      transactions: generateTransactionsFromText(extractedText, bankName),
+                      transactions: generateTransactionsFromText(extractedText),
                       processingTime: Math.random() * 2 + 2.5,
                       aiCost: Math.random() * 0.05 + 0.03,
                     }, { status: 200 });
@@ -549,7 +549,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                     extractedTextLength: extractedText.length,
                     analysisMethod: base64Image ? 'hybrid_text_and_vision' : 'text_analysis',
                     pythonProcessing: true,
-                    transactions: generateTransactionsFromText(extractedText, bankName),
+                    transactions: generateTransactionsFromText(extractedText),
                     processingTime: Math.random() * 2 + 2.5,
                     aiCost: Math.random() * 0.05 + 0.03,
                   }, { status: 200 });
