@@ -10,8 +10,19 @@ const isProtectedRoute = createRouteMatcher([
   '/reglages(.*)',    // Protège les réglages
 ]);
 
-// 2. Exporter le middleware. Notez que la fonction est maintenant `async`
+// 2. Définir les routes API publiques (non protégées)
+const isPublicApiRoute = createRouteMatcher([
+  '/api/process-pdf-vercel', // Fonction Python Vercel - accès public pour les appels internes
+]);
+
+// 3. Exporter le middleware. Notez que la fonction est maintenant `async`
 export default clerkMiddleware(async (auth, req) => {
+  
+  // Si c'est une route API publique, passer sans authentification
+  if (isPublicApiRoute(req)) {
+    console.log('[MIDDLEWARE] Route API publique autorisée:', req.url);
+    return NextResponse.next();
+  }
 
   // Si la route est une route protégée...
   if (isProtectedRoute(req)) {
