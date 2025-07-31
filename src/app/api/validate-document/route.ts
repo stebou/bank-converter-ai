@@ -192,35 +192,39 @@ export async function POST(req: NextRequest) {
                 console.log('[VALIDATE_DOCUMENT] Image available:', !!base64Image);
                 
                 // Analyser avec GPT-4 Vision (hybride: texte + image)
-                const analysisPrompt = `Tu es un expert en analyse de documents bancaires. Tu disposes du TEXTE EXTRAIT du document${base64Image ? ' et de son IMAGE' : ''}. Analyse ${base64Image ? 'les deux sources' : 'le texte'} pour une validation précise.
+                const analysisPrompt = `Tu es un expert en analyse de documents financiers avec une approche TRÈS PERMISSIVE. Tu disposes du TEXTE EXTRAIT du document${base64Image ? ' et de son IMAGE' : ''}. Ton objectif est d'ACCEPTER le maximum de documents financiers légitimes.
 
 TEXTE EXTRAIT DU DOCUMENT:
 ${extractedText}
 
-ANALYSE REQUISE:
-1. ${base64Image ? 'Vérifie la cohérence entre le texte extrait et l\'image' : 'Analyse la structure et cohérence du texte'}
-2. Identifie IMPÉRATIVEMENT le nom de la banque qui apparaît clairement dans le texte (première ligne, en-tête, ou plusieurs fois)
-3. Compte les transactions mentionnées dans le tableau des mouvements
-4. Détecte toute incohérence ou anomalie
+APPROCHE PERMISSIVE - ACCEPTER SI:
+✅ Le document contient des montants en euros (€) ou des chiffres financiers
+✅ Il y a des dates qui pourraient être des transactions
+✅ Le document mentionne des termes financiers (compte, solde, virement, etc.)
+✅ Il ressemble à un document bancaire ou financier même sans logo visible
+✅ Le nom de banque n'est pas obligatoire - accepter si c'est un document financier
+✅ Les relevés peuvent être dans différents formats (PDF, scan, photo)
+✅ Même les documents partiellement lisibles peuvent être valides
 
-CRITÈRES STRICTS POUR VALIDATION:
-- Le nom de la banque DOIT être clairement visible dans le texte (BNP Paribas, Crédit Agricole, etc.)
-- Si le texte contient des informations bancaires légitimes, le document est VALIDE
-- Structure de relevé bancaire avec en-tête, compte, période, transactions
-- Données financières cohérentes (dates, montants, soldes)
+REJETER SEULEMENT SI:
+❌ C'est clairement un document d'identité (carte ID, passeport, permis)
+❌ C'est manifestement une photo personnelle ou un selfie
+❌ Le document est complètement illisible ou corrompu
+❌ Il n'y a aucun élément financier visible (pas de montants, dates de transactions)
 
-INSTRUCTIONS IMPORTANTES:
-- Si le nom de la banque apparaît dans le texte, le document est VALIDE
-- Cherche le nom de banque en début de texte, dans les en-têtes, et en fin de document
-- Les relevés bancaires contiennent toujours le nom de la banque de façon évidente
-- ACCEPTE le document s'il contient des informations bancaires cohérentes
+INSTRUCTIONS ESSENTIELLES:
+- PRIORISE L'ACCEPTATION des documents qui pourraient être financiers
+- Un relevé bancaire PEUT ne pas avoir le nom de la banque visible (scan partiel, etc.)
+- ACCEPTE même si le format n'est pas parfait
+- En cas de doute, ACCEPTE le document
+- Les documents financiers peuvent avoir différentes présentations
 
 Réponds UNIQUEMENT avec un JSON valide:
 {
   "isValidDocument": true/false,
   "documentType": "relevé bancaire" | "facture" | "document financier" | "autre",
   "rejectionReason": "raison précise du rejet si pas valide",
-  "bankName": "nom exact et complet de la banque détectée",
+  "bankName": "nom de la banque détectée ou 'Document Financier' si non visible",
   "transactionCount": nombre_de_transactions_visibles,
   "anomalies": nombre_d_anomalies_détectées,
   "confidence": pourcentage_de_confiance_0_à_100,
@@ -475,7 +479,7 @@ Réponds UNIQUEMENT avec un JSON valide:
   "isValidDocument": true/false,
   "documentType": "relevé bancaire" | "facture" | "document financier" | "autre",
   "rejectionReason": "raison précise du rejet si pas valide",
-  "bankName": "nom exact et complet de la banque détectée",
+  "bankName": "nom de la banque détectée ou 'Document Financier' si non visible",
   "transactionCount": nombre_de_transactions_visibles,
   "anomalies": nombre_d_anomalies_détectées,
   "confidence": pourcentage_de_confiance_0_à_100,
@@ -620,24 +624,22 @@ Réponds UNIQUEMENT avec un JSON valide:
         
         console.log('[VALIDATE_DOCUMENT] Using GPT-4 VISION analysis...');
         
-        const analysisPrompt = `Tu es un expert en analyse de documents bancaires avec une approche STRICTE. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
+        const analysisPrompt = `Tu es un expert en analyse de documents financiers avec une approche TRÈS PERMISSIVE. Analyse visuellement ce document avec pour objectif d'ACCEPTER le maximum de documents financiers légitimes.
 
-APPROCHE STRICTE - REJETER SI:
-❌ Document d'identité (carte d'identité, passeport, permis)
-❌ Attestation ou certificat de quelque nature
-❌ Photo personnelle, selfie, capture d'écran
-❌ Document manuscrit ou brouillon
-❌ Page web générique ou interface non bancaire
-❌ Document flou, illisible ou de mauvaise qualité
-❌ Document sans logo bancaire officiel reconnaissable
-❌ Fausse simulation ou document fictif évident
+APPROCHE PERMISSIVE - ACCEPTER SI:
+✅ Le document contient des montants en euros (€) ou des chiffres financiers
+✅ Il y a des dates qui pourraient être des transactions
+✅ Le document mentionne des termes financiers (compte, solde, virement, etc.)
+✅ Il ressemble à un document bancaire ou financier même sans logo visible
+✅ Les relevés peuvent être dans différents formats (PDF, scan, photo)
+✅ Même les documents partiellement lisibles peuvent être valides
+✅ Structure de document financier reconnaissable
 
-ACCEPTER SEULEMENT SI:
-✅ Relevé bancaire officiel avec logo et en-tête bancaire
-✅ Facture d'entreprise avec informations financières
-✅ Document présentant des transactions authentiques
-✅ Structure professionnelle et cohérente
-✅ Qualité suffisante pour l'analyse
+REJETER SEULEMENT SI:
+❌ C'est clairement un document d'identité (carte ID, passeport, permis)
+❌ C'est manifestement une photo personnelle ou un selfie
+❌ Le document est complètement illisible ou corrompu
+❌ Il n'y a aucun élément financier visible
 
 BANQUES FRANÇAISES À RECHERCHER:
 - BNP Paribas (logo vert/blanc, couleurs caractéristiques)
@@ -657,18 +659,18 @@ BANQUES FRANÇAISES À RECHERCHER:
 - Orange Bank (logo orange distinctif)
 - Fortuneo (logo vert)
 
-INSTRUCTIONS CRITIQUES:
-- Sois TRÈS strict dans la validation
-- En cas de doute, REJETER le document
-- Un document bancaire doit avoir un aspect professionnel et officiel
-- Recherche activement les signes de faux documents
+INSTRUCTIONS ESSENTIELLES:
+- PRIORISE L'ACCEPTATION des documents qui pourraient être financiers
+- En cas de doute, ACCEPTE le document
+- Les documents financiers peuvent avoir différents aspects et formats
+- Un nom de banque n'est pas obligatoire pour valider le document
 
 Réponds UNIQUEMENT avec un JSON valide:
 {
   "isValidDocument": true/false,
   "documentType": "relevé bancaire" | "facture" | "document financier" | "autre",
   "rejectionReason": "raison précise du rejet si pas valide",
-  "bankName": "nom exact et complet de la banque détectée",
+  "bankName": "nom de la banque détectée ou 'Document Financier' si non visible",
   "transactionCount": nombre_de_transactions_visibles,
   "anomalies": nombre_d_anomalies_détectées,
   "confidence": pourcentage_de_confiance_0_à_100
