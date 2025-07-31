@@ -137,8 +137,13 @@ export async function convertPdfToImageWithCanvas(pdfBuffer: Buffer): Promise<st
     const sharp = await import('sharp');
     
     const svgBuffer = Buffer.from(svgContent);
-    const pngBuffer = await sharp.default(svgBuffer)
-      .png({ quality: 90 })
+    const pngBuffer = await sharp.default(svgBuffer, {
+      density: 150 // Améliore la qualité sans utiliser les fonts système
+    })
+      .png({ 
+        quality: 90,
+        compressionLevel: 6 
+      })
       .toBuffer();
     
     const base64Image = pngBuffer.toString('base64');
