@@ -34,7 +34,7 @@ async function extractTransactionsWithAI(extractedText: string, imageBase64?: st
   }
 
   try {
-    let transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : 'Analyse ce TEXTE extrait d\'un relevé bancaire'} et extrait PRÉCISÉMENT toutes les transactions visibles.
+    const transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : 'Analyse ce TEXTE extrait d\'un relevé bancaire'} et extrait PRÉCISÉMENT toutes les transactions visibles.
 
 INSTRUCTIONS CRITIQUES :
 - ${imageBase64 && imageBase64.length > 100 ? 'Regarde attentivement l\'image pour identifier les colonnes' : 'Analyse attentivement le texte pour identifier les informations'} : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
@@ -68,6 +68,7 @@ EXEMPLE de format attendu :
 }`;
 
     // Préparer le contenu du message
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messageContent: any[] = [{
       type: 'text',
       text: transactionExtractionPrompt
@@ -79,7 +80,7 @@ EXEMPLE de format attendu :
         type: 'image_url',
         image_url: {
           url: `data:image/png;base64,${imageBase64}`,
-          detail: "high"
+          detail: "high" as const
         }
       });
     }
@@ -432,7 +433,7 @@ Réponds UNIQUEMENT avec un JSON valide:
 }`;
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const messageContent: any = [{
+          const messageContent: any[] = [{
             type: 'text',
             text: analysisPrompt
           }];
@@ -443,7 +444,7 @@ Réponds UNIQUEMENT avec un JSON valide:
               type: 'image_url',
               image_url: {
                 url: `data:image/png;base64,${base64Image}`,
-                detail: "high"
+                detail: "high" as const
               }
             });
           } else {
@@ -504,7 +505,7 @@ Réponds UNIQUEMENT avec un JSON valide:
               console.log('[VALIDATE_DOCUMENT] Generated transactions count:', generatedTransactions.length);
               
               // Sauvegarder en base de données si utilisateur connecté
-              const saveResult = await saveDocumentAndTransactions(
+              await saveDocumentAndTransactions(
                 file,
                 bankName,
                 generatedTransactions,
@@ -620,7 +621,7 @@ JSON seulement:
                   console.log('[VALIDATE_DOCUMENT] Fallback transactions generated:', fallbackTransactions.length);
                   
                   // Sauvegarder en base de données si utilisateur connecté (fallback)
-                  const fallbackSaveResult = await saveDocumentAndTransactions(
+                  await saveDocumentAndTransactions(
                     file,
                     analysis.bankName || 'Document Financier',
                     fallbackTransactions,
