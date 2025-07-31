@@ -7,8 +7,7 @@ import logging
 # Import des vraies librairies Python avec fallback
 PYTHON_LIBS_AVAILABLE = False
 pdfplumber = None
-convert_from_bytes = None
-Image = None
+pymupdf = None
 
 try:
     import pdfplumber
@@ -18,24 +17,28 @@ except ImportError as e:
     logging.error(f"pdfplumber not available: {e}")
 
 try:
-    from pdf2image import convert_from_bytes
-    from PIL import Image
-    logging.info("pdf2image and PIL imported successfully")
+    import pymupdf  # PyMuPDF pour extraction texte + conversion image
+    logging.info("pymupdf imported successfully")
 except ImportError as e:
-    logging.error(f"pdf2image/PIL not available: {e}")
-    # On peut quand même faire l'extraction de texte sans les images
+    logging.error(f"pymupdf not available: {e}")
+    # Fallback sur l'import legacy
+    try:
+        import fitz as pymupdf
+        logging.info("fitz (legacy pymupdf) imported successfully")
+    except ImportError:
+        logging.error("Neither pymupdf nor fitz available")
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Extraction texte du PDF avec pdfplumber"""
         
         try:
-            if not pdfplumber:
+            if not pdfplumber and not pymupdf:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                error_response = {"success": False, "error": "pdfplumber library not available"}
+                error_response = {"success": False, "error": "Neither pdfplumber nor pymupdf library available"}
                 self.wfile.write(json.dumps(error_response).encode('utf-8'))
                 return
             
@@ -85,38 +88,42 @@ class handler(BaseHTTPRequestHandler):
                 logging.error(f"Text extraction error: {text_error}")
                 extracted_text = ""
             
-            # 2. CONVERSION IMAGE avec pdf2image (si disponible)
+            # 2. CONVERSION IMAGE avec PyMuPDF (si disponible)
             image_base64 = ""
             
-            if convert_from_bytes and Image:
+            if pymupdf:
                 try:
-                    # Convertir première page en image haute qualité
-                    images = convert_from_bytes(
-                        pdf_data,
-                        first_page=1,
-                        last_page=1,
-                        dpi=150,  # Bonne qualité sans être trop lourd
-                        fmt='PNG'
-                    )
+                    # Ouvrir le PDF avec PyMuPDF pour conversion image
+                    doc = pymupdf.open(stream=pdf_data, filetype="pdf")
                     
-                    if images:
-                        # Redimensionner si trop grand (optimisation)
-                        img = images[0]
-                        if img.width > 2048 or img.height > 2048:
-                            img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+                    if len(doc) > 0:
+                        # Convertir première page en image haute qualité
+                        page = doc[0]  # Première page
+                        
+                        # Créer une matrice pour la résolution (2.0 = 144 DPI)
+                        matrix = pymupdf.Matrix(2.0, 2.0)
+                        
+                        # Obtenir le pixmap (image)
+                        pix = page.get_pixmap(matrix=matrix)
+                        
+                        # Convertir en PNG bytes
+                        img_data = pix.tobytes("png")
                         
                         # Convertir en base64
-                        img_buffer = io.BytesIO()
-                        img.save(img_buffer, format='PNG', optimize=True)
-                        image_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+                        image_base64 = base64.b64encode(img_data).decode('utf-8')
                         
-                        logging.info(f"Image converted, base64 length: {len(image_base64)}")
+                        logging.info(f"PyMuPDF image converted, base64 length: {len(image_base64)}")
+                        
+                        # Nettoyer la mémoire
+                        pix = None
+                    
+                    doc.close()
                     
                 except Exception as img_error:
-                    logging.error(f"Image conversion error: {img_error}")
+                    logging.error(f"PyMuPDF image conversion error: {img_error}")
                     image_base64 = ""
             else:
-                logging.info("pdf2image/PIL not available, skipping image conversion")
+                logging.info("PyMuPDF not available, skipping image conversion")
             
             # 3. ANALYSE ET VALIDATION
             has_text = len(extracted_text.strip()) > 50
@@ -187,14 +194,15 @@ class handler(BaseHTTPRequestHandler):
             "service": "pdf-processor",
             "status": "healthy",
             "pdfplumber_available": bool(pdfplumber),
-            "pdf2image_available": bool(convert_from_bytes),
+            "pymupdf_available": bool(pymupdf),
             "available_methods": []
         }
         
         if pdfplumber:
-            status["available_methods"].append("text_extraction")
-        if convert_from_bytes:
-            status["available_methods"].append("image_conversion")
+            status["available_methods"].append("text_extraction_pdfplumber")
+        if pymupdf:
+            status["available_methods"].append("text_extraction_pymupdf")
+            status["available_methods"].append("image_conversion_pymupdf")
         
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
