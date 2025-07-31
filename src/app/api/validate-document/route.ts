@@ -15,11 +15,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
+    console.log('[VALIDATE_DOCUMENT] Processing file:', file.name, file.size, file.type);
+
     // Extraire le texte du PDF si c'est un PDF  
     let extractedText: string | null = null;
     if (file.type === 'application/pdf') {
       try {
-        console.log('[PDF_VALIDATION] Starting PDF text extraction...');
+        console.log('[VALIDATE_DOCUMENT] Starting PDF text extraction...');
         
         // Créer un texte de base pour l'IA
         extractedText = `=== DOCUMENT PDF POUR VALIDATION ===
@@ -32,10 +34,10 @@ Type: Document à valider
 Ce document doit être validé comme étant un relevé bancaire ou une facture.
 Analyse requise pour déterminer la validité du document.`;
 
-        console.log('[PDF_VALIDATION] Generated text for validation');
+        console.log('[VALIDATE_DOCUMENT] Generated text for validation');
         
       } catch (error) {
-        console.error('[PDF_VALIDATION] Error during PDF processing:', error);
+        console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
         extractedText = `Document PDF: ${file.name} - Validation requise`;
       }
     }
@@ -43,6 +45,8 @@ Analyse requise pour déterminer la validité du document.`;
     // Faire l'analyse IA de validation si on a du texte et la clé API
     if (extractedText && process.env.OPENAI_API_KEY) {
       try {
+        console.log('[VALIDATE_DOCUMENT] Starting AI analysis...');
+        
         const analysisPrompt = `Analyse ce document et détermine s'il s'agit d'un document bancaire ou d'une facture valide.
 
 CONTENU DU DOCUMENT:
@@ -71,6 +75,8 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
         });
 
         const aiResponse = completion.choices[0]?.message?.content;
+        console.log('[VALIDATE_DOCUMENT] AI response received:', aiResponse?.substring(0, 200));
+        
         if (aiResponse) {
           try {
             // Nettoyer la réponse pour enlever les balises markdown
@@ -83,10 +89,11 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
             }
             
             const analysis = JSON.parse(cleanResponse);
+            console.log('[VALIDATE_DOCUMENT] Parsed analysis:', analysis);
             
             // Vérifier si le document est valide
             if (analysis.isValidDocument === false) {
-              console.log('[PDF_VALIDATION] Document rejected:', analysis.rejectionReason);
+              console.log('[VALIDATE_DOCUMENT] Document rejected:', analysis.rejectionReason);
               
               // Retourner une erreur pour déclencher la popup côté client
               return NextResponse.json({
@@ -97,7 +104,7 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
             }
             
             // Document valide - retourner les données d'analyse
-            console.log('[PDF_VALIDATION] Document validated:', analysis);
+            console.log('[VALIDATE_DOCUMENT] Document validated successfully');
             return NextResponse.json({
               success: true,
               bankDetected: analysis.bankName || 'Banque détectée',
@@ -110,16 +117,19 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
             }, { status: 200 });
             
           } catch (parseError) {
-            console.error('[PDF_VALIDATION] Failed to parse AI response:', parseError);
+            console.error('[VALIDATE_DOCUMENT] Failed to parse AI response:', parseError);
+            console.log('[VALIDATE_DOCUMENT] Raw AI response:', aiResponse);
+            return NextResponse.json({ error: 'Erreur d\'analyse IA' }, { status: 500 });
           }
         }
       } catch (aiError) {
-        console.error('[PDF_VALIDATION] OpenAI analysis failed:', aiError);
+        console.error('[VALIDATE_DOCUMENT] OpenAI analysis failed:', aiError);
         // Continue sans analyse IA - on accepte le document par défaut
       }
     }
 
     // Fallback si pas d'analyse IA - accepter le document
+    console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI analysis)');
     return NextResponse.json({
       success: true,
       bankDetected: 'Analyse de base',
@@ -132,7 +142,7 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[PDF_VALIDATION_ERROR]', error);
+    console.error('[VALIDATE_DOCUMENT_ERROR]', error);
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
   }
 }

@@ -363,16 +363,21 @@ const BankStatementConverter = () => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/documents/validate', {
+      console.log('[HOMEPAGE] Starting document validation...');
+      const response = await fetch('/api/validate-document', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('[HOMEPAGE] API response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
+        console.log('[HOMEPAGE] API error data:', errorData);
         
         // Gestion spéciale pour les documents rejetés
         if (errorData.error === 'DOCUMENT_REJECTED') {
+          console.log('[HOMEPAGE] Document rejected, showing modal');
           setRejectionDetails({
             message: errorData.message,
             documentType: errorData.documentType
@@ -387,6 +392,7 @@ const BankStatementConverter = () => {
       }
 
       const newDocument = await response.json();
+      console.log('[HOMEPAGE] API success data:', newDocument);
       
       // Document accepté - décrémenter les crédits et simuler l'affichage des résultats
       const newCredits = credits - 1;
