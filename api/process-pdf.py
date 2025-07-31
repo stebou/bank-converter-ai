@@ -4,15 +4,26 @@ import base64
 import io
 import logging
 
-# Import des vraies librairies Python !
+# Import des vraies librairies Python avec fallback
+PYTHON_LIBS_AVAILABLE = False
+pdfplumber = None
+convert_from_bytes = None
+Image = None
+
 try:
     import pdfplumber
+    PYTHON_LIBS_AVAILABLE = True
+    logging.info("pdfplumber imported successfully")
+except ImportError as e:
+    logging.error(f"pdfplumber not available: {e}")
+
+try:
     from pdf2image import convert_from_bytes
     from PIL import Image
-    PYTHON_LIBS_AVAILABLE = True
+    logging.info("pdf2image and PIL imported successfully")
 except ImportError as e:
-    PYTHON_LIBS_AVAILABLE = False
-    logging.error(f"Python libraries not available: {e}")
+    logging.error(f"pdf2image/PIL not available: {e}")
+    # On peut quand même faire l'extraction de texte sans les images
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -24,8 +35,8 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
             self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             
-            if not PYTHON_LIBS_AVAILABLE:
-                self._send_error(500, "Python PDF libraries not available")
+            if not pdfplumber:
+                self._send_error(500, "pdfplumber library not available")
                 return
             
             # Lire les données POST
@@ -64,35 +75,38 @@ class handler(BaseHTTPRequestHandler):
                 logging.error(f"Text extraction error: {text_error}")
                 extracted_text = ""
             
-            # 2. CONVERSION IMAGE avec pdf2image (vraie conversion)
+            # 2. CONVERSION IMAGE avec pdf2image (si disponible)
             image_base64 = ""
             
-            try:
-                # Convertir première page en image haute qualité
-                images = convert_from_bytes(
-                    pdf_data,
-                    first_page=1,
-                    last_page=1,
-                    dpi=150,  # Bonne qualité sans être trop lourd
-                    fmt='PNG'
-                )
-                
-                if images:
-                    # Redimensionner si trop grand (optimisation)
-                    img = images[0]
-                    if img.width > 2048 or img.height > 2048:
-                        img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+            if convert_from_bytes and Image:
+                try:
+                    # Convertir première page en image haute qualité
+                    images = convert_from_bytes(
+                        pdf_data,
+                        first_page=1,
+                        last_page=1,
+                        dpi=150,  # Bonne qualité sans être trop lourd
+                        fmt='PNG'
+                    )
                     
-                    # Convertir en base64
-                    img_buffer = io.BytesIO()
-                    img.save(img_buffer, format='PNG', optimize=True)
-                    image_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+                    if images:
+                        # Redimensionner si trop grand (optimisation)
+                        img = images[0]
+                        if img.width > 2048 or img.height > 2048:
+                            img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+                        
+                        # Convertir en base64
+                        img_buffer = io.BytesIO()
+                        img.save(img_buffer, format='PNG', optimize=True)
+                        image_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+                        
+                        logging.info(f"Image converted, base64 length: {len(image_base64)}")
                     
-                    logging.info(f"Image converted, base64 length: {len(image_base64)}")
-                
-            except Exception as img_error:
-                logging.error(f"Image conversion error: {img_error}")
-                image_base64 = ""
+                except Exception as img_error:
+                    logging.error(f"Image conversion error: {img_error}")
+                    image_base64 = ""
+            else:
+                logging.info("pdf2image/PIL not available, skipping image conversion")
             
             # 3. ANALYSE ET VALIDATION
             has_text = len(extracted_text.strip()) > 50
@@ -152,12 +166,15 @@ class handler(BaseHTTPRequestHandler):
         status = {
             "service": "pdf-processor",
             "status": "healthy",
-            "python_libs_available": PYTHON_LIBS_AVAILABLE,
+            "pdfplumber_available": bool(pdfplumber),
+            "pdf2image_available": bool(convert_from_bytes),
             "available_methods": []
         }
         
-        if PYTHON_LIBS_AVAILABLE:
-            status["available_methods"] = ["text_extraction", "image_conversion"]
+        if pdfplumber:
+            status["available_methods"].append("text_extraction")
+        if convert_from_bytes:
+            status["available_methods"].append("image_conversion")
         
         self._send_json_response(200, status)
     
