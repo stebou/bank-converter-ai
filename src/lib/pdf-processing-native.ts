@@ -1,7 +1,8 @@
 // Traitement PDF natif avec pdf-parse + pdf2pic
 // Remplace complètement la dépendance Python PyMuPDF
 
-import pdf from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdf = require('pdf-parse-debugging-disabled');
 
 export interface PDFProcessingResult {
   success: boolean;
