@@ -27,29 +27,39 @@ except ImportError as e:
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        """Extraction hybride: texte + image réelle du PDF avec Python"""
+        """Extraction texte du PDF avec pdfplumber"""
         
         try:
-            # CORS headers
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-            
             if not pdfplumber:
-                self._send_error(500, "pdfplumber library not available")
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                error_response = {"success": False, "error": "pdfplumber library not available"}
+                self.wfile.write(json.dumps(error_response).encode('utf-8'))
                 return
             
             # Lire les données POST
             content_length = int(self.headers.get('Content-Length', 0))
             if content_length == 0:
-                self._send_error(400, "No data received")
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                error_response = {"success": False, "error": "No data received"}
+                self.wfile.write(json.dumps(error_response).encode('utf-8'))
                 return
                 
             pdf_data = self.rfile.read(content_length)
             
             # Vérifier que c'est bien un PDF
             if not pdf_data.startswith(b'%PDF'):
-                self._send_error(400, "Invalid PDF format")
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                error_response = {"success": False, "error": "Invalid PDF format"}
+                self.wfile.write(json.dumps(error_response).encode('utf-8'))
                 return
             
             logging.info(f"Processing PDF, size: {len(pdf_data)} bytes")
@@ -147,11 +157,21 @@ class handler(BaseHTTPRequestHandler):
                 }
             }
             
-            self._send_json_response(200, response)
+            # Réponse finale
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
             
         except Exception as e:
             logging.error(f"PDF processing error: {str(e)}")
-            self._send_error(500, f"PDF processing failed: {str(e)}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json') 
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = {"success": False, "error": str(e)}
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
     
     def do_OPTIONS(self):
         """Handle CORS preflight"""
@@ -176,21 +196,8 @@ class handler(BaseHTTPRequestHandler):
         if convert_from_bytes:
             status["available_methods"].append("image_conversion")
         
-        self._send_json_response(200, status)
-    
-    def _send_json_response(self, status_code, data):
-        """Envoyer une réponse JSON"""
-        self.send_response(status_code)
+        self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode('utf-8'))
-    
-    def _send_error(self, status_code, message):
-        """Envoyer une erreur JSON"""
-        error_response = {
-            "success": False,
-            "error": message,
-            "status_code": status_code
-        }
-        self._send_json_response(status_code, error_response)
+        self.wfile.write(json.dumps(status).encode('utf-8'))

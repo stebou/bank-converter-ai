@@ -36,8 +36,11 @@ export async function POST(req: NextRequest) {
         console.log('[VALIDATE_DOCUMENT] Processing PDF with Python function...');
         
         try {
-          // Appeler la fonction Python sur le même domaine
-          const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/process-pdf`, {
+          // Appeler la fonction Python sur le même domaine Vercel
+          const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+          console.log('[VALIDATE_DOCUMENT] Calling Python function at:', `${baseUrl}/api/process-pdf`);
+          
+          const pythonResponse = await fetch(`${baseUrl}/api/process-pdf`, {
             method: 'POST',
             body: pdfBuffer,
             headers: {
