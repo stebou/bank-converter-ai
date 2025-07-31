@@ -71,7 +71,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
     // Vérification des crédits pour homepage (utilisateurs non connectés)
     if (!isSignedIn && credits !== undefined && credits <= 0) {
-      console.log('[DOCUMENT_UPLOAD] No credits remaining, showing SignUpModal');
       onShowSignUpModal?.();
       return;
     }
@@ -83,26 +82,20 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     formData.append('file', file);
 
     try {
-      console.log('[DOCUMENT_UPLOAD] Starting upload, signed in:', isSignedIn);
-      
       // Choisir l'API selon l'authentification
       const apiEndpoint = isSignedIn ? '/api/documents' : '/api/validate-document';
-      console.log('[DOCUMENT_UPLOAD] Using API:', apiEndpoint);
       
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         body: formData,
       });
 
-      console.log('[DOCUMENT_UPLOAD] API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
-        console.log('[DOCUMENT_UPLOAD] API error data:', errorData);
         
         // Gestion spéciale pour les documents rejetés
         if (errorData.error === 'DOCUMENT_REJECTED') {
-          console.log('[DOCUMENT_UPLOAD] Document rejected, showing modal');
           setRejectionDetails({
             message: errorData.message,
             documentType: errorData.documentType
@@ -117,7 +110,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       }
 
       const newDocument = await response.json();
-      console.log('[DOCUMENT_UPLOAD] API success data:', newDocument);
 
       // Gestion des crédits et callbacks selon le mode
       if (isSignedIn) {
@@ -140,10 +132,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       setProcessing(false);
       setProcessingStep('');
       
-      console.log('[DOCUMENT_UPLOAD] Upload completed successfully');
 
     } catch (error) {
-      console.error('[DOCUMENT_UPLOAD] Error:', error);
       alert(`Une erreur est survenue lors de l'analyse: ${error instanceof Error ? error.message : String(error)}`);
       setProcessing(false);
       setProcessingStep('');
@@ -201,14 +191,17 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
             onClick={() => {
               // Vérification supplémentaire au clic pour UX immédiate
               if (!isSignedIn && credits !== undefined && credits <= 0) {
-                console.log('[DOCUMENT_UPLOAD] Button clicked with no credits, showing SignUpModal immediately');
                 onShowSignUpModal?.();
                 return;
               }
               processDocument();
             }}
-            disabled={!file || processing || !hasCredits} 
-            className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+            disabled={!file || processing} 
+            className={`mt-6 w-full font-semibold py-4 px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2 ${
+              !hasCredits && file ? 
+                'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-700 hover:to-red-700' : 
+                'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+            }`}
           >
             {processing ? (
               <>
@@ -216,7 +209,10 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                 <span>Analyse IA en cours...</span>
               </>
             ) : (!hasCredits && file) ? (
-              <span>Limite de crédits atteinte</span>
+              <>
+                <Brain className="w-5 h-5" />
+                <span>Se connecter pour plus d&apos;analyses</span>
+              </>
             ) : (
               <>
                 <Brain className="w-5 h-5" />

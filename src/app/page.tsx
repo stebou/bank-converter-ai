@@ -319,6 +319,7 @@ const BankStatementConverter = () => {
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [credits, setCredits] = useState(3);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -384,12 +385,6 @@ const BankStatementConverter = () => {
       localStorage.setItem('anonymousUserCredits', newCredits.toString());
     }
     
-    console.log('[HOMEPAGE] Credits decremented, remaining:', newCredits);
-    
-    // Si plus de crédits après cette analyse, préparer la modal pour la prochaine tentative
-    if (newCredits <= 0) {
-      console.log('[HOMEPAGE] No credits remaining after this analysis, next upload will show SignUpModal');
-    }
   }, [credits]);
 
   const exportToCSV = () => {
@@ -598,25 +593,13 @@ const BankStatementConverter = () => {
                             • Connectez-vous pour plus de crédits
                           </span>
                         )}
-                        {/* Bouton de test pour réinitialiser les crédits (développement) */}
-                        {process.env.NODE_ENV === 'development' && (
-                          <button 
-                            onClick={() => setCredits(3)}
-                            className="ml-3 text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-                          >
-                            Reset (dev)
-                          </button>
-                        )}
                       </div>
                     </div>
                     
                     <DocumentUpload
                       credits={credits}
                       onCreditsChange={setCredits}  
-                      onShowSignUpModal={() => {
-                        console.log('[HOMEPAGE] SignUpModal triggered - credits:', credits);
-                        setIsModalOpen(true);
-                      }}
+                      onShowSignUpModal={() => setIsModalOpen(true)}
                       onDocumentUploaded={handleDocumentSuccess}
                       className="transition-all duration-300 hover:scale-105 hover:border-blue-600 hover:shadow-2xl hover:shadow-purple-500/30 relative group border-4 border-gray-200"
                       title="Téléversez votre relevé bancaire"

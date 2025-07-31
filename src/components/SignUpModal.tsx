@@ -15,11 +15,11 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out scale-95 opacity-0 animate-fade-in-scale"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out animate-in slide-in-from-bottom-4 fade-in-0"
         onClick={(e) => e.stopPropagation()} // Empêche la fermeture en cliquant sur la modale
       >
         <div className="p-8 relative">
