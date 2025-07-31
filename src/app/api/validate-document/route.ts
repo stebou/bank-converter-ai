@@ -1,6 +1,7 @@
 // API de validation de document pour utilisateurs anonymes (homepage)
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { convertPdfToImageWithCanvas } from '@/lib/pdf-to-image-cloudconvert';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,10 +23,27 @@ export async function POST(req: NextRequest) {
     const fileType: string = file.type;
     
     if (file.type === 'application/pdf') {
-      console.log('[VALIDATE_DOCUMENT] PDF detected - GPT-4 Vision cannot process PDFs directly');
-      console.log('[VALIDATE_DOCUMENT] Will use filename-based analysis instead');
-      // Pour les PDFs, on ne fait pas d'analyse GPT-4 Vision car ce n'est pas supporté
-      base64Image = null;
+      console.log('[VALIDATE_DOCUMENT] PDF detected - converting to image for GPT-4 Vision...');
+      
+      try {
+        // Convertir le fichier en buffer
+        const pdfBuffer = Buffer.from(await file.arrayBuffer());
+        console.log('[VALIDATE_DOCUMENT] PDF buffer size:', pdfBuffer.length);
+        
+        // Convertir le PDF en image avec pdfjs-dist + canvas
+        base64Image = await convertPdfToImageWithCanvas(pdfBuffer);
+        
+        if (base64Image) {
+          console.log('[VALIDATE_DOCUMENT] PDF successfully converted to image');
+          console.log('[VALIDATE_DOCUMENT] Base64 image length:', base64Image.length);
+        } else {
+          console.log('[VALIDATE_DOCUMENT] PDF conversion failed, will use filename-based analysis');
+        }
+        
+      } catch (error) {
+        console.error('[VALIDATE_DOCUMENT] Error during PDF conversion:', error);
+        base64Image = null;
+      }
     } else if (file.type.startsWith('image/')) {
       try {
         console.log('[VALIDATE_DOCUMENT] Image detected, processing for GPT-4 Vision...');
@@ -114,7 +132,7 @@ Réponds UNIQUEMENT avec un JSON valide:
 }`;
 
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o', // GPT-4 avec vision
+          model: 'gpt-4-vision-preview', // GPT-4 Vision selon recommandations OpenAI
           messages: [
             {
               role: 'user',
@@ -126,7 +144,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`,
+                    url: `data:image/png;base64,${base64Image}`,
                     detail: "high"
                   }
                 }
