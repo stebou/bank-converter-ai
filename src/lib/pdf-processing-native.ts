@@ -2,10 +2,6 @@
 // Remplace complètement la dépendance Python PyMuPDF
 
 import pdf from 'pdf-parse';
-import pdf2pic from 'pdf2pic';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 
 export interface PDFProcessingResult {
   success: boolean;
@@ -34,20 +30,13 @@ export async function processPdfNative(pdfBuffer: Buffer, filename?: string): Pr
   console.log('[PDF_NATIVE] Filename:', filename || 'unknown');
   
   let extractedText = '';
-  let imageBase64 = '';
+  const imageBase64 = ''; // Pas d'image pour éviter les problèmes de dépendances
   let pageCount = 0;
-  let processingMethod = 'native_js';
+  let processingMethod = 'pdf_parse_text_only';
   let detectedBank = '';
   
-  const tempDir = os.tmpdir();
-  const tempPdfPath = path.join(tempDir, `pdf_native_${Date.now()}.pdf`);
-  
   try {
-    // 1. ÉCRITURE DU FICHIER TEMPORAIRE
-    fs.writeFileSync(tempPdfPath, pdfBuffer);
-    console.log('[PDF_NATIVE] Temporary PDF created:', tempPdfPath);
-    
-    // 2. EXTRACTION DE TEXTE AVEC PDF-PARSE
+    // 1. EXTRACTION DE TEXTE AVEC PDF-PARSE
     console.log('[PDF_NATIVE] Extracting text with pdf-parse...');
     
     const pdfData = await pdf(pdfBuffer, {
@@ -61,39 +50,7 @@ export async function processPdfNative(pdfBuffer: Buffer, filename?: string): Pr
     
     console.log('[PDF_NATIVE] Text extracted:', extractedText.length, 'chars from', pageCount, 'pages');
     
-    // 3. CONVERSION EN IMAGE AVEC PDF2PIC
-    console.log('[PDF_NATIVE] Converting to image with pdf2pic...');
-    
-    try {
-      const convert = pdf2pic.fromPath(tempPdfPath, {
-        density: 150,           // DPI - équivalent à PyMuPDF matrix 1.5x
-        saveFilename: "page",
-        savePath: tempDir,
-        format: "png",
-        width: 800,            // Largeur max
-        height: 1200,          // Hauteur max
-        preserveAspectRatio: true
-      });
-      
-      // Convertir seulement la première page
-      const result = await convert(1, { responseType: "base64" });
-      
-      if (result && result.base64) {
-        imageBase64 = result.base64;
-        processingMethod = 'pdf_parse_and_pdf2pic';
-        console.log('[PDF_NATIVE] Image converted, base64 length:', imageBase64.length);
-      } else {
-        console.log('[PDF_NATIVE] Image conversion failed, no result');
-        processingMethod = 'pdf_parse_only';
-      }
-      
-    } catch (imageError) {
-      console.log('[PDF_NATIVE] Image conversion error:', imageError);
-      console.log('[PDF_NATIVE] Image error details:', imageError instanceof Error ? imageError.message : String(imageError));
-      processingMethod = 'pdf_parse_only';
-    }
-    
-    // 4. DÉTECTION DE BANQUE (même logique que Python)
+    // 2. DÉTECTION DE BANQUE (même logique que Python)
     
     const bankPatterns = {
       'bnp paribas': /bnp|paribas/i,
@@ -142,19 +99,9 @@ export async function processPdfNative(pdfBuffer: Buffer, filename?: string): Pr
       },
       error: error instanceof Error ? error.message : String(error)
     };
-  } finally {
-    // 5. NETTOYAGE DU FICHIER TEMPORAIRE
-    try {
-      if (fs.existsSync(tempPdfPath)) {
-        fs.unlinkSync(tempPdfPath);
-        console.log('[PDF_NATIVE] Temporary file cleaned up');
-      }
-    } catch (cleanupError) {
-      console.error('[PDF_NATIVE] Cleanup error:', cleanupError);
-    }
   }
   
-  // 6. ANALYSE DES MOTS-CLÉS (même logique que Python)
+  // 3. ANALYSE DES MOTS-CLÉS (même logique que Python)
   const text_lower = extractedText.toLowerCase();
   const bankingKeywords = [
     'bnp', 'paribas', 'crédit agricole', 'société générale', 'lcl',
@@ -167,7 +114,7 @@ export async function processPdfNative(pdfBuffer: Buffer, filename?: string): Pr
   
   const foundKeywords = bankingKeywords.filter(keyword => text_lower.includes(keyword));
   
-  // 7. RÉSULTATS FINAUX
+  // 4. RÉSULTATS FINAUX
   const hasText = extractedText.length > 50;
   const hasImage = imageBase64.length > 1000;
   
