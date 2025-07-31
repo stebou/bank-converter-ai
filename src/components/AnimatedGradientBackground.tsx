@@ -149,7 +149,7 @@ const AnimatedGridBackground = () => {
   return (
     <div className="fixed inset-0 -z-10 h-screen w-full overflow-hidden">
       {/* Arrière-plan principal */}
-      <div className="absolute inset-0 bg-gray-950" />
+      <div className="absolute inset-0 bg-gray-900" />
 
       {/* Grille CSS statique simple */}
       <div 

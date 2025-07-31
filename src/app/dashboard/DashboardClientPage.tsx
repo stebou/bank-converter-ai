@@ -7,6 +7,7 @@ import type { DocumentType } from '@/types';
 import PaymentSuccessModal from '@/components/PaymentSuccessModal';
 import SubscriptionBadge from '@/components/SubscriptionBadge';
 import AIChat from '@/components/AIChat';
+import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
 
 // Types spécifiques à ce composant client
 type SubscriptionData = {
@@ -257,6 +258,8 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<{planName: string; amount: number} | null>(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionDetails, setRejectionDetails] = useState<{message: string; documentType?: string} | null>(null);
   
   const searchParams = useSearchParams();
 
@@ -339,7 +342,11 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
         
         // Gestion spéciale pour les documents rejetés
         if (errorData.error === 'DOCUMENT_REJECTED') {
-          alert(`🚫 Document rejeté\n\n${errorData.message}\n\nVeuillez uploader un relevé bancaire ou une facture valide.`);
+          setRejectionDetails({
+            message: errorData.message,
+            documentType: errorData.documentType
+          });
+          setShowRejectionModal(true);
           return; // Ne pas décrémenter les crédits car ils ont été remboursés
         }
         
@@ -422,6 +429,16 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           onClose={() => setShowPaymentSuccess(false)}
           planName={paymentDetails.planName}
           amount={paymentDetails.amount}
+        />
+      )}
+
+      {/* Modal de rejet de document */}
+      {showRejectionModal && rejectionDetails && (
+        <DocumentRejectionModal
+          isOpen={showRejectionModal}
+          onClose={() => setShowRejectionModal(false)}
+          message={rejectionDetails.message}
+          documentType={rejectionDetails.documentType}
         />
       )}
 
