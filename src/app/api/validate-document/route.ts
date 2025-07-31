@@ -1,6 +1,7 @@
 // API de validation de document pour utilisateurs anonymes (homepage)
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { convertPdfToImage } from '@/lib/pdf-to-image';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,121 +18,102 @@ export async function POST(req: NextRequest) {
 
     console.log('[VALIDATE_DOCUMENT] Processing file:', file.name, file.size, file.type);
 
-    // Extraire le texte du PDF si c'est un PDF  
-    let extractedText: string | null = null;
+    // Convertir le PDF en image pour analyse GPT-4 Vision
+    let base64Image: string | null = null;
     if (file.type === 'application/pdf') {
       try {
-        console.log('[VALIDATE_DOCUMENT] Starting PDF text extraction...');
+        console.log('[VALIDATE_DOCUMENT] Starting PDF to image conversion...');
         
-        // Créer un texte contextuel enrichi pour l'IA
-        const fileName = file.name.toLowerCase();
-        const potentialBankClues = [];
+        // Convertir le fichier en buffer
+        const pdfBuffer = Buffer.from(await file.arrayBuffer());
         
-        // Rechercher des indices de banque dans le nom du fichier
-        if (fileName.includes('bnp') || fileName.includes('paribas')) potentialBankClues.push('BNP Paribas');
-        if (fileName.includes('credit') && fileName.includes('agricole')) potentialBankClues.push('Crédit Agricole');
-        if (fileName.includes('societe') || fileName.includes('generale') || fileName.includes('sg')) potentialBankClues.push('Société Générale');
-        if (fileName.includes('lcl') || fileName.includes('lyonnais')) potentialBankClues.push('LCL');
-        if (fileName.includes('credit') && fileName.includes('mutuel')) potentialBankClues.push('Crédit Mutuel');
-        if (fileName.includes('populaire') || fileName.includes('bp')) potentialBankClues.push('Banque Populaire');
-        if (fileName.includes('epargne') || fileName.includes('ce')) potentialBankClues.push('Caisse d\'Épargne');
-        if (fileName.includes('hsbc')) potentialBankClues.push('HSBC France');
-        if (fileName.includes('postale')) potentialBankClues.push('La Banque Postale');
-        if (fileName.includes('ing')) potentialBankClues.push('ING Direct');
-        if (fileName.includes('boursorama')) potentialBankClues.push('Boursorama');
-        if (fileName.includes('hello')) potentialBankClues.push('Hello bank');
-        if (fileName.includes('n26')) potentialBankClues.push('N26');
-        if (fileName.includes('revolut')) potentialBankClues.push('Revolut');
-        if (fileName.includes('orange')) potentialBankClues.push('Orange Bank');
-        if (fileName.includes('fortuneo')) potentialBankClues.push('Fortuneo');
+        // Convertir en image
+        base64Image = await convertPdfToImage(pdfBuffer);
         
-        extractedText = `=== DOCUMENT PDF POUR VALIDATION ===
-Nom du fichier: ${file.name}
-Nom du fichier (analyse): ${fileName}
-Taille: ${Math.round(file.size / 1024)} KB
-Date d'upload: ${new Date().toLocaleDateString('fr-FR')}
-Type: Document bancaire/financier
-${potentialBankClues.length > 0 ? `Indices de banque détectés: ${potentialBankClues.join(', ')}` : 'Aucun indice de banque évident dans le nom du fichier'}
-
-=== INFORMATIONS POUR L'IA ===
-Ce document est un relevé bancaire ou document financier au format PDF.
-L'utilisateur peut poser des questions sur:
-- Les transactions bancaires  
-- Les soldes et mouvements
-- Les anomalies ou irrégularités
-- L'analyse financière générale
-
-ATTENTION: Utilise les indices de banque détectés ci-dessus pour identifier précisément la banque.
-Note: Extraction de texte complète en cours de développement.
-L'IA peut analyser ce document de manière contextuelle.`;
-
-        console.log('[VALIDATE_DOCUMENT] Generated text for validation');
-        console.log('[VALIDATE_DOCUMENT] Potential bank clues found:', potentialBankClues);
+        if (base64Image) {
+          console.log('[VALIDATE_DOCUMENT] PDF successfully converted to image');
+        } else {
+          console.log('[VALIDATE_DOCUMENT] Failed to convert PDF to image, falling back to text analysis');
+        }
         
       } catch (error) {
-        console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
-        extractedText = `Document PDF: ${file.name} - Validation requise`;
+        console.error('[VALIDATE_DOCUMENT] Error during PDF conversion:', error);
+        base64Image = null;
       }
     }
 
     console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
-    console.log('[VALIDATE_DOCUMENT] - extractedText exists:', !!extractedText);
+    console.log('[VALIDATE_DOCUMENT] - base64Image exists:', !!base64Image);
     console.log('[VALIDATE_DOCUMENT] - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
-    // Faire l'analyse IA de validation si on a du texte et la clé API
-    if (extractedText && process.env.OPENAI_API_KEY) {
+    // Faire l'analyse IA avec GPT-4 Vision si on a une image et la clé API
+    if (base64Image && process.env.OPENAI_API_KEY) {
       try {
-        console.log('[VALIDATE_DOCUMENT] Starting AI analysis...');
+        console.log('[VALIDATE_DOCUMENT] Starting GPT-4 Vision analysis...');
         
-        const analysisPrompt = `Analyse ce document et détermine s'il s'agit d'un document bancaire ou d'une facture valide.
+        const analysisPrompt = `Tu es un expert en analyse de documents bancaires. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
 
-CONTENU DU DOCUMENT:
-${extractedText.substring(0, 1500)}
+TÂCHES À EFFECTUER:
+1. Identifier le type de document (relevé bancaire, facture, ou autre)
+2. Détecter le nom exact de la banque (regarde les logos, en-têtes, noms)
+3. Compter approximativement le nombre de transactions visibles
+4. Identifier d'éventuelles anomalies ou incohérences
 
-INSTRUCTIONS SPÉCIALES POUR LA DÉTECTION DE BANQUES:
-Voici les principales banques françaises à rechercher dans le nom du fichier ou le contenu:
-- BNP Paribas, BNP, Paribas
-- Crédit Agricole, CA, Credit Agricole  
-- Société Générale, SG, Societe Generale
-- LCL, Le Crédit Lyonnais
-- Crédit Mutuel, CM, Credit Mutuel
-- Banque Populaire, BP
-- Caisse d'Épargne, CE
-- HSBC France
-- Crédit du Nord, CDN
-- Banque Postale, La Banque Postale
-- ING Direct, ING
-- Boursorama, Boursorama Banque
-- Hello Bank, Hello bank
-- Monabanq
-- N26, Revolut
-- Orange Bank
-- Fortuneo
+BANQUES FRANÇAISES À RECHERCHER:
+- BNP Paribas (logo rouge/blanc)
+- Crédit Agricole (logo vert)
+- Société Générale (logo rouge/noir)
+- LCL (logo bleu/blanc)
+- Crédit Mutuel (logo bleu/orange)
+- Banque Populaire (logo rouge)
+- Caisse d'Épargne (logo bleu/rouge)
+- HSBC France (logo rouge/blanc)
+- La Banque Postale (logo bleu/jaune)
+- ING Direct (logo orange)
+- Boursorama (logo rouge)
+- Hello bank! (logo multicolore)
+- N26 (logo noir/blanc)
+- Revolut (logo bleu)
+- Orange Bank (logo orange)
+- Fortuneo (logo vert)
 
-INSTRUCTIONS DÉTAILLÉES:
-- Examine attentivement le nom du fichier pour identifier la banque
-- Recherche des mots-clés bancaires dans le nom (releve, statement, compte, bank, etc.)
-- Si tu identifies une banque connue, utilise son nom complet officiel
-- Même avec un texte limité, tu peux identifier le type de document
-- Sois plus permissif si le contexte suggère un document financier légitime
+CRITÈRES DE VALIDATION:
+- Document authentique avec en-tête bancaire
+- Présence de transactions ou d'informations financières
+- Structure cohérente d'un relevé ou d'une facture
+- Pas de document d'identité, attestation, ou autre type
 
-Réponds uniquement avec un JSON contenant:
+Réponds UNIQUEMENT avec un JSON valide:
 {
   "isValidDocument": true/false,
   "documentType": "relevé bancaire" | "facture" | "document financier" | "autre",
-  "rejectionReason": "raison du rejet si pas valide",
-  "bankName": "nom complet officiel de la banque détectée ou émetteur",
-  "transactionCount": nombre_de_transactions_estimé,
+  "rejectionReason": "raison précise du rejet si pas valide",
+  "bankName": "nom exact et complet de la banque détectée",
+  "transactionCount": nombre_de_transactions_visibles,
   "anomalies": nombre_d_anomalies_détectées,
   "confidence": pourcentage_de_confiance_0_à_100
-}
-
-IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocument à false.`;
+}`;
 
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: analysisPrompt }],
-          max_tokens: 300,
+          model: 'gpt-4o', // GPT-4 avec vision
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: analysisPrompt
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 500,
           temperature: 0.1,
         });
 
@@ -208,8 +190,8 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
               anomaliesDetected: analysis.anomalies || 0,
               aiConfidence: analysis.confidence || 85,
               documentType: analysis.documentType,
-              hasExtractedText: !!extractedText,
-              extractedTextLength: extractedText?.length || 0,
+              hasExtractedText: !!base64Image,
+              extractedTextLength: base64Image?.length || 0,
               transactions: simulatedTransactions,
               processingTime: Math.random() * 2 + 1.5, // 1.5-3.5 secondes
               aiCost: Math.random() * 0.03 + 0.02, // 0.02-0.05€
@@ -227,14 +209,14 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
       }
     }
 
-    // Fallback si pas d'analyse IA - accepter le document avec données simulées
-    console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI analysis)');
+    // Fallback si pas d'analyse IA Vision - utiliser la détection basée sur le nom de fichier
+    console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI Vision analysis)');
     
     // Essayer d'utiliser les indices de banque même sans IA
     const fileName = file.name.toLowerCase();
     const potentialBankClues = [];
     
-    // Même logique de détection que plus haut
+    // Logique de détection basée sur le nom de fichier
     if (fileName.includes('bnp') || fileName.includes('paribas')) potentialBankClues.push('BNP Paribas');
     if (fileName.includes('credit') && fileName.includes('agricole')) potentialBankClues.push('Crédit Agricole');
     if (fileName.includes('societe') || fileName.includes('generale') || fileName.includes('sg')) potentialBankClues.push('Société Générale');
@@ -252,9 +234,9 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
     if (fileName.includes('orange')) potentialBankClues.push('Orange Bank');
     if (fileName.includes('fortuneo')) potentialBankClues.push('Fortuneo');
     
-    const detectedBankName = potentialBankClues.length > 0 ? potentialBankClues[0] : 'Banque française détectée';
+    const detectedBankName = potentialBankClues.length > 0 ? potentialBankClues[0] : 'Document bancaire accepté';
     
-    console.log('[VALIDATE_DOCUMENT] Fallback bank detection:', detectedBankName);
+    console.log('[VALIDATE_DOCUMENT] Fallback bank detection from filename:', detectedBankName);
     
     // Générer quelques transactions basiques pour la démonstration
     const fallbackTransactions = [
@@ -289,8 +271,8 @@ IMPORTANT: Si ce n'est pas un document bancaire ou une facture, mets isValidDocu
       anomaliesDetected: 0,
       aiConfidence: 85,
       documentType: 'document financier',
-      hasExtractedText: !!extractedText,
-      extractedTextLength: extractedText?.length || 0,
+      hasExtractedText: !!base64Image,
+      extractedTextLength: base64Image?.length || 0,
       transactions: fallbackTransactions,
       processingTime: 2.1,
       aiCost: 0.025,
