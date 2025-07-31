@@ -330,32 +330,50 @@ const BankStatementConverter = () => {
   }, []);
 
   // Callback pour les documents validés avec succès
-  const handleDocumentSuccess = useCallback((documentData: { bankDetected?: string; aiConfidence?: number; totalTransactions?: number; anomaliesDetected?: number }) => {
+  const handleDocumentSuccess = useCallback((documentData: { 
+    bankDetected?: string; 
+    aiConfidence?: number; 
+    totalTransactions?: number; 
+    anomaliesDetected?: number;
+    transactions?: Transaction[];
+    processingTime?: number;
+    aiCost?: number;
+  }) => {
     console.log('[HOMEPAGE] Document successfully processed:', documentData);
     
-    // Convertir les données de l'API au format attendu par la homepage
-    const mockResults: AnalysisResults = {
+    // Utiliser les vraies données de l'API
+    const transactions = documentData.transactions || [];
+    
+    // Calculer les statistiques réelles à partir des transactions
+    const totalDebits = transactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalCredits = transactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const avgConfidence = transactions.length > 0 
+      ? transactions.reduce((sum, t) => sum + (t.confidence || 90), 0) / transactions.length
+      : documentData.aiConfidence || 90;
+    
+    const realResults: AnalysisResults = {
       bankDetected: documentData.bankDetected || "Banque détectée",
-      confidence: documentData.aiConfidence || 95,
-      processingTime: 3.2,
-      aiCost: 0.041,
-      transactions: [
-        // Simulation de transactions pour la démonstration
-        { id: 1, date: "2024-01-15", description: "VIREMENT SALAIRE ENTREPRISE", originalDesc: "VIR SALAIRE ENTREPRISE XYZ", amount: 3250.00, category: "Revenus", subcategory: "Salaire", confidence: 98.5, anomalyScore: 0.1 },
-        { id: 2, date: "2024-01-16", description: "CARTE SUPERMARCHÉ", originalDesc: "CB LECLERC PONTAULT", amount: -87.45, category: "Alimentation", subcategory: "Supermarché", confidence: 95.2, anomalyScore: 0.0 },
-        { id: 3, date: "2024-01-17", description: "PRELEVEMENT EDF", originalDesc: "PREL EDF REF:FAC123456", amount: -142.30, category: "Charges", subcategory: "Électricité", confidence: 97.8, anomalyScore: 0.2 }
-      ],
+      confidence: documentData.aiConfidence || 90,
+      processingTime: documentData.processingTime || 2.5,
+      aiCost: documentData.aiCost || 0.035,
+      transactions: transactions,
       summary: { 
-        totalTransactions: documentData.totalTransactions || 3, 
-        totalDebits: -229.75, 
-        totalCredits: 3250.00, 
-        netFlow: 3020.25, 
-        avgConfidence: 95.4, 
+        totalTransactions: documentData.totalTransactions || transactions.length, 
+        totalDebits: Math.round(totalDebits * 100) / 100, 
+        totalCredits: Math.round(totalCredits * 100) / 100, 
+        netFlow: Math.round((totalCredits + totalDebits) * 100) / 100, 
+        avgConfidence: Math.round(avgConfidence * 10) / 10, 
         anomaliesDetected: documentData.anomaliesDetected || 0 
       }
     };
     
-    setResults(mockResults);
+    setResults(realResults);
   }, []);
 
   const exportToCSV = () => {

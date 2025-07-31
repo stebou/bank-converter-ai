@@ -5,6 +5,18 @@ import { Upload, CheckCircle, Loader2, Brain, FileText } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
 
+interface TransactionData {
+  id: number;
+  date: string;
+  description: string;
+  originalDesc: string;
+  amount: number;
+  category: string;
+  subcategory: string;
+  confidence: number;
+  anomalyScore: number;
+}
+
 interface DocumentUploadProps {
   // Props pour le mode homepage
   credits?: number;
@@ -12,7 +24,16 @@ interface DocumentUploadProps {
   onShowSignUpModal?: () => void;
   
   // Props pour le mode dashboard
-  onDocumentUploaded?: (document: { bankDetected?: string; aiConfidence?: number; totalTransactions?: number; anomaliesDetected?: number; [key: string]: unknown }) => void;
+  onDocumentUploaded?: (document: { 
+    bankDetected?: string; 
+    aiConfidence?: number; 
+    totalTransactions?: number; 
+    anomaliesDetected?: number;
+    transactions?: TransactionData[];
+    processingTime?: number;
+    aiCost?: number;
+    [key: string]: unknown 
+  }) => void;
   onCreditsDecrement?: () => void;
   
   // Props communes
