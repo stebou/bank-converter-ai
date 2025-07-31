@@ -1,0 +1,8 @@
+# Ignorer les fichiers Python locaux (on utilise maintenant Vercel Functions)
+python-pdf-processor.py
+requirements.txt
+test-python-pdf.py
+
+# Conserver seulement les fonctions Vercel dans api/
+src/lib/pdf-processing-server.ts
+src/lib/pdf-processing-hybrid.ts

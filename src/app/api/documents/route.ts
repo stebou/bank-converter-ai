@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { processPdfServerSide } from '@/lib/pdf-processing-server';
+import { processPdfServerSide } from '@/lib/pdf-processing-vercel';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

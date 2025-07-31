@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 // import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { processPdfServerSide } from '@/lib/pdf-processing-server';
+import { processPdfServerSide } from '@/lib/pdf-processing-vercel';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
