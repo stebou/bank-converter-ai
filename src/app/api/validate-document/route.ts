@@ -1,7 +1,9 @@
 // API de validation de document pour utilisateurs anonymes (homepage)
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { convertPdfToImageWithCanvas } from '@/lib/pdf-to-image-cloudconvert';
+// Note: pdf-parse importé dynamiquement pour éviter les erreurs de build
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,31 +20,52 @@ export async function POST(req: NextRequest) {
 
     console.log('[VALIDATE_DOCUMENT] Processing file:', file.name, file.size, file.type);
 
-    // Traiter le fichier pour analyse GPT-4 Vision
+    // Traiter le fichier pour analyse hybride: Vision + parsing de texte
     let base64Image: string | null = null;
+    let extractedText: string | null = null;
     const fileType: string = file.type;
     
     if (file.type === 'application/pdf') {
-      console.log('[VALIDATE_DOCUMENT] PDF detected - converting to image for GPT-4 Vision...');
+      console.log('[VALIDATE_DOCUMENT] PDF detected - processing with hybrid approach (Vision + Text parsing)...');
       
       try {
         // Convertir le fichier en buffer
         const pdfBuffer = Buffer.from(await file.arrayBuffer());
         console.log('[VALIDATE_DOCUMENT] PDF buffer size:', pdfBuffer.length);
         
-        // Convertir le PDF en image avec pdfjs-dist + canvas
-        base64Image = await convertPdfToImageWithCanvas(pdfBuffer);
+        // 1. Extraction du texte avec pdf-parse (plus fiable)
+        console.log('[VALIDATE_DOCUMENT] Extracting text from PDF...');
+        try {
+          const pdfParse = await import('pdf-parse');
+          const pdfData = await pdfParse.default(pdfBuffer);
+          extractedText = pdfData.text;
+          console.log('[VALIDATE_DOCUMENT] PDF text extracted successfully');
+          console.log('[VALIDATE_DOCUMENT] Text length:', extractedText?.length || 0);
+          console.log('[VALIDATE_DOCUMENT] Text preview:', extractedText?.substring(0, 200) + '...');
+        } catch (textError) {
+          console.error('[VALIDATE_DOCUMENT] PDF text extraction failed:', textError);
+          extractedText = null;
+        }
         
-        if (base64Image) {
-          console.log('[VALIDATE_DOCUMENT] PDF successfully converted to image');
-          console.log('[VALIDATE_DOCUMENT] Base64 image length:', base64Image.length);
+        // 2. Conversion en image pour GPT-4 Vision (fallback si pas de texte)
+        if (!extractedText || extractedText.length < 50) {
+          console.log('[VALIDATE_DOCUMENT] Text extraction insufficient, converting to image...');
+          base64Image = await convertPdfToImageWithCanvas(pdfBuffer);
+          
+          if (base64Image) {
+            console.log('[VALIDATE_DOCUMENT] PDF successfully converted to image');
+            console.log('[VALIDATE_DOCUMENT] Base64 image length:', base64Image.length);
+          } else {
+            console.log('[VALIDATE_DOCUMENT] PDF conversion failed completely');
+          }
         } else {
-          console.log('[VALIDATE_DOCUMENT] PDF conversion failed, will use filename-based analysis');
+          console.log('[VALIDATE_DOCUMENT] Using text-based analysis (more reliable)');
         }
         
       } catch (error) {
-        console.error('[VALIDATE_DOCUMENT] Error during PDF conversion:', error);
+        console.error('[VALIDATE_DOCUMENT] Error during PDF processing:', error);
         base64Image = null;
+        extractedText = null;
       }
     } else if (file.type.startsWith('image/')) {
       try {
@@ -80,15 +103,74 @@ export async function POST(req: NextRequest) {
 
     console.log('[VALIDATE_DOCUMENT] Checking AI analysis conditions:');
     console.log('[VALIDATE_DOCUMENT] - base64Image exists:', !!base64Image);
+    console.log('[VALIDATE_DOCUMENT] - extractedText exists:', !!extractedText);
+    console.log('[VALIDATE_DOCUMENT] - extractedText length:', extractedText?.length || 0);
     console.log('[VALIDATE_DOCUMENT] - File type:', fileType);
     console.log('[VALIDATE_DOCUMENT] - OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
-    // Faire l'analyse IA avec GPT-4 Vision si on a une image et la clé API
-    if (base64Image && process.env.OPENAI_API_KEY) {
+    // Analyser avec GPT-4 : Priorité au texte, puis Vision en fallback
+    if ((extractedText || base64Image) && process.env.OPENAI_API_KEY) {
       try {
-        console.log('[VALIDATE_DOCUMENT] Starting GPT-4 Vision analysis...');
+        console.log('[VALIDATE_DOCUMENT] Starting GPT-4 analysis...');
         
-        const analysisPrompt = `Tu es un expert en analyse de documents bancaires avec une approche STRICTE. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
+        // Préparer les prompts selon le type de données disponibles
+        let analysisPrompt: string;
+        let messages: ChatCompletionMessageParam[] = [];
+        
+        if (extractedText && extractedText.length > 50) {
+          console.log('[VALIDATE_DOCUMENT] Using TEXT-based analysis (more accurate)...');
+          
+          analysisPrompt = `Tu es un expert en analyse de documents bancaires avec une approche STRICTE. Analyse ce TEXTE extrait d'un document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
+
+APPROCHE STRICTE - REJETER SI:
+❌ Texte incohérent ou fragmenté
+❌ Absence de données financières (transactions, montants, soldes)
+❌ Pas de nom de banque reconnaissable
+❌ Document d'identité, attestation, certificat
+❌ Contenu non bancaire (CV, lettre, etc.)
+❌ Texte trop court ou incomplet
+
+ACCEPTER SEULEMENT SI:
+✅ Présence claire d'un nom de banque français reconnu
+✅ Transactions avec dates, libellés et montants
+✅ Structure cohérente d'un relevé bancaire
+✅ Informations de compte (numéros, soldes)
+✅ Données financières authentiques
+
+BANQUES FRANÇAISES À RECHERCHER:
+BNP Paribas, Crédit Agricole, Société Générale, LCL, Crédit Mutuel, Banque Populaire, Caisse d'Épargne, HSBC France, La Banque Postale, ING Direct, Boursorama, Hello bank!, N26, Revolut, Orange Bank, Fortuneo
+
+INSTRUCTIONS CRITIQUES:
+- Sois TRÈS strict dans la validation du contenu textuel
+- Recherche activement les noms de banques exacts
+- Vérifie la cohérence des données financières
+- En cas de doute, REJETER le document
+
+TEXTE À ANALYSER:
+${extractedText}
+
+Réponds UNIQUEMENT avec un JSON valide:
+{
+  "isValidDocument": true/false,
+  "documentType": "relevé bancaire" | "facture" | "document financier" | "autre",
+  "rejectionReason": "raison précise du rejet si pas valide",
+  "bankName": "nom exact et complet de la banque détectée",
+  "transactionCount": nombre_de_transactions_visibles,
+  "anomalies": nombre_d_anomalies_détectées,
+  "confidence": pourcentage_de_confiance_0_à_100
+}`;
+
+          messages = [
+            {
+              role: 'user',
+              content: analysisPrompt
+            }
+          ];
+          
+        } else if (base64Image) {
+          console.log('[VALIDATE_DOCUMENT] Using VISION-based analysis (fallback)...');
+          
+          analysisPrompt = `Tu es un expert en analyse de documents bancaires avec une approche STRICTE. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
 
 APPROCHE STRICTE - REJETER SI:
 ❌ Document d'identité (carte d'identité, passeport, permis)
@@ -142,9 +224,7 @@ Réponds UNIQUEMENT avec un JSON valide:
   "confidence": pourcentage_de_confiance_0_à_100
 }`;
 
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o', // GPT-4o avec vision intégrée (gpt-4-vision-preview est déprécié)
-          messages: [
+          messages = [
             {
               role: 'user',
               content: [
@@ -161,7 +241,12 @@ Réponds UNIQUEMENT avec un JSON valide:
                 }
               ]
             }
-          ],
+          ];
+        }
+
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o', // GPT-4o avec vision intégrée et analyse de texte
+          messages: messages,
           max_tokens: 500,
           temperature: 0.1,
         });
@@ -239,8 +324,9 @@ Réponds UNIQUEMENT avec un JSON valide:
               anomaliesDetected: analysis.anomalies || 0,
               aiConfidence: analysis.confidence || 85,
               documentType: analysis.documentType,
-              hasExtractedText: !!base64Image,
-              extractedTextLength: base64Image?.length || 0,
+              hasExtractedText: !!(extractedText || base64Image),
+              extractedTextLength: extractedText?.length || (base64Image?.length || 0),
+              analysisMethod: extractedText ? 'text-parsing' : 'vision-analysis',
               transactions: simulatedTransactions,
               processingTime: Math.random() * 2 + 1.5, // 1.5-3.5 secondes
               aiCost: Math.random() * 0.03 + 0.02, // 0.02-0.05€
@@ -298,8 +384,8 @@ Réponds UNIQUEMENT avec un JSON valide:
       }, { status: 400 });
     }
     
-    // Si pas de mot-clé valide ET pas d'analyse IA, rejeter par sécurité
-    if (!hasValidKeyword && !base64Image) {
+    // Si pas de mot-clé valide ET pas d'analyse IA possible, rejeter par sécurité
+    if (!hasValidKeyword && !extractedText && !base64Image) {
       console.log('[VALIDATE_DOCUMENT] Document rejected - no valid keyword and no AI analysis possible:', fileName);
       return NextResponse.json({
         error: 'DOCUMENT_REJECTED',
@@ -366,8 +452,9 @@ Réponds UNIQUEMENT avec un JSON valide:
       anomaliesDetected: 0,
       aiConfidence: 85,
       documentType: 'document financier',
-      hasExtractedText: !!base64Image,
-      extractedTextLength: base64Image?.length || 0,
+      hasExtractedText: !!(extractedText || base64Image),
+      extractedTextLength: extractedText?.length || (base64Image?.length || 0),
+      analysisMethod: 'filename-fallback',
       transactions: fallbackTransactions,
       processingTime: 2.1,
       aiCost: 0.025,
