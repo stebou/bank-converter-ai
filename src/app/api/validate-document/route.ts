@@ -88,37 +88,48 @@ export async function POST(req: NextRequest) {
       try {
         console.log('[VALIDATE_DOCUMENT] Starting GPT-4 Vision analysis...');
         
-        const analysisPrompt = `Tu es un expert en analyse de documents bancaires. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
+        const analysisPrompt = `Tu es un expert en analyse de documents bancaires avec une approche STRICTE. Analyse visuellement ce document et détermine s'il s'agit d'un relevé bancaire ou d'une facture valide.
 
-TÂCHES À EFFECTUER:
-1. Identifier le type de document (relevé bancaire, facture, ou autre)
-2. Détecter le nom exact de la banque (regarde les logos, en-têtes, noms)
-3. Compter approximativement le nombre de transactions visibles
-4. Identifier d'éventuelles anomalies ou incohérences
+APPROCHE STRICTE - REJETER SI:
+❌ Document d'identité (carte d'identité, passeport, permis)
+❌ Attestation ou certificat de quelque nature
+❌ Photo personnelle, selfie, capture d'écran
+❌ Document manuscrit ou brouillon
+❌ Page web générique ou interface non bancaire
+❌ Document flou, illisible ou de mauvaise qualité
+❌ Document sans logo bancaire officiel reconnaissable
+❌ Fausse simulation ou document fictif évident
+
+ACCEPTER SEULEMENT SI:
+✅ Relevé bancaire officiel avec logo et en-tête bancaire
+✅ Facture d'entreprise avec informations financières
+✅ Document présentant des transactions authentiques
+✅ Structure professionnelle et cohérente
+✅ Qualité suffisante pour l'analyse
 
 BANQUES FRANÇAISES À RECHERCHER:
-- BNP Paribas (logo rouge/blanc)
-- Crédit Agricole (logo vert)
-- Société Générale (logo rouge/noir)
+- BNP Paribas (logo vert/blanc, couleurs caractéristiques)
+- Crédit Agricole (logo vert avec pictogrammes)
+- Société Générale (logo rouge/noir distinctif)
 - LCL (logo bleu/blanc)
 - Crédit Mutuel (logo bleu/orange)
 - Banque Populaire (logo rouge)
 - Caisse d'Épargne (logo bleu/rouge)
-- HSBC France (logo rouge/blanc)
+- HSBC France (logo rouge/blanc hexagonal)
 - La Banque Postale (logo bleu/jaune)
-- ING Direct (logo orange)
+- ING Direct (logo orange caractéristique)
 - Boursorama (logo rouge)
-- Hello bank! (logo multicolore)
-- N26 (logo noir/blanc)
-- Revolut (logo bleu)
-- Orange Bank (logo orange)
+- Hello bank! (logo multicolore BNP)
+- N26 (logo minimaliste noir/blanc)
+- Revolut (logo bleu moderne)
+- Orange Bank (logo orange distinctif)
 - Fortuneo (logo vert)
 
-CRITÈRES DE VALIDATION:
-- Document authentique avec en-tête bancaire
-- Présence de transactions ou d'informations financières
-- Structure cohérente d'un relevé ou d'une facture
-- Pas de document d'identité, attestation, ou autre type
+INSTRUCTIONS CRITIQUES:
+- Sois TRÈS strict dans la validation
+- En cas de doute, REJETER le document
+- Un document bancaire doit avoir un aspect professionnel et officiel
+- Recherche activement les signes de faux documents
 
 Réponds UNIQUEMENT avec un JSON valide:
 {
@@ -243,38 +254,61 @@ Réponds UNIQUEMENT avec un JSON valide:
         }
       } catch (aiError) {
         console.error('[VALIDATE_DOCUMENT] OpenAI analysis failed:', aiError);
-        // Continue sans analyse IA - on accepte le document par défaut
-      }
-    }
-
-    // Fallback si pas d'analyse IA Vision - utiliser la détection basée sur le nom de fichier
-    console.log('[VALIDATE_DOCUMENT] Using fallback validation (no AI Vision analysis)');
-    
-    // Pour les PDFs, faire une validation basique du nom de fichier pour détecter les mauvais documents
-    if (file.type === 'application/pdf') {
-      const fileName = file.name.toLowerCase();
-      
-      // Mots-clés qui indiquent des documents NON bancaires
-      const invalidKeywords = [
-        'attestation', 'certificat', 'carte', 'identite', 'passeport', 
-        'permis', 'electoral', 'liste', 'inscription', 'diplome',
-        'bulletin', 'salaire', 'paie', 'contrat', 'cv', 'curriculum'
-      ];
-      
-      const hasInvalidKeyword = invalidKeywords.some(keyword => fileName.includes(keyword));
-      
-      if (hasInvalidKeyword) {
-        console.log('[VALIDATE_DOCUMENT] PDF rejected based on filename analysis:', fileName);
+        // En cas d'échec de l'IA, rejeter le document par sécurité
+        console.log('[VALIDATE_DOCUMENT] AI analysis failed, rejecting document for security');
         return NextResponse.json({
           error: 'DOCUMENT_REJECTED',
-          message: 'Document non valide: Ce document ne semble pas être un relevé bancaire ou une facture.',
+          message: 'Document non valide: Impossible d\'analyser le document. Veuillez réessayer avec un relevé bancaire ou une facture claire.',
           documentType: 'autre'
         }, { status: 400 });
       }
     }
+
+    // Fallback strict si pas d'analyse IA Vision - rejeter par défaut sauf cas spécifiques
+    console.log('[VALIDATE_DOCUMENT] Using strict fallback validation (no AI Vision analysis)');
+    
+    const fileName = file.name.toLowerCase();
+    
+    // Mots-clés qui indiquent des documents NON bancaires (plus étendu)
+    const invalidKeywords = [
+      'attestation', 'certificat', 'carte', 'identite', 'passeport', 
+      'permis', 'electoral', 'liste', 'inscription', 'diplome',
+      'bulletin', 'salaire', 'paie', 'contrat', 'cv', 'curriculum',
+      'photo', 'selfie', 'profil', 'avatar', 'image', 'capture'
+    ];
+    
+    // Mots-clés qui indiquent potentiellement des documents bancaires valides
+    const validKeywords = [
+      'releve', 'relevé', 'bank', 'banque', 'compte', 'statement', 
+      'facture', 'invoice', 'bnp', 'paribas', 'credit', 'agricole',
+      'societe', 'generale', 'lcl', 'mutuel', 'populaire', 'epargne',
+      'hsbc', 'postale', 'ing', 'boursorama', 'hello', 'n26', 'revolut',
+      'orange', 'fortuneo', 'transaction', 'virement', 'prelevement'
+    ];
+    
+    const hasInvalidKeyword = invalidKeywords.some(keyword => fileName.includes(keyword));
+    const hasValidKeyword = validKeywords.some(keyword => fileName.includes(keyword));
+    
+    if (hasInvalidKeyword) {
+      console.log('[VALIDATE_DOCUMENT] Document rejected - invalid keyword found:', fileName);
+      return NextResponse.json({
+        error: 'DOCUMENT_REJECTED',
+        message: 'Document non valide: Ce document ne semble pas être un relevé bancaire ou une facture.',
+        documentType: 'autre'
+      }, { status: 400 });
+    }
+    
+    // Si pas de mot-clé valide ET pas d'analyse IA, rejeter par sécurité
+    if (!hasValidKeyword && !base64Image) {
+      console.log('[VALIDATE_DOCUMENT] Document rejected - no valid keyword and no AI analysis possible:', fileName);
+      return NextResponse.json({
+        error: 'DOCUMENT_REJECTED',
+        message: 'Document non valide: Impossible de déterminer si ce document est un relevé bancaire. Veuillez vous assurer que le nom du fichier contient des mots-clés bancaires ou que le document est lisible.',
+        documentType: 'autre'
+      }, { status: 400 });
+    }
     
     // Essayer d'utiliser les indices de banque même sans IA
-    const fileName = file.name.toLowerCase();
     const potentialBankClues = [];
     
     // Logique de détection basée sur le nom de fichier
@@ -295,7 +329,7 @@ Réponds UNIQUEMENT avec un JSON valide:
     if (fileName.includes('orange')) potentialBankClues.push('Orange Bank');
     if (fileName.includes('fortuneo')) potentialBankClues.push('Fortuneo');
     
-    const detectedBankName = potentialBankClues.length > 0 ? potentialBankClues[0] : 'Document bancaire accepté';
+    const detectedBankName = potentialBankClues.length > 0 ? potentialBankClues[0] : 'Document financier détecté';
     
     console.log('[VALIDATE_DOCUMENT] Fallback bank detection from filename:', detectedBankName);
     
