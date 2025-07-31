@@ -144,7 +144,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/svg+xml;base64,${base64Image}`,
+                    url: `data:image/png;base64,${base64Image}`,
                     detail: "high"
                   }
                 }

@@ -75,11 +75,19 @@ export async function convertPdfToImageWithCanvas(pdfBuffer: Buffer): Promise<st
       <text x="50" y="950" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Document généré automatiquement - Version numérique</text>
     </svg>`;
     
-    // Convertir SVG en base64 (GPT-4o peut analyser les SVG comme des images)
-    const base64Image = Buffer.from(svgContent).toString('base64');
+    // Convertir SVG en PNG avec Sharp (compatible Vercel)
+    console.log('[PDF_CONVERT] Converting SVG to PNG with Sharp...');
+    const sharp = await import('sharp');
     
-    console.log('[PDF_CONVERT] SVG document created successfully');
-    console.log('[PDF_CONVERT] Base64 SVG length:', base64Image.length);
+    const svgBuffer = Buffer.from(svgContent);
+    const pngBuffer = await sharp.default(svgBuffer)
+      .png({ quality: 90 })
+      .toBuffer();
+    
+    const base64Image = pngBuffer.toString('base64');
+    
+    console.log('[PDF_CONVERT] SVG successfully converted to PNG');
+    console.log('[PDF_CONVERT] Base64 PNG length:', base64Image.length);
     
     return base64Image;
 
