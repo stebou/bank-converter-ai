@@ -8,6 +8,7 @@ import json
 import base64
 import io
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 import tempfile
 import os
 
@@ -235,7 +236,7 @@ def process_pdf_document(pdf_data, output_mode='hybrid'):
     
     return result
 
-class handler(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             # Lire le contenu de la requête
@@ -307,3 +308,83 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
+
+# Fonction handler moderne pour Vercel
+def handler(request):
+    """Handler moderne pour Vercel Functions"""
+    import json
+    
+    # Gérer CORS
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json'
+    }
+    
+    if request.method == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': ''
+        }
+    
+    if request.method != 'POST':
+        return {
+            'statusCode': 405,
+            'headers': headers,
+            'body': json.dumps({'error': 'Method not allowed'})
+        }
+    
+    try:
+        # Parser la requête
+        if hasattr(request, 'json') and request.json:
+            request_data = request.json
+        elif hasattr(request, 'body'):
+            request_data = json.loads(request.body.decode('utf-8'))
+        else:
+            raise ValueError("No request data")
+        
+        pdf_base64 = request_data.get('pdf_base64', '')
+        output_mode = request_data.get('output_mode', 'hybrid')
+        
+        if not pdf_base64:
+            raise ValueError("pdf_base64 is required")
+        
+        # Décoder le PDF
+        pdf_data = base64.b64decode(pdf_base64)
+        
+        # Traiter le PDF
+        result = process_pdf_document(pdf_data, output_mode)
+        
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': json.dumps(result)
+        }
+        
+    except Exception as e:
+        print(f"[VERCEL_HANDLER_MODERN] Error: {e}")
+        
+        error_response = {
+            "success": False,
+            "error": str(e),
+            "extracted_text": "",
+            "image_base64": "",
+            "metadata": {
+                "page_count": 0,
+                "text_length": 0,
+                "has_text": False,
+                "has_image": False,
+                "found_keywords": [],
+                "keyword_count": 0,
+                "processing_method": "modern_handler_error",
+                "detected_bank": ""
+            }
+        }
+        
+        return {
+            'statusCode': 500,
+            'headers': headers,
+            'body': json.dumps(error_response)
+        }
