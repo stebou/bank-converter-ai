@@ -56,27 +56,27 @@ export async function POST(req: NextRequest) {
             const extractedText = pythonData.extracted_text;
             base64Image = pythonData.image_base64;
             
-            // Si on a du texte ET de l'image, on peut faire une analyse hybride !
-            if (extractedText && base64Image) {
-              console.log('[VALIDATE_DOCUMENT] HYBRID analysis possible - text AND image available');
+            // Si on a du texte (avec ou sans image), on peut faire une analyse !
+            if (extractedText) {
+              console.log('[VALIDATE_DOCUMENT] TEXT analysis available:', base64Image ? 'with image (hybrid)' : 'text-only');
               
-              // Préparer l'analyse hybride pour GPT-4
-              const hybridAnalysisPrompt = `Tu es un expert en analyse de documents bancaires. Tu disposes à la fois du TEXTE EXTRAIT et de l'IMAGE du document. Utilise les deux sources pour une analyse maximalement précise.
+              // Préparer l'analyse pour GPT-4 (texte avec image optionnelle)
+              const analysisPrompt = `Tu es un expert en analyse de documents bancaires. Tu disposes du TEXTE EXTRAIT du document${base64Image ? ' et de son IMAGE' : ''}. Analyse ${base64Image ? 'les deux sources' : 'le texte'} pour une validation précise.
 
 TEXTE EXTRAIT DU DOCUMENT:
 ${extractedText}
 
 ANALYSE REQUISE:
-1. Vérifie la cohérence entre le texte extrait et l'image
-2. Identifie précisément le nom de la banque
-3. Compte les transactions visibles
+1. ${base64Image ? 'Vérifie la cohérence entre le texte extrait et l\'image' : 'Analyse la structure et cohérence du texte'}
+2. Identifie précisément le nom de la banque dans le texte
+3. Compte les transactions mentionnées
 4. Détecte toute incohérence ou anomalie
 
 CRITÈRES STRICTS:
-- Document authentique avec données cohérentes texte/image
-- Présence de banque française reconnue
+- Document authentique avec données ${base64Image ? 'cohérentes texte/image' : 'financières cohérentes'}
+- Présence de banque française reconnue dans le texte
 - Structure bancaire professionnelle
-- Données financières réelles
+- Données financières réelles et détaillées
 
 Réponds UNIQUEMENT avec un JSON valide:
 {
@@ -87,34 +87,39 @@ Réponds UNIQUEMENT avec un JSON valide:
   "transactionCount": nombre_de_transactions_visibles,
   "anomalies": nombre_d_anomalies_détectées,
   "confidence": pourcentage_de_confiance_0_à_100,
-  "analysisMethod": "hybrid_text_and_vision"
+  "analysisMethod": ${base64Image ? '"hybrid_text_and_vision"' : '"text_analysis"'}
 }`;
 
-              // Continuer avec l'analyse GPT-4 hybride
+              // Analyse GPT-4 (texte avec image optionnelle)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const messageContent: any = [{
+                type: 'text',
+                text: analysisPrompt
+              }];
+              
+              // Ajouter l'image si disponible
+              if (base64Image) {
+                messageContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/png;base64,${base64Image}`,
+                    detail: "high"
+                  }
+                });
+              }
+              
               const completion = await openai.chat.completions.create({
                 model: 'gpt-4o',
                 messages: [{
                   role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: hybridAnalysisPrompt
-                    },
-                    {
-                      type: 'image_url',
-                      image_url: {
-                        url: `data:image/png;base64,${base64Image}`,
-                        detail: "high"
-                      }
-                    }
-                  ]
+                  content: messageContent
                 }],
                 max_tokens: 500,
                 temperature: 0.1,
               });
 
               const aiResponse = completion.choices[0]?.message?.content;
-              console.log('[VALIDATE_DOCUMENT] Hybrid AI analysis completed');
+              console.log('[VALIDATE_DOCUMENT] AI analysis completed:', base64Image ? 'hybrid' : 'text-only');
               
               if (aiResponse) {
                 try {
@@ -127,11 +132,11 @@ Réponds UNIQUEMENT avec un JSON valide:
                   }
                   
                   const analysis = JSON.parse(cleanResponse);
-                  console.log('[VALIDATE_DOCUMENT] Hybrid analysis result:', analysis.isValidDocument);
+                  console.log('[VALIDATE_DOCUMENT] Analysis result:', analysis.isValidDocument);
                   console.log('[VALIDATE_DOCUMENT] Bank detected:', analysis.bankName);
                   
                   if (analysis.isValidDocument === false) {
-                    console.log('[VALIDATE_DOCUMENT] Document rejected by hybrid analysis:', analysis.rejectionReason);
+                    console.log('[VALIDATE_DOCUMENT] Document rejected by AI analysis:', analysis.rejectionReason);
                     return NextResponse.json({
                       error: 'DOCUMENT_REJECTED',
                       message: `Document non valide: ${analysis.rejectionReason || 'Ce document ne semble pas être un relevé bancaire ou une facture valide.'}`,
@@ -139,7 +144,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                     }, { status: 400 });
                   }
                   
-                  // Document valide avec analyse hybride
+                  // Document valide avec analyse AI
                   const bankName = analysis.bankName || 'Banque détectée';
                   return NextResponse.json({
                     success: true,
@@ -150,7 +155,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                     documentType: analysis.documentType,
                     hasExtractedText: true,
                     extractedTextLength: extractedText.length,
-                    analysisMethod: 'hybrid_text_and_vision',
+                    analysisMethod: base64Image ? 'hybrid_text_and_vision' : 'text_analysis',
                     pythonProcessing: true,
                     transactions: [], // TODO: générer des transactions basées sur l'analyse réelle
                     processingTime: Math.random() * 2 + 2.5,
@@ -158,7 +163,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                   }, { status: 200 });
                   
                 } catch (parseError) {
-                  console.error('[VALIDATE_DOCUMENT] Failed to parse hybrid AI response:', parseError);
+                  console.error('[VALIDATE_DOCUMENT] Failed to parse AI response:', parseError);
                 }
               }
             }
