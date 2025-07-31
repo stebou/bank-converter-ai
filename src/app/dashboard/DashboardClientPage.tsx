@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, FileText, X, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, AlertCircle, Loader2, BarChart2, Plus, Download, Brain, X, Settings } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type { DocumentType } from '@/types';
 import PaymentSuccessModal from '@/components/PaymentSuccessModal';
 import SubscriptionBadge from '@/components/SubscriptionBadge';
 import AIChat from '@/components/AIChat';
-import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
+import { DocumentUpload } from '@/components/DocumentUpload';
 
 // Types spécifiques à ce composant client
 type SubscriptionData = {
@@ -66,34 +66,6 @@ const DocumentDetailView = ({ document, onClose }: { document: DocumentType, onC
   </div>
 );
 
-// --- COMPOSANT : MODULE D'UPLOAD ---
-const UploadModule = ({ onUpload, processing, file, setFile, credits }: { onUpload: () => void, processing: boolean, file: File | null, setFile: React.Dispatch<React.SetStateAction<File | null>>, credits: number }) => {
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile && selectedFile.type === 'application/pdf') setFile(selectedFile);
-  }, [setFile]);
-
-  return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-      <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-6"><Upload className="w-8 h-8 text-white" /></div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Téléverser un relevé</h2>
-        <p className="text-gray-600 mb-8">Utilisez un crédit pour analyser un document PDF.</p>
-        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors hover:border-blue-400 hover:bg-blue-50/50">
-          <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="fileInputDashboard" />
-          <label htmlFor="fileInputDashboard" className="cursor-pointer block">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-700 mb-2">Cliquez pour sélectionner un PDF</p>
-          </label>
-        </div>
-        {file && (<div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200 flex items-center justify-center space-x-3"><CheckCircle className="w-5 h-5 text-green-600" /><span className="text-green-800 font-medium">{file.name}</span></div>)}
-        <button onClick={onUpload} disabled={!file || processing || credits <= 0} className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2">
-          {processing ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Analyse IA en cours...</span></>) : credits <= 0 ? (<span>Crédits insuffisants</span>) : (<><Brain className="w-5 h-5" /><span>Analyser (1 crédit)</span></>)}
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // --- COMPOSANT : HISTORIQUE DES DOCUMENTS ---
 const DocumentHistoryTable = ({ documents, onSelectDocument }: { documents: DocumentType[], onSelectDocument: (doc: DocumentType) => void }) => (
@@ -253,13 +225,9 @@ const CreditsStatus = ({ credits, subscriptionData }: { credits: number, subscri
 export default function DashboardClientPage({ userName, initialDocuments, initialCredits, subscriptionData }: DashboardClientPageProps) {
   const [documents, setDocuments] = useState<DocumentType[]>(initialDocuments);
   const [credits, setCredits] = useState(initialCredits);
-  const [file, setFile] = useState<File | null>(null);
-  const [processing, setProcessing] = useState<boolean>(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<{planName: string; amount: number} | null>(null);
-  const [showRejectionModal, setShowRejectionModal] = useState(false);
-  const [rejectionDetails, setRejectionDetails] = useState<{message: string; documentType?: string} | null>(null);
   
   const searchParams = useSearchParams();
 
@@ -324,56 +292,6 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
     }
   }, [searchParams]);
 
-  const handleUpload = async () => {
-    if (!file) return;
-    setProcessing(true);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('/api/documents', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
-        
-        // Gestion spéciale pour les documents rejetés
-        if (errorData.error === 'DOCUMENT_REJECTED') {
-          setRejectionDetails({
-            message: errorData.message,
-            documentType: errorData.documentType
-          });
-          setShowRejectionModal(true);
-          return; // Ne pas décrémenter les crédits car ils ont été remboursés
-        }
-        
-        throw new Error(errorData.error);
-      }
-
-      const newDocument = await response.json();
-      
-      // Convertir les dates string en objets Date
-      const processedDocument = {
-        ...newDocument,
-        createdAt: new Date(newDocument.createdAt),
-        lastAnalyzedAt: newDocument.lastAnalyzedAt ? new Date(newDocument.lastAnalyzedAt) : null,
-      };
-      
-      setDocuments((prev) => [processedDocument, ...prev]);
-      setCredits((prev) => prev - 1); 
-      setFile(null);
-      setSelectedDocument(processedDocument);
-
-    } catch (error) {
-      console.error("Erreur d'upload:", error);
-      alert(`Une erreur est survenue lors de l'analyse: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const stats = {
     total: documents.length,
@@ -413,7 +331,23 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           {selectedDocument ? (
             <DocumentDetailView document={selectedDocument} onClose={() => setSelectedDocument(null)} />
           ) : (
-            <UploadModule onUpload={handleUpload} processing={processing} file={file} setFile={setFile} credits={credits} />
+            <DocumentUpload 
+              onDocumentUploaded={(document) => {
+                // Convertir les dates string en objets Date
+                const processedDocument = {
+                  ...document,
+                  createdAt: typeof document.createdAt === 'string' ? new Date(document.createdAt) : new Date(),
+                  lastAnalyzedAt: document.lastAnalyzedAt && typeof document.lastAnalyzedAt === 'string' ? new Date(document.lastAnalyzedAt) : null,
+                } as DocumentType;
+                
+                setDocuments((prev) => [processedDocument, ...prev]);
+                setSelectedDocument(processedDocument);
+              }}
+              onCreditsDecrement={() => setCredits((prev) => prev - 1)}
+              className=""
+              title="Téléverser un relevé"
+              description="Utilisez un crédit pour analyser un document PDF."
+            />
           )}
           <DocumentHistoryTable documents={documents} onSelectDocument={setSelectedDocument} />
         </div>
@@ -432,15 +366,6 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
         />
       )}
 
-      {/* Modal de rejet de document */}
-      {showRejectionModal && rejectionDetails && (
-        <DocumentRejectionModal
-          isOpen={showRejectionModal}
-          onClose={() => setShowRejectionModal(false)}
-          message={rejectionDetails.message}
-          documentType={rejectionDetails.documentType}
-        />
-      )}
 
       {/* Assistant IA Chat */}
       <AIChat 

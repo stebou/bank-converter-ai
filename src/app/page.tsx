@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, Brain, CheckCircle, AlertCircle, Download, Loader2, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github } from 'lucide-react';
-import Link from 'next/link'; 
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { FileText, Brain, CheckCircle, AlertCircle, Download, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github } from 'lucide-react';
+import Link from 'next/link';
 import { SignUpModal } from '@/components/SignUpModal';
-import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
+import { DocumentUpload } from '@/components/DocumentUpload';
 import { Navigation } from '@/components/Navigation';
 import AnimatedGradientBackground from '@/components/AnimatedGradientBackground';
 import { motion } from 'framer-motion';
@@ -317,16 +316,9 @@ const Footer = () => {
 
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 const BankStatementConverter = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<AnalysisResults | null>(null);
-  const [processingStep, setProcessingStep] = useState('');
-  const [confidence, setConfidence] = useState(0);
-
   const [credits, setCredits] = useState(3);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showRejectionModal, setShowRejectionModal] = useState(false);
-  const [rejectionDetails, setRejectionDetails] = useState<{message: string; documentType?: string} | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -337,107 +329,34 @@ const BankStatementConverter = () => {
     }
   }, []);
 
-
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile && selectedFile.type === 'application/pdf') {
-      setFile(selectedFile);
-      setResults(null);
-    }
-  }, []);
-
-  const processDocument = async () => {
-    if (credits <= 0) {
-      setIsModalOpen(true);
-      return;
-    }
-
-    if (!file) return;
-
-    setProcessing(true);
-    setResults(null);
-    setConfidence(0);
-    setProcessingStep('Envoi du document pour analyse IA...');
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      console.log('[HOMEPAGE] Starting document validation...');
-      const response = await fetch('/api/validate-document', {
-        method: 'POST',
-        body: formData,
-      });
-
-      console.log('[HOMEPAGE] API response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Échec du téléversement.' }));
-        console.log('[HOMEPAGE] API error data:', errorData);
-        
-        // Gestion spéciale pour les documents rejetés
-        if (errorData.error === 'DOCUMENT_REJECTED') {
-          console.log('[HOMEPAGE] Document rejected, showing modal');
-          setRejectionDetails({
-            message: errorData.message,
-            documentType: errorData.documentType
-          });
-          setShowRejectionModal(true);
-          setProcessing(false);
-          setProcessingStep('');
-          return; // Ne pas décrémenter les crédits car ils ont été remboursés par l'API
-        }
-        
-        throw new Error(errorData.error);
+  // Callback pour les documents validés avec succès
+  const handleDocumentSuccess = useCallback((documentData: { bankDetected?: string; aiConfidence?: number; totalTransactions?: number; anomaliesDetected?: number }) => {
+    console.log('[HOMEPAGE] Document successfully processed:', documentData);
+    
+    // Convertir les données de l'API au format attendu par la homepage
+    const mockResults: AnalysisResults = {
+      bankDetected: documentData.bankDetected || "Banque détectée",
+      confidence: documentData.aiConfidence || 95,
+      processingTime: 3.2,
+      aiCost: 0.041,
+      transactions: [
+        // Simulation de transactions pour la démonstration
+        { id: 1, date: "2024-01-15", description: "VIREMENT SALAIRE ENTREPRISE", originalDesc: "VIR SALAIRE ENTREPRISE XYZ", amount: 3250.00, category: "Revenus", subcategory: "Salaire", confidence: 98.5, anomalyScore: 0.1 },
+        { id: 2, date: "2024-01-16", description: "CARTE SUPERMARCHÉ", originalDesc: "CB LECLERC PONTAULT", amount: -87.45, category: "Alimentation", subcategory: "Supermarché", confidence: 95.2, anomalyScore: 0.0 },
+        { id: 3, date: "2024-01-17", description: "PRELEVEMENT EDF", originalDesc: "PREL EDF REF:FAC123456", amount: -142.30, category: "Charges", subcategory: "Électricité", confidence: 97.8, anomalyScore: 0.2 }
+      ],
+      summary: { 
+        totalTransactions: documentData.totalTransactions || 3, 
+        totalDebits: -229.75, 
+        totalCredits: 3250.00, 
+        netFlow: 3020.25, 
+        avgConfidence: 95.4, 
+        anomaliesDetected: documentData.anomaliesDetected || 0 
       }
-
-      const newDocument = await response.json();
-      console.log('[HOMEPAGE] API success data:', newDocument);
-      
-      // Document accepté - décrémenter les crédits et simuler l'affichage des résultats
-      const newCredits = credits - 1;
-      setCredits(newCredits);
-      localStorage.setItem('anonymousUserCredits', newCredits.toString());
-
-      // Simuler le processus d'analyse pour l'UX (données déjà analysées par l'API)
-      setProcessingStep('Analyse IA terminée...');
-      setConfidence(100);
-      
-      // Convertir les données de l'API au format attendu par la homepage
-      const mockResults: AnalysisResults = {
-        bankDetected: newDocument.bankDetected || "Banque détectée",
-        confidence: newDocument.aiConfidence || 95,
-        processingTime: 3.2,
-        aiCost: 0.041,
-        transactions: [
-          // Simulation de transactions pour la démonstration
-          { id: 1, date: "2024-01-15", description: "VIREMENT SALAIRE ENTREPRISE", originalDesc: "VIR SALAIRE ENTREPRISE XYZ", amount: 3250.00, category: "Revenus", subcategory: "Salaire", confidence: 98.5, anomalyScore: 0.1 },
-          { id: 2, date: "2024-01-16", description: "CARTE SUPERMARCHÉ", originalDesc: "CB LECLERC PONTAULT", amount: -87.45, category: "Alimentation", subcategory: "Supermarché", confidence: 95.2, anomalyScore: 0.0 },
-          { id: 3, date: "2024-01-17", description: "PRELEVEMENT EDF", originalDesc: "PREL EDF REF:FAC123456", amount: -142.30, category: "Charges", subcategory: "Électricité", confidence: 97.8, anomalyScore: 0.2 }
-        ],
-        summary: { 
-          totalTransactions: newDocument.totalTransactions || 3, 
-          totalDebits: -229.75, 
-          totalCredits: 3250.00, 
-          netFlow: 3020.25, 
-          avgConfidence: 95.4, 
-          anomaliesDetected: newDocument.anomaliesDetected || 0 
-        }
-      };
-      
-      setTimeout(() => {
-        setResults(mockResults);
-        setProcessing(false);
-        setProcessingStep('');
-      }, 1000);
-
-    } catch (error) {
-      console.error("Erreur d'upload:", error);
-      alert(`Une erreur est survenue lors de l'analyse: ${error instanceof Error ? error.message : String(error)}`);
-      setProcessing(false);
-      setProcessingStep('');
-    }
-  };
+    };
+    
+    setResults(mockResults);
+  }, []);
 
   const exportToCSV = () => {
     if (!results) return;
@@ -461,15 +380,6 @@ const BankStatementConverter = () => {
       <Navigation />
       <SignUpModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       
-      {/* Modal de rejet de document */}
-      {showRejectionModal && rejectionDetails && (
-        <DocumentRejectionModal
-          isOpen={showRejectionModal}
-          onClose={() => setShowRejectionModal(false)}
-          message={rejectionDetails.message}
-          documentType={rejectionDetails.documentType}
-        />
-      )}
 
       <main className="pt-24 md:pt-28 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -486,54 +396,14 @@ const BankStatementConverter = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             >
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border-4 border-gray-200 p-8 transition-all duration-300 hover:scale-105 hover:border-blue-600 hover:shadow-2xl hover:shadow-purple-500/30 relative group">
-                <div className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/30"><Upload className="w-8 h-8 text-white" /></div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2 transition-colors duration-300 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent">Téléversez votre relevé bancaire</h2>
-                  
-                  <SignedOut>
-                    <p className="text-gray-600 mb-8">
-                      Il vous reste <span className="font-bold text-blue-600">{credits}</span> analyse{credits > 1 ? 's' : ''} gratuite{credits > 1 ? 's' : ''}.
-                    </p>
-                  </SignedOut>
-                  <SignedIn>
-                    <p className="text-gray-600 mb-8">Notre IA supporte automatiquement toutes les banques.</p>
-                  </SignedIn>
-
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 transition-all duration-300 hover:border-blue-400 hover:bg-blue-50/50 group-hover:border-purple-400 group-hover:bg-gradient-to-br group-hover:from-blue-50/30 group-hover:to-purple-50/30">
-                    <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="fileInput" />
-                    <label htmlFor="fileInput" className="cursor-pointer block">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-lg font-medium text-gray-700 mb-2">Cliquez pour sélectionner un PDF</p>
-                      <p className="text-sm text-gray-500">Formats supportés : PDF • Taille max : 10MB</p>
-                    </label>
-                  </div>
-                  {file && (<div className="mt-6 p-4 bg-green-50/90 backdrop-blur-sm rounded-xl border border-green-200"><div className="flex items-center justify-center space-x-3"><CheckCircle className="w-5 h-5 text-green-600" /><span className="text-green-800 font-medium">{file.name}</span><span className="text-green-600 text-sm">({(file.size / 1024 / 1024).toFixed(2)} MB)</span></div></div>)}
-                  
-                  <button 
-                    onClick={processDocument} 
-                    disabled={!file || processing} 
-                    className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    {processing ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /><span>Analyse IA en cours...</span></>
-                    ) : (credits <= 0 && file) ? (
-                      <span>Limite de crédits atteinte</span>
-                    ) : (
-                      <><Brain className="w-5 h-5" /><span>Analyser avec l IA</span></>
-                    )}
-                  </button>
-                </div>
-              </div>
-              {processing && (
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-                  <div className="flex items-center space-x-3 mb-4"><div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div><h3 className="text-lg font-semibold text-gray-900">Analyse IA en cours...</h3></div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm"><span className="text-gray-600">{processingStep}</span><span className="text-blue-600 font-medium">{confidence}%</span></div>
-                    <div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300" style={{ width: `${confidence}%` }}></div></div>
-                  </div>
-                </div>
-              )}
+              <DocumentUpload
+                credits={credits}
+                onCreditsChange={setCredits}  
+                onShowSignUpModal={() => setIsModalOpen(true)}
+                onDocumentUploaded={handleDocumentSuccess}
+                className="transition-all duration-300 hover:scale-105 hover:border-blue-600 hover:shadow-2xl hover:shadow-purple-500/30 relative group border-4 border-gray-200"
+                title="Téléversez votre relevé bancaire"
+              />
             </motion.div>
             <motion.div 
               className="space-y-6"
@@ -582,7 +452,7 @@ const BankStatementConverter = () => {
                   </div>
                 </>
               )}
-              {!results && !processing && (
+              {!results && (
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-8 text-center transition-all duration-500 hover:translate-x-2 hover:shadow-lg hover:border-blue-200">
                   <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-500 mb-2">En attente de notre analyse</h3>
