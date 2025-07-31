@@ -7,7 +7,9 @@ export async function convertPdfToImageWithCanvas(pdfBuffer: Buffer): Promise<st
     // Pour l'instant, créons une image placeholder avec les métadonnées du PDF
     // Une implémentation complète nécessiterait pdf2pic ou un service externe
     
+    console.log('[PDF_CONVERT] Importing canvas module...');
     const { createCanvas } = await import('canvas');
+    console.log('[PDF_CONVERT] Canvas module imported successfully');
     
     // Créer un canvas avec une taille standard
     const width = 800;

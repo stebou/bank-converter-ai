@@ -132,7 +132,7 @@ Réponds UNIQUEMENT avec un JSON valide:
 }`;
 
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4-vision-preview', // GPT-4 Vision selon recommandations OpenAI
+          model: 'gpt-4o', // GPT-4o avec vision intégrée (gpt-4-vision-preview est déprécié)
           messages: [
             {
               role: 'user',
