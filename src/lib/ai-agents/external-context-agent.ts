@@ -457,7 +457,7 @@ Format attendu:
     // Préparer toutes les recherches web (simulation)
     const searchResults = allQueries.map(query => ({
       query,
-      webResults: this.generatePremiumWebResults(query, industry)
+      webResults: this.generateEnhancedWebResults(query, industry)
     }));
 
     // Utiliser le batch OpenAI pour analyser toutes les recherches en une fois
