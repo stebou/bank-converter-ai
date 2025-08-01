@@ -57,39 +57,44 @@ function DashboardSkeleton() {
 
 // Cette page remplace l'ancien dashboard et devient le dashboard principal
 export default async function DashboardPage() {
-  const user = await currentUser();
+  try {
+    const user = await currentUser();
 
-  if (!user) {
+    if (!user) {
+      redirect('/sign-in');
+    }
+
+    const firstName = user.firstName || user.fullName || 'Utilisateur';
+
+    // Récupération des données utilisateur et abonnement
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: user.id },
+    });
+
+    // Données d'abonnement (sans système de crédits)
+    const subscriptionData = {
+      currentPlan: dbUser?.currentPlan || 'free',
+      subscriptionStatus: dbUser?.subscriptionStatus || null,
+      documentsLimit: dbUser?.documentsLimit || 5,
+      documentsUsed: dbUser?.documentsUsed || 0,
+      stripeCustomerId: dbUser?.stripeCustomerId || null,
+      stripeSubscriptionId: dbUser?.stripeSubscriptionId || null,
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="p-8">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <BankingDashboardWrapper 
+              userName={firstName}
+              subscriptionData={subscriptionData}
+            />
+          </Suspense>
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error('Dashboard error:', error);
     redirect('/sign-in');
   }
-
-  const firstName = user.firstName || user.fullName || 'Utilisateur';
-
-  // Récupération des données utilisateur et abonnement
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkId: user.id },
-  });
-
-  // Données d'abonnement (sans système de crédits)
-  const subscriptionData = {
-    currentPlan: dbUser?.currentPlan || 'free',
-    subscriptionStatus: dbUser?.subscriptionStatus || null,
-    documentsLimit: dbUser?.documentsLimit || 5,
-    documentsUsed: dbUser?.documentsUsed || 0,
-    stripeCustomerId: dbUser?.stripeCustomerId || null,
-    stripeSubscriptionId: dbUser?.stripeSubscriptionId || null,
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-8">
-        <Suspense fallback={<DashboardSkeleton />}>
-          <BankingDashboardWrapper 
-            userName={firstName}
-            subscriptionData={subscriptionData}
-          />
-        </Suspense>
-      </div>
-    </div>
-  );
 }

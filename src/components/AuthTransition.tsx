@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Brain, CheckCircle, Shield, BarChart3, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import '../styles/fonts.css';
 
 type AuthTransitionProps = {
   userFirstName?: string;
@@ -18,25 +19,25 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
       icon: CheckCircle,
       title: "Connexion réussie !",
       description: `Bienvenue ${userFirstName}`,
-      color: "bg-green-600"
+      color: "bg-[#2c3e50]"
     },
     {
       icon: Shield,
       title: "Sécurisation du compte",
       description: "Vérification des permissions...",
-      color: "bg-blue-600"
+      color: "bg-[#2c3e50]"
     },
     {
       icon: BarChart3,
       title: "Préparation du dashboard",
       description: "Chargement de vos données...",
-      color: "bg-blue-600"
+      color: "bg-[#2c3e50]"
     },
     {
       icon: Sparkles,
       title: "Finalisation",
       description: "Presque prêt !",
-      color: "bg-blue-600"
+      color: "bg-[#2c3e50]"
     }
   ];
 
@@ -74,13 +75,13 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
   const CurrentIcon = currentStep.icon;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white overflow-hidden">
-      {/* Background pattern subtil */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white">
-        {/* Grille subtile */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#ecf0f1] overflow-hidden">
+      {/* Background pattern subtil avec le style de l'app */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#ecf0f1] to-[#bdc3c7]">
+        {/* Grille subtile avec les couleurs de l'app */}
         <div className="absolute inset-0 opacity-5">
           <div className="h-full w-full" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)',
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(44,62,80,0.1) 1px, transparent 0)',
             backgroundSize: '20px 20px'
           }} />
         </div>
@@ -90,10 +91,10 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="relative z-10 text-center max-w-md mx-auto px-6"
       >
-        {/* Logo principal avec animation */}
+        {/* Logo principal avec animation et style de l'app */}
         <motion.div
           className="mb-8 relative"
           animate={{ 
@@ -105,12 +106,12 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
             ease: "easeInOut"
           }}
         >
-          <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl mx-auto relative">
+          <div className="w-20 h-20 bg-[#2c3e50] rounded-2xl flex items-center justify-center shadow-2xl mx-auto relative">
             <Brain className="w-10 h-10 text-white" />
             
-            {/* Effet de pulse subtil */}
+            {/* Effet de pulse subtil avec les couleurs de l'app */}
             <motion.div
-              className="absolute inset-0 bg-blue-600 rounded-2xl opacity-30"
+              className="absolute inset-0 bg-[#2c3e50] rounded-2xl opacity-30"
               animate={{
                 scale: [1, 1.1, 1],
                 opacity: [0.3, 0, 0.3],
@@ -123,9 +124,9 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
           </div>
         </motion.div>
 
-        {/* Titre principal */}
+        {/* Titre principal avec les polices de l'app */}
         <motion.h1
-          className="text-3xl font-bold text-gray-900 mb-2"
+          className="text-3xl font-bold font-montserrat text-[#2c3e50] mb-2 tracking-tight"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
@@ -134,7 +135,7 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
         </motion.h1>
 
         <motion.p
-          className="text-gray-600 mb-8 text-sm"
+          className="text-[#34495e] mb-8 text-sm font-open-sans"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
@@ -142,7 +143,7 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
           Financial Intelligence
         </motion.p>
 
-        {/* Étape actuelle avec animation */}
+        {/* Étape actuelle avec animation et style de l'app */}
         <motion.div
           key={step}
           initial={{ opacity: 0, y: 20 }}
@@ -152,7 +153,7 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
           className="mb-8"
         >
           <motion.div
-            className={`w-16 h-16 ${currentStep.color} rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4`}
+            className={`w-16 h-16 ${currentStep.color} rounded-2xl flex items-center justify-center shadow-xl mx-auto mb-4`}
             animate={{ 
               scale: [1, 1.05, 1],
             }}
@@ -161,24 +162,24 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
             <CurrentIcon className="w-8 h-8 text-white" />
           </motion.div>
 
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl font-semibold font-montserrat text-[#2c3e50] mb-2 tracking-wide">
             {currentStep.title}
           </h2>
-          <p className="text-gray-600 text-sm">
+          <p className="text-[#34495e] text-sm font-open-sans">
             {currentStep.description}
           </p>
         </motion.div>
 
-        {/* Barre de progression moderne */}
+        {/* Barre de progression moderne avec le style de l'app */}
         <div className="mb-8">
-          <div className="flex justify-between text-xs text-gray-500 mb-3">
+          <div className="flex justify-between text-xs text-[#34495e] font-open-sans mb-3">
             <span>Progression</span>
             <span>{Math.round(progress)}%</span>
           </div>
           
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-[#bdc3c7] rounded-full h-2 overflow-hidden">
             <motion.div
-              className="h-full bg-blue-600 rounded-full"
+              className="h-full bg-[#2c3e50] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3, ease: "easeOut" }}
@@ -186,13 +187,13 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
           </div>
         </div>
 
-        {/* Points d'étapes */}
+        {/* Points d'étapes avec les couleurs de l'app */}
         <div className="flex justify-center space-x-3 mb-8">
           {steps.map((_, index) => (
             <motion.div
               key={index}
               className={`w-3 h-3 rounded-full transition-colors duration-300 ${
-                index <= step ? 'bg-blue-600' : 'bg-gray-300'
+                index <= step ? 'bg-[#2c3e50]' : 'bg-[#bdc3c7]'
               }`}
               animate={{
                 scale: index === step ? [1, 1.2, 1] : 1,
@@ -206,9 +207,9 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
           ))}
         </div>
 
-        {/* Message d'attente */}
+        {/* Message d'attente avec le style de l'app */}
         <motion.p
-          className="text-gray-500 text-xs"
+          className="text-[#34495e] text-xs font-open-sans"
           animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
@@ -216,9 +217,9 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
         </motion.p>
       </motion.div>
 
-      {/* Élément décoratif subtil */}
+      {/* Éléments décoratifs subtils avec les couleurs de l'app */}
       <motion.div
-        className="absolute top-10 right-10 w-32 h-32 border border-blue-100 rounded-full"
+        className="absolute top-10 right-10 w-32 h-32 border border-[#bdc3c7] rounded-full"
         animate={{
           scale: [1, 1.1, 1],
           opacity: [0.3, 0.6, 0.3],
@@ -231,7 +232,7 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
       />
       
       <motion.div
-        className="absolute bottom-10 left-10 w-24 h-24 border border-gray-200 rounded-full"
+        className="absolute bottom-10 left-10 w-24 h-24 border border-[#bdc3c7] rounded-full"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.5, 0.2],
