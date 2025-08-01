@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { aiAgentOrchestrator } from '@/lib/ai-agents';
+import { bankingOrchestrator } from '@/lib/agents/banking';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
 
     console.log('[AGENT_ANALYSIS_API] Authorized user:', userId);
 
-    // Lancer le workflow d'analyse agentique
-    console.log('[AGENT_ANALYSIS_API] Starting AI agent workflow...');
-    const workflow = await aiAgentOrchestrator.executeWorkflow(userId);
+    // Lancer le workflow d'analyse bancaire
+    console.log('[AGENT_ANALYSIS_API] Starting banking AI agent workflow...');
+    const workflow = await bankingOrchestrator.executeWorkflow(userId);
     
     console.log('[AGENT_ANALYSIS_API] Workflow completed:', {
       id: workflow.id,

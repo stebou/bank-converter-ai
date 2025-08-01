@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { MasterCoordinatorAgent } from '@/lib/ai-agents/master-coordinator';
+import { InventoryCoordinator } from '@/lib/agents/inventory';
 import { AIAgentsTestDataGenerator } from '@/lib/ai-agents/test-data-generator';
 
 export async function POST(request: NextRequest) {
@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
       include_external_factors = true
     } = body;
 
-    // Initialisation du coordinateur principal
-    const masterCoordinator = new MasterCoordinatorAgent();
+    // Initialisation du coordinateur inventory
+    const inventoryCoordinator = new InventoryCoordinator();
     
     // Génération ou récupération des données
     let analysisInput;
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
       timeRange: analysisInput.time_range
     });
 
-    // Exécution de l'analyse par le coordinateur principal
+    // Exécution de l'analyse par le coordinateur inventory
     const startTime = Date.now();
-    const analysisResult = await masterCoordinator.run(analysisInput, initialState);
+    const analysisResult = await inventoryCoordinator.run(analysisInput, initialState);
     const executionTime = Date.now() - startTime;
 
     console.log('[AI-AGENTS] Analysis completed:', {
