@@ -1,0 +1,241 @@
+// API Route pour l'analyse par agents IA
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { MasterCoordinatorAgent } from '@/lib/ai-agents/master-coordinator';
+import { AIAgentsTestDataGenerator } from '@/lib/ai-agents/test-data-generator';
+
+export async function POST(request: NextRequest) {
+  try {
+    // Vérification de l'authentification
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Non authentifié' }, 
+        { status: 401 }
+      );
+    }
+
+    console.log('[AI-AGENTS] Starting analysis for user:', userId);
+
+    // Parsing des paramètres de requête
+    const body = await request.json().catch(() => ({}));
+    const {
+      use_test_data = true,
+      analysis_type = 'FULL_ANALYSIS',
+      forecast_horizon_days = 30,
+      include_external_factors = true
+    } = body;
+
+    // Initialisation du coordinateur principal
+    const masterCoordinator = new MasterCoordinatorAgent();
+    
+    // Génération ou récupération des données
+    let analysisInput;
+    let initialState;
+
+    if (use_test_data) {
+      console.log('[AI-AGENTS] Using test data for analysis');
+      const testDataGenerator = new AIAgentsTestDataGenerator();
+      
+      // Génération de données de test complètes
+      initialState = testDataGenerator.generateCompleteTestState(180);
+      
+      // Ajout de produits avec patterns spécifiques pour démonstration
+      const volatileProduct = testDataGenerator.generateHighVolatilityProduct();
+      const seasonalProduct = testDataGenerator.generateSeasonalProduct();
+      const trendingProduct = testDataGenerator.generateTrendingProduct('UP');
+      
+      initialState.raw_data.sales_history = [
+        ...initialState.raw_data.sales_history,
+        ...volatileProduct,
+        ...seasonalProduct,
+        ...trendingProduct
+      ];
+
+      analysisInput = {
+        sales_history: initialState.raw_data.sales_history,
+        inventory_history: initialState.raw_data.current_inventory,
+        time_range: {
+          start: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+          end: new Date()
+        },
+        forecast_horizon_days,
+        external_factors: include_external_factors 
+          ? testDataGenerator.generateExternalFactors(forecast_horizon_days)
+          : [],
+        analysis_type
+      };
+    } else {
+      // TODO: Intégration avec vraies données depuis la base de données
+      console.log('[AI-AGENTS] Real data integration not implemented yet');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Intégration avec vraies données pas encore implémentée',
+          details: 'Utilisez use_test_data: true pour l\'instant'
+        }, 
+        { status: 501 }
+      );
+    }
+
+    console.log('[AI-AGENTS] Analysis input prepared:', {
+      salesRecords: analysisInput.sales_history.length,
+      inventoryItems: analysisInput.inventory_history.length,
+      externalFactors: analysisInput.external_factors?.length || 0,
+      timeRange: analysisInput.time_range
+    });
+
+    // Exécution de l'analyse par le coordinateur principal
+    const startTime = Date.now();
+    const analysisResult = await masterCoordinator.run(analysisInput, initialState);
+    const executionTime = Date.now() - startTime;
+
+    console.log('[AI-AGENTS] Analysis completed:', {
+      success: analysisResult.success,
+      executionTime,
+      confidence: analysisResult.confidence_score
+    });
+
+    if (!analysisResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Échec de l\'analyse par les agents IA',
+          details: analysisResult.error || 'Erreur inconnue'
+        }, 
+        { status: 500 }
+      );
+    }
+
+    // Formatage de la réponse
+    const response = {
+      success: true,
+      analysis_id: `analysis_${userId}_${Date.now()}`,
+      execution_time_ms: executionTime,
+      confidence_score: analysisResult.confidence_score,
+      
+      // Résultats principaux
+      workflow_result: analysisResult.output.workflow_result,
+      recommendations: analysisResult.output.final_recommendations,
+      real_time_metrics: analysisResult.output.real_time_metrics,
+      execution_summary: analysisResult.output.execution_summary,
+      
+      // Métriques détaillées
+      kpis: analysisResult.output.workflow_result.final_state.metrics,
+      alerts: analysisResult.output.workflow_result.alerts,
+      
+      // Insights détaillés
+      demand_patterns: analysisResult.output.workflow_result.final_state.processed_insights.demand_patterns,
+      product_segments: analysisResult.output.workflow_result.final_state.processed_insights.product_segments,
+      forecasts: {
+        short_term: analysisResult.output.workflow_result.final_state.forecasts.short_term.slice(0, 10), // Limiter la réponse
+        medium_term: analysisResult.output.workflow_result.final_state.forecasts.medium_term.slice(0, 10),
+        summary: {
+          total_forecasts: 
+            analysisResult.output.workflow_result.final_state.forecasts.short_term.length +
+            analysisResult.output.workflow_result.final_state.forecasts.medium_term.length +
+            analysisResult.output.workflow_result.final_state.forecasts.long_term.length
+        }
+      },
+      
+      // Performance des agents
+      agents_performance: analysisResult.output.workflow_result.performance_summary.agents_performance,
+      
+      // Métadonnées
+      generated_at: new Date().toISOString(),
+      user_id: userId,
+      data_period: analysisInput.time_range,
+      analysis_parameters: {
+        analysis_type,
+        forecast_horizon_days,
+        include_external_factors,
+        use_test_data
+      }
+    };
+
+    // Log pour monitoring
+    console.log('[AI-AGENTS] Response prepared:', {
+      recommendationsCount: response.recommendations.length,
+      alertsCount: response.alerts.length,
+      kpiScore: response.confidence_score,
+      totalForecasts: response.forecasts.summary.total_forecasts
+    });
+
+    return NextResponse.json(response);
+
+  } catch (error) {
+    console.error('[AI-AGENTS] Analysis failed:', error);
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Erreur interne du serveur lors de l\'analyse IA',
+        details: error instanceof Error ? error.message : 'Erreur inconnue',
+        timestamp: new Date().toISOString()
+      }, 
+      { status: 500 }
+    );
+  }
+}
+
+// Endpoint pour récupérer le statut des agents
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Non authentifié' }, 
+        { status: 401 }
+      );
+    }
+
+    // Initialisation du coordinateur pour récupérer le statut
+    const masterCoordinator = new MasterCoordinatorAgent();
+    const healthMetrics = masterCoordinator.getHealthMetrics();
+
+    const response = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      system_status: {
+        overall_health: healthMetrics.status,
+        last_execution: healthMetrics.last_execution,
+        performance_score: healthMetrics.performance_score,
+        error_rate: healthMetrics.error_rate
+      },
+      capabilities: [
+        'demand_pattern_analysis',
+        'forecasting_multi_horizon',
+        'abc_xyz_segmentation',
+        'anomaly_detection',
+        'recommendation_generation',
+        'kpi_calculation'
+      ],
+      supported_analysis_types: [
+        'PATTERN_DETECTION',
+        'SEGMENTATION',
+        'TREND_ANALYSIS',
+        'FULL_ANALYSIS'
+      ],
+      limits: {
+        max_forecast_horizon_days: 365,
+        max_historical_data_days: 730,
+        max_products_per_analysis: 1000
+      }
+    };
+
+    return NextResponse.json(response);
+
+  } catch (error) {
+    console.error('[AI-AGENTS] Status check failed:', error);
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Erreur lors de la vérification du statut',
+        details: error instanceof Error ? error.message : 'Erreur inconnue'
+      }, 
+      { status: 500 }
+    );
+  }
+}

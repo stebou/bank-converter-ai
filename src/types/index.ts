@@ -78,3 +78,57 @@ export type FinancialAnalyticsType = {
   monthlyTrend: Record<string, { income: number; expenses: number }>;
   transactionCount: number;
 };
+
+// Types pour la gestion des stocks
+export type Product = {
+  id: string;
+  name: string;
+  sku: string;
+  currentStock: number;
+  minStock: number;
+  maxStock?: number;
+  price: number;
+  category: string;
+  lastUpdated: Date;
+  status: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+};
+
+export type StockMovement = {
+  id: string;
+  productId: string;
+  type: 'IN' | 'OUT' | 'ADJUSTMENT';
+  quantity: number;
+  reason: string;
+  timestamp: Date;
+  userId: string;
+  reference?: string;
+};
+
+export type OdooProduct = {
+  odooId: number;
+  name: string;
+  sku: string;
+  currentStock: number;
+  price: number;
+  category: string;
+  lastSynced: Date;
+};
+
+export type InventoryStats = {
+  totalProducts: number;
+  totalValue: number;
+  lowStockItems: number;
+  outOfStockItems: number;
+  weeklyIncoming: number;
+  weeklyOutgoing: number;
+  turnoverRate: string;
+};
+
+export type OdooConfig = {
+  url: string;
+  database: string;
+  username: string;
+  password: string;
+};
+
+export type StockMode = 'internal' | 'odoo';

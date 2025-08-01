@@ -17,7 +17,8 @@ import {
   ArrowDownRight,
   Loader2,
   Bot,
-  Sparkles
+  Sparkles,
+  Package
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { useBankingData } from '@/hooks/useBanking';
@@ -28,6 +29,8 @@ import DocumentAnalysisModal from './DocumentAnalysisModal';
 import TransactionsModal from './TransactionsModal';
 import SubscriptionBadge from './SubscriptionBadge';
 import AgentAnalysisModal from './AgentAnalysisModal';
+import StockModal from './StockModal';
+import AIAgentsModal from './AIAgentsModal';
 import type { BusinessInsightReport } from '@/lib/ai-agents';
 import '../styles/fonts.css';
 
@@ -116,12 +119,16 @@ const AccountEvolutionChart = ({
   accounts, 
   transactions, 
   onAgentAnalysis, 
-  agentAnalysisLoading 
+  agentAnalysisLoading,
+  onShowTransactions,
+  onShowStocks
 }: {
   accounts: BankAccountType[];
   transactions: BankTransactionType[];
   onAgentAnalysis?: () => void;
   agentAnalysisLoading?: boolean;
+  onShowTransactions?: () => void;
+  onShowStocks?: () => void;
 }) => {
   // Simulation de données d'évolution sur 12 mois
   const generateEvolutionData = () => {
@@ -165,6 +172,28 @@ const AccountEvolutionChart = ({
           <p className="text-sm font-open-sans text-[#34495e]">Solde total sur 12 mois</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Bouton Mes transactions */}
+          {onShowTransactions && (
+            <button
+              onClick={onShowTransactions}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg hover:scale-105 font-medium font-open-sans text-sm"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Mes transactions
+            </button>
+          )}
+          
+          {/* Bouton Mes stocks */}
+          {onShowStocks && (
+            <button
+              onClick={onShowStocks}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-lg hover:scale-105 font-medium font-open-sans text-sm"
+            >
+              <Package className="w-4 h-4" />
+              Mes stocks
+            </button>
+          )}
+          
           {/* Bouton Analyse Agentique */}
           {onAgentAnalysis && (
             <button
@@ -390,7 +419,9 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
   const [showAgentAnalysisModal, setShowAgentAnalysisModal] = useState(false);
+  const [showAIAgentsModal, setShowAIAgentsModal] = useState(false);
   const [agentAnalysisReport, setAgentAnalysisReport] = useState<BusinessInsightReport | null>(null);
   const [agentAnalysisLoading, setAgentAnalysisLoading] = useState(false);
 
@@ -450,7 +481,7 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
     try {
       console.log('[DASHBOARD] Starting agent analysis for user:', user.id);
       
-      const response = await fetch('/api/agents/analyze', {
+      const response = await fetch('/api/ai-agents/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -551,11 +582,11 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
             )}
             
             <button
-              onClick={() => setShowTransactionsModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg hover:scale-105 font-medium font-open-sans"
+              onClick={() => setShowAIAgentsModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:scale-105 font-medium font-open-sans"
             >
-              <TrendingUp className="w-4 h-4" />
-              Mes transactions
+              <Bot className="w-4 h-4" />
+              Analyse IA Prédictive
             </button>
             
             <button
@@ -608,6 +639,8 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
             transactions={transactions} 
             onAgentAnalysis={handleAgentAnalysis}
             agentAnalysisLoading={agentAnalysisLoading}
+            onShowTransactions={() => setShowTransactionsModal(true)}
+            onShowStocks={() => setShowStockModal(true)}
           />
         </div>
 
@@ -803,6 +836,12 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
         onClose={() => setShowTransactionsModal(false)}
       />
 
+      {/* Stock Modal */}
+      <StockModal
+        isOpen={showStockModal}
+        onClose={() => setShowStockModal(false)}
+      />
+
       {/* Agent Analysis Modal */}
       <AgentAnalysisModal
         isOpen={showAgentAnalysisModal}
@@ -812,6 +851,12 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
         }}
         report={agentAnalysisReport}
         isLoading={agentAnalysisLoading}
+      />
+
+      {/* AI Agents Modal */}
+      <AIAgentsModal
+        isOpen={showAIAgentsModal}
+        onClose={() => setShowAIAgentsModal(false)}
       />
     </div>
   );

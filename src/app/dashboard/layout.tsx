@@ -81,10 +81,10 @@ export default function DashboardLayout({
           {/* On ajoute un bouton pour réduire la sidebar sur les grands écrans, positionné sur le contenu */}
           <button 
               onClick={toggleSidebar} 
-              className="hidden md:block absolute top-6 left-0 z-10 -translate-x-1/2 bg-white p-1.5 rounded-full border border-gray-200 shadow-md hover:bg-gray-100 transition-all"
-              style={{ left: isSidebarOpen ? '16rem' : '5rem' }} // 16rem = w-64, 5rem = w-20
+              className="hidden md:block absolute top-6 left-0 z-50 -translate-x-1/2 bg-[#2c3e50] p-2 rounded-full border border-[#bdc3c7] shadow-lg hover:bg-[#34495e] transition-all duration-300 hover:scale-110"
+              style={{ left: isSidebarOpen ? '18rem' : '5rem' }} // 18rem = w-72, 5rem = w-20
           >
-              <ChevronLeft className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} />
+              <ChevronLeft className={`w-4 h-4 text-white transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} />
           </button>
           {children}
         </main>
