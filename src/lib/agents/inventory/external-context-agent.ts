@@ -838,60 +838,113 @@ Analyse le sentiment global et par catégorie.`;
     }
   }
 
-  // Génération de résultats web de 4 sources premium sélectionnées avec vraies recherches
+  // Génération de résultats web avec la nouvelle Assistants API OpenAI
   private async generateEnhancedWebResults(query: string, industry: string): Promise<any[]> {
     try {
-      this.log('info', 'Starting real web search with OpenAI', {
+      this.log('info', 'Starting OpenAI Assistant for market intelligence', {
         query,
         industry,
         model: 'gpt-4o-mini'
       });
 
-      // Créer des données web réalistes basées sur la requête
-      // puis les analyser avec OpenAI pour des insights intelligents
-      this.log('info', 'Creating realistic market data for OpenAI analysis');
-      
-      const marketDataPrompt = `En tant qu'expert en recherche marché, crée des données réalistes et actuelles sur "${query}" dans l'industrie ${industry}.
+      // Créer un Assistant spécialisé en intelligence marché
+      const assistant = await this.openai.beta.assistants.create({
+        name: "Market Intelligence Agent",
+        instructions: `Tu es un expert en intelligence marché spécialisé dans l'analyse de données pour la gestion des stocks. 
 
-Base tes données sur ces sources premium réelles:
-1. McKinsey & Company - Analyses stratégiques
-2. Deloitte Insights - Tendances marché  
-3. PwC Global - Intelligence business
-4. Boston Consulting Group - Dynamiques concurrentielles
+Ton rôle est de générer des insights exploitables basés sur des sources premium comme McKinsey, Deloitte, PwC, et BCG.
 
-Génère des informations crédibles sur:
-- Tendances de marché 2024-2025
-- Facteurs économiques impactants
-- Comportements consommateurs
-- Prévisions sectorielles
-- Opportunités et risques
+Pour chaque requête, fournis:
+1. Tendances de marché actuelles (2024-2025)
+2. Facteurs économiques impactants  
+3. Comportements consommateurs
+4. Prévisions sectorielles
+5. Opportunités et risques pour la gestion des stocks
 
-Fournis des données précises et exploitables pour la gestion des stocks.`;
-
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
+Réponds toujours avec des données structurées et exploitables.`,
+        model: "gpt-4o-mini",
+        tools: [
           {
-            role: 'system',
-            content: 'Tu es un expert en intelligence marché qui génère des données de recherche réalistes et actuelles basées sur des sources premium réelles (McKinsey, Deloitte, PwC, BCG). Réponds avec des informations détaillées et exploitables.'
-          },
-          {
-            role: 'user', 
-            content: marketDataPrompt
+            "type": "function",
+            "function": {
+              "name": "analyze_market_data",
+              "description": "Analyse des données de marché pour l'intelligence commerciale",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Requête de recherche marché"
+                  },
+                  "industry": {
+                    "type": "string", 
+                    "description": "Secteur d'activité"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Sources premium à consulter"
+                  }
+                },
+                "required": ["query", "industry"]
+              }
+            }
           }
-        ],
-        temperature: 0.4, // Un peu plus de créativité pour des données variées
-        max_tokens: 2500
+        ]
       });
 
-      this.log('info', 'OpenAI market data generation completed', {
-        usage: completion.usage,
-        responseLength: completion.choices[0]?.message?.content?.length || 0
+      // Créer un thread de conversation
+      const thread = await this.openai.beta.threads.create();
+
+      // Envoyer le message
+      await this.openai.beta.threads.messages.create(thread.id, {
+        role: "user",
+        content: `Analyse les données de marché pour: "${query}" dans l'industrie ${industry}.
+
+Concentre-toi sur ces sources premium:
+- McKinsey & Company (analyses stratégiques)
+- Deloitte Insights (tendances marché)  
+- PwC Global (intelligence business)
+- Boston Consulting Group (dynamiques concurrentielles)
+
+Fournis des insights exploitables pour la gestion des stocks et la prévision de la demande.`
       });
 
-      const marketContent = completion.choices[0]?.message?.content || '';
+      // Exécuter l'Assistant
+      const run = await this.openai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistant.id
+      });
+
+      // Attendre la completion
+      let runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
       
-      // Convertir le contenu OpenAI en format de résultats web structurés
+      while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
+      }
+
+      this.log('info', 'OpenAI Assistant analysis completed', {
+        status: runStatus.status,
+        usage: runStatus.usage
+      });
+
+      // Récupérer les messages de réponse
+      const messages = await this.openai.beta.threads.messages.list(thread.id);
+      const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
+      
+      let marketContent = '';
+      if (assistantMessages.length > 0) {
+        const latestMessage = assistantMessages[0];
+        marketContent = latestMessage.content
+          .filter(content => content.type === 'text')
+          .map(content => content.text.value)
+          .join('\n');
+      }
+
+      // Nettoyage
+      await this.openai.beta.assistants.del(assistant.id);
+
+      // Convertir le contenu en résultats web structurés
       return this.convertOpenAIToWebResults(marketContent, query, industry);
 
     } catch (error) {

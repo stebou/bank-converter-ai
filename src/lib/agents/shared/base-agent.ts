@@ -89,6 +89,12 @@ export abstract class BaseAgent {
       case 'data-analysis':
         // Vérifier que l'analyse des données a été exécutée
         return state.processed_insights != null;
+      case 'forecasting':
+        // Vérifier que les prévisions ont été générées
+        return state.forecasts?.short_term?.length > 0;
+      case 'stock-optimization':
+        // Vérifier que l'optimisation des stocks a été exécutée
+        return state.optimization_results != null;
       default:
         // Log des dépendances inconnues pour debugging
         this.log('warn', `Unknown dependency: ${dependency}, assuming satisfied`);
