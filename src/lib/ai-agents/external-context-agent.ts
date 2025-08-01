@@ -131,6 +131,8 @@ export class ExternalContextAgent extends BaseAgent {
   private searchCache: Map<string, { data: any; timestamp: Date }> = new Map();
   private industryKeywords: Map<string, string[]> = new Map();
   private openai: OpenAI;
+  private batchCache: Map<string, { insights: MarketInsight[]; timestamp: Date }> = new Map();
+  private readonly BATCH_CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
   // Fonction utilitaire pour nettoyer les réponses OpenAI
   private cleanOpenAIResponse(response: string): string {
@@ -165,6 +167,134 @@ export class ExternalContextAgent extends BaseAgent {
     }
   }
 
+  // Batch OpenAI requests pour améliorer les performances
+  private async batchOpenAIAnalysis(searches: Array<{query: string, webResults: any[]}>, input: ExternalContextInput): Promise<MarketInsight[]> {
+    try {
+      // Générer une clé de cache basée sur les requêtes et l'industrie
+      const cacheKey = `${input.company_profile.industry}_${searches.map(s => s.query).join('|')}`;
+      
+      // Vérifier le cache
+      const cached = this.batchCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp.getTime() < this.BATCH_CACHE_DURATION_MS) {
+        this.log('info', 'Using cached batch analysis results', { 
+          cacheKey: cacheKey.substring(0, 50) + '...',
+          cachedInsights: cached.insights.length
+        });
+        return cached.insights;
+      }
+
+      this.log('info', 'Starting batched OpenAI analysis', { 
+        searchCount: searches.length,
+        totalWebResults: searches.reduce((sum, search) => sum + search.webResults.length, 0),
+        cacheKey: cacheKey.substring(0, 50) + '...'
+      });
+
+      // Préparer le prompt batch pour toutes les recherches
+      const batchPrompt = searches.map((search, index) => {
+        const webContent = search.webResults.map(result => 
+          `Source: ${result.source}\nTitle: ${result.title}\nContent: ${result.content}\n---`
+        ).join('\n');
+
+        return `--- RECHERCHE ${index + 1}: ${search.query} ---\n${webContent}`;
+      }).join('\n\n');
+
+      const systemPrompt = `Tu es un expert en intelligence marché spécialisé dans l'analyse de données web pour optimiser la gestion des stocks.
+
+Secteur d'activité: ${input.company_profile.industry}
+Type d'entreprise: ${input.company_profile.business_type}
+Catégories de produits: ${input.company_profile.product_categories.join(', ')}
+Concurrents: ${input.company_profile.competitors.join(', ')}
+
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans backticks, sans formatage. Ta réponse doit commencer par { et finir par }.
+
+Analyse TOUTES les recherches fournies et génère des insights structurés.
+
+Format attendu:
+{
+  "batch_insights": [
+    {
+      "search_index": 0,
+      "query": "query originale",
+      "insights": [
+        {
+          "title": "Titre de l'insight",
+          "description": "Description détaillée",
+          "impact_score": 0.8,
+          "confidence_score": 0.9,
+          "time_relevance": "SHORT_TERM",
+          "predicted_impact": {
+            "demand_change_percentage": 15,
+            "direction": "INCREASE",
+            "duration_days": 90
+          }
+        }
+      ]
+    }
+  ]
+}`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: batchPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000 // Augmenté pour le batch
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No batch response from OpenAI');
+      }
+
+      const parsedResponse = this.safeParseJSON(response, { batch_insights: [] });
+      const allInsights: MarketInsight[] = [];
+
+      // Traiter les insights batchés
+      for (const batchInsight of parsedResponse.batch_insights || []) {
+        for (const insight of batchInsight.insights || []) {
+          allInsights.push({
+            id: `ai_batch_insight_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'TREND',
+            source: 'OpenAI Batch Analysis',
+            title: insight.title || 'Market Insight',
+            description: insight.description || 'AI-generated market insight',
+            impact_score: Math.min(1, Math.max(0, insight.impact_score || 0.5)),
+            confidence_score: Math.min(1, Math.max(0, insight.confidence_score || 0.7)),
+            time_relevance: insight.time_relevance || 'MEDIUM_TERM',
+            affected_products: input.company_profile.product_categories,
+            predicted_impact: {
+              demand_change_percentage: insight.predicted_impact?.demand_change_percentage || 0,
+              direction: insight.predicted_impact?.direction || 'NEUTRAL',
+              duration_days: insight.predicted_impact?.duration_days || 30
+            }
+          });
+        }
+      }
+
+      this.log('info', 'Batched OpenAI analysis completed', { 
+        inputSearches: searches.length,
+        outputInsights: allInsights.length,
+        tokensUsed: completion.usage?.total_tokens || 0
+      });
+
+      // Mettre en cache les résultats
+      this.batchCache.set(cacheKey, {
+        insights: allInsights,
+        timestamp: new Date()
+      });
+
+      return allInsights;
+
+    } catch (error) {
+      this.log('error', 'Batched OpenAI analysis failed', { 
+        error: error instanceof Error ? error.message : error 
+      });
+      return [];
+    }
+  }
+
   constructor() {
     const config: AgentConfig = {
       id: 'external-context',
@@ -181,7 +311,7 @@ export class ExternalContextAgent extends BaseAgent {
       ],
       dependencies: ['data-analysis'],
       performance_targets: {
-        max_execution_time_ms: 15000,
+        max_execution_time_ms: 20000, // Augmenté pour le batching mais toujours optimisé
         min_accuracy_score: 0.80,
         max_error_rate: 0.05
       }
@@ -300,11 +430,10 @@ export class ExternalContextAgent extends BaseAgent {
 
   // Recherche de tendances marché
   private async searchMarketTrends(input: ExternalContextInput): Promise<MarketInsight[]> {
-    const insights: MarketInsight[] = [];
     const industry = input.company_profile.industry;
     const keywords = this.industryKeywords.get(industry) || [];
 
-    // Simulation de recherche web réaliste
+    // Toutes les recherches à effectuer
     const trendQueries = [
       `${industry} market trends 2025`,
       `${industry} consumer behavior changes`,
@@ -312,20 +441,34 @@ export class ExternalContextAgent extends BaseAgent {
       `${industry} economic outlook`
     ];
 
-    for (const query of trendQueries) {
-      const trendInsights = await this.performRealWebSearch(query, 'TREND', input);
-      insights.push(...trendInsights);
-    }
+    // Ajouter les recherches par catégorie de produits
+    const categoryQueries = input.company_profile.product_categories.map(category => 
+      `${category} demand forecast ${industry}`
+    );
 
-    // Recherche par catégorie de produits
-    for (const category of input.company_profile.product_categories) {
-      const categoryInsights = await this.performRealWebSearch(
-        `${category} demand forecast ${industry}`, 'TREND', input
-      );
-      insights.push(...categoryInsights);
-    }
+    const allQueries = [...trendQueries, ...categoryQueries];
 
-    return this.rankAndFilterInsights(insights, 10);
+    this.log('info', 'Starting batched market trends search', {
+      totalQueries: allQueries.length,
+      trendQueries: trendQueries.length,
+      categoryQueries: categoryQueries.length
+    });
+
+    // Préparer toutes les recherches web (simulation)
+    const searchResults = allQueries.map(query => ({
+      query,
+      webResults: this.generatePremiumWebResults(query, industry)
+    }));
+
+    // Utiliser le batch OpenAI pour analyser toutes les recherches en une fois
+    const batchInsights = await this.batchOpenAIAnalysis(searchResults, input);
+
+    this.log('info', 'Batched market trends analysis completed', {
+      inputQueries: allQueries.length,
+      outputInsights: batchInsights.length
+    });
+
+    return this.rankAndFilterInsights(batchInsights, 10);
   }
 
   // Veille concurrentielle
