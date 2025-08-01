@@ -132,6 +132,39 @@ export class ExternalContextAgent extends BaseAgent {
   private industryKeywords: Map<string, string[]> = new Map();
   private openai: OpenAI;
 
+  // Fonction utilitaire pour nettoyer les réponses OpenAI
+  private cleanOpenAIResponse(response: string): string {
+    // Supprimer les backticks markdown et les balises json
+    let cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // Supprimer les espaces en début et fin
+    cleaned = cleaned.trim();
+    
+    // Si la réponse commence et finit par des backticks, les supprimer
+    if (cleaned.startsWith('`') && cleaned.endsWith('`')) {
+      cleaned = cleaned.slice(1, -1);
+    }
+    
+    // Supprimer d'autres caractères markdown potentiels
+    cleaned = cleaned.replace(/^```[a-z]*\n?/gm, '').replace(/```$/gm, '');
+    
+    return cleaned;
+  }
+
+  // Parser JSON sécurisé avec gestion d'erreurs
+  private safeParseJSON(response: string, fallbackData: any = {}): any {
+    try {
+      const cleanedResponse = this.cleanOpenAIResponse(response);
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      this.log('error', 'JSON parsing failed, using fallback', { 
+        error: error instanceof Error ? error.message : error,
+        response: response.substring(0, 200) + '...' 
+      });
+      return fallbackData;
+    }
+  }
+
   constructor() {
     const config: AgentConfig = {
       id: 'external-context',
@@ -450,7 +483,9 @@ export class ExternalContextAgent extends BaseAgent {
 
       const systemPrompt = `Tu es un expert en analyse de sentiment marché. Analyse les données fournies et évalue le sentiment global du marché pour le secteur ${input.company_profile.industry}.
 
-Réponds UNIQUEMENT avec un JSON valide selon ce format:
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans backticks, sans formatage. Ta réponse doit commencer par { et finir par }.
+
+Format requis:
 {
   "overall_sentiment": 0.3,
   "sentiment_trend": "IMPROVING",
@@ -499,7 +534,17 @@ Analyse le sentiment global et par catégorie.`;
         throw new Error('No sentiment response from OpenAI');
       }
 
-      const parsedResponse = JSON.parse(response);
+      // Parser la réponse de manière sécurisée
+      const parsedResponse = this.safeParseJSON(response, {
+        overall_sentiment: 0,
+        sentiment_trend: 'STABLE',
+        key_topics: [],
+        consumer_confidence: {
+          current_level: 75,
+          three_month_outlook: 75,
+          industry_specific: 70
+        }
+      });
 
       // Construction de l'analyse de sentiment avec données concurrents
       const competitorSentiments: { [name: string]: number } = {};
@@ -737,6 +782,8 @@ Type d'entreprise: ${input.company_profile.business_type}
 Catégories de produits: ${input.company_profile.product_categories.join(', ')}
 Concurrents: ${input.company_profile.competitors.join(', ')}
 
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans backticks, sans formatage. Ta réponse doit commencer par { et finir par }.
+
 Ta mission: Analyser les données web fournies et extraire des insights exploitables pour la gestion des stocks et les prévisions de demande.
 
 Réponds UNIQUEMENT avec un JSON valide contenant un tableau d'insights structurés selon ce format:
@@ -782,8 +829,10 @@ Analyse ces données et fournis des insights exploitables pour optimiser la gest
         throw new Error('No response from OpenAI');
       }
 
-      // Parse de la réponse JSON
-      const parsedResponse = JSON.parse(response);
+      // Parser la réponse de manière sécurisée
+      const parsedResponse = this.safeParseJSON(response, {
+        insights: []
+      });
       const insights: MarketInsight[] = [];
 
       for (const insight of parsedResponse.insights || []) {
