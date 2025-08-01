@@ -24,6 +24,8 @@ model User {
   conversations        Conversation[]
   documents            Document[]
   payments             Payment[]
+  bankAccounts         BankAccount[]
+  bankTransactions     BankTransaction[]
 
   @@map("users")
 }
@@ -143,4 +145,49 @@ model ConversationMessage {
   conversation        Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("conversation_messages")
+}
+
+model BankAccount {
+  id               String            @id @default(cuid())
+  userId           String
+  bridgeAccountId  String            @unique @map("bridge_account_id")
+  name             String
+  type             String
+  balance          Float             @default(0)
+  currency         String            @default("EUR")
+  iban             String?
+  bankName         String            @map("bank_name")
+  isActive         Boolean           @default(true) @map("is_active")
+  lastSyncAt       DateTime?         @map("last_sync_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions     BankTransaction[]
+
+  @@map("bank_accounts")
+}
+
+model BankTransaction {
+  id                    String      @id @default(cuid())
+  userId                String
+  accountId             String      @map("account_id")
+  bridgeTransactionId   String      @unique @map("bridge_transaction_id")
+  amount                Float
+  description           String
+  transactionDate       DateTime    @map("transaction_date")
+  category              String?
+  subcategory           String?
+  type                  String
+  currency              String      @default("EUR")
+  aiConfidence          Float?      @map("ai_confidence")
+  isRecurring           Boolean     @default(false) @map("is_recurring")
+  tags                  Json?
+  createdAt             DateTime    @default(now()) @map("created_at")
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account               BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([transactionDate])
+  @@map("bank_transactions")
 }

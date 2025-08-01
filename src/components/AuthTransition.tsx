@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Brain, Sparkles, CheckCircle, Shield, BarChart3 } from 'lucide-react';
+import { Brain, CheckCircle, Shield, BarChart3, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type AuthTransitionProps = {
@@ -12,42 +12,31 @@ type AuthTransitionProps = {
 export default function AuthTransition({ userFirstName = 'Utilisateur', onComplete }: AuthTransitionProps) {
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  
-  // Positions fixes pour éviter l'erreur d'hydratation
-  const particlePositions = [
-    { left: 15, top: 25 }, { left: 75, top: 60 }, { left: 35, top: 10 }, { left: 85, top: 80 },
-    { left: 5, top: 45 }, { left: 95, top: 15 }, { left: 25, top: 85 }, { left: 65, top: 35 },
-    { left: 45, top: 70 }, { left: 55, top: 5 }, { left: 20, top: 55 }, { left: 80, top: 40 },
-    { left: 10, top: 75 }, { left: 90, top: 20 }, { left: 40, top: 90 }, { left: 70, top: 30 },
-    { left: 30, top: 65 }, { left: 60, top: 50 }, { left: 50, top: 95 }, { left: 12, top: 8 }
-  ];
-  
-  const particleDelays = [0, 0.5, 1, 1.5, 0.3, 0.8, 1.2, 0.6, 0.9, 1.8, 0.4, 1.1, 1.7, 0.2, 1.4, 0.7, 1.3, 1.6, 0.1, 1.9];
 
   const steps = [
     {
       icon: CheckCircle,
       title: "Connexion réussie !",
-      description: `Bienvenue ${userFirstName} 👋`,
-      color: "from-green-500 to-emerald-600"
+      description: `Bienvenue ${userFirstName}`,
+      color: "bg-green-600"
     },
     {
       icon: Shield,
       title: "Sécurisation du compte",
       description: "Vérification des permissions...",
-      color: "from-blue-500 to-indigo-600"
+      color: "bg-blue-600"
     },
     {
       icon: BarChart3,
       title: "Préparation du dashboard",
       description: "Chargement de vos données...",
-      color: "from-purple-500 to-violet-600"
+      color: "bg-blue-600"
     },
     {
       icon: Sparkles,
       title: "Finalisation",
       description: "Presque prêt !",
-      color: "from-yellow-500 to-orange-600"
+      color: "bg-blue-600"
     }
   ];
 
@@ -85,45 +74,30 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
   const CurrentIcon = currentStep.icon;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
-      {/* Background animé */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-green-500/10"></div>
-        
-        {/* Particules flottantes */}
-        {particlePositions.map((position, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white/20 rounded-full"
-            style={{
-              left: `${position.left}%`,
-              top: `${position.top}%`,
-            }}
-            animate={{
-              y: [0, -100, 0],
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              delay: particleDelays[i],
-            }}
-          />
-        ))}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white overflow-hidden">
+      {/* Background pattern subtil */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white">
+        {/* Grille subtile */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="h-full w-full" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)',
+            backgroundSize: '20px 20px'
+          }} />
+        </div>
       </div>
 
       {/* Contenu principal */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative z-10 text-center max-w-md mx-auto px-6"
       >
         {/* Logo principal avec animation */}
         <motion.div
           className="mb-8 relative"
           animate={{ 
-            rotateY: [0, 360],
+            scale: [1, 1.05, 1],
           }}
           transition={{
             duration: 2,
@@ -131,15 +105,15 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
             ease: "easeInOut"
           }}
         >
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 rounded-3xl flex items-center justify-center shadow-2xl mx-auto relative">
-            <Brain className="w-12 h-12 text-white" />
+          <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl mx-auto relative">
+            <Brain className="w-10 h-10 text-white" />
             
-            {/* Effet de pulse */}
+            {/* Effet de pulse subtil */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 rounded-3xl"
+              className="absolute inset-0 bg-blue-600 rounded-2xl opacity-30"
               animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0, 0.5],
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0, 0.3],
               }}
               transition={{
                 duration: 2,
@@ -151,64 +125,60 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
 
         {/* Titre principal */}
         <motion.h1
-          className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent mb-2"
+          className="text-3xl font-bold text-gray-900 mb-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
         >
           Bank-IA
         </motion.h1>
 
         <motion.p
-          className="text-gray-300 mb-8"
+          className="text-gray-600 mb-8 text-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
         >
-          Votre assistant IA financier
+          Financial Intelligence
         </motion.p>
 
         {/* Étape actuelle avec animation */}
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4 }}
           className="mb-8"
         >
           <motion.div
-            className={`w-16 h-16 bg-gradient-to-r ${currentStep.color} rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4`}
+            className={`w-16 h-16 ${currentStep.color} rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4`}
             animate={{ 
-              scale: [1, 1.1, 1],
-              boxShadow: [
-                "0 10px 25px rgba(0,0,0,0.1)",
-                "0 20px 40px rgba(0,0,0,0.2)",
-                "0 10px 25px rgba(0,0,0,0.1)"
-              ]
+              scale: [1, 1.05, 1],
             }}
-            transition={{ duration: 1, repeat: Infinity }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
             <CurrentIcon className="w-8 h-8 text-white" />
           </motion.div>
 
-          <h2 className="text-xl font-semibold text-white mb-2">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
             {currentStep.title}
           </h2>
-          <p className="text-gray-300 text-sm">
+          <p className="text-gray-600 text-sm">
             {currentStep.description}
           </p>
         </motion.div>
 
-        {/* Barre de progression */}
-        <div className="mb-6">
-          <div className="flex justify-between text-xs text-gray-400 mb-2">
+        {/* Barre de progression moderne */}
+        <div className="mb-8">
+          <div className="flex justify-between text-xs text-gray-500 mb-3">
             <span>Progression</span>
             <span>{Math.round(progress)}%</span>
           </div>
           
-          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 rounded-full"
+              className="h-full bg-blue-600 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3, ease: "easeOut" }}
@@ -217,19 +187,20 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
         </div>
 
         {/* Points d'étapes */}
-        <div className="flex justify-center space-x-2">
+        <div className="flex justify-center space-x-3 mb-8">
           {steps.map((_, index) => (
             <motion.div
               key={index}
-              className={`w-2 h-2 rounded-full ${
-                index <= step ? 'bg-blue-400' : 'bg-gray-600'
+              className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+                index <= step ? 'bg-blue-600' : 'bg-gray-300'
               }`}
               animate={{
-                scale: index === step ? [1, 1.3, 1] : 1,
+                scale: index === step ? [1, 1.2, 1] : 1,
               }}
               transition={{
-                duration: 0.5,
+                duration: 1,
                 repeat: index === step ? Infinity : 0,
+                ease: "easeInOut"
               }}
             />
           ))}
@@ -237,26 +208,40 @@ export default function AuthTransition({ userFirstName = 'Utilisateur', onComple
 
         {/* Message d'attente */}
         <motion.p
-          className="text-gray-400 text-xs mt-6"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          className="text-gray-500 text-xs"
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
           Préparation de votre espace personnel...
         </motion.p>
       </motion.div>
 
-      {/* Effet de fond supplémentaire */}
+      {/* Élément décoratif subtil */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-green-500/5"
+        className="absolute top-10 right-10 w-32 h-32 border border-blue-100 rounded-full"
         animate={{
-          background: [
-            "linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05), rgba(34, 197, 94, 0.05))",
-            "linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05))",
-            "linear-gradient(225deg, rgba(147, 51, 234, 0.05), rgba(34, 197, 94, 0.05), rgba(59, 130, 246, 0.05))",
-            "linear-gradient(315deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05), rgba(34, 197, 94, 0.05))"
-          ]
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.6, 0.3],
         }}
-        transition={{ duration: 4, repeat: Infinity }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      
+      <motion.div
+        className="absolute bottom-10 left-10 w-24 h-24 border border-gray-200 rounded-full"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.2, 0.5, 0.2],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1
+        }}
       />
     </div>
   );

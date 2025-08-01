@@ -3,28 +3,27 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, FileText, CreditCard, Shield, Settings, Mail, MessageSquare, HelpCircle, BookOpen, Zap } from 'lucide-react';
+import '../../../styles/fonts.css';
 
 // --- COMPOSANT : HEADER MODERNE ---
 const HelpCenterHeader = () => (
   <motion.div 
-    className="text-center py-16 bg-white/10 backdrop-blur-xl rounded-3xl mb-12 relative overflow-hidden border border-white/20"
+    className="text-center py-16 bg-[#ecf0f1] rounded-3xl mb-12 relative overflow-hidden border border-[#bdc3c7] shadow-xl"
     initial={{ opacity: 0.3, y: -20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
   >
-    {/* Effet glassmorphism */}
-    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-purple-500/20"></div>
     
     <div className="relative z-10">
       <div className="flex items-center justify-center gap-4 mb-6">
-        <div className="p-4 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl shadow-lg">
-          <HelpCircle className="w-10 h-10 text-white" />
+        <div className="p-4 bg-[#2c3e50] rounded-3xl shadow-lg">
+          <HelpCircle className="w-10 h-10 text-[#ecf0f1]" />
         </div>
         <div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold text-[#2c3e50] font-montserrat tracking-tight">
             Centre d&apos;Aide
           </h1>
-          <p className="text-gray-300 text-lg mt-2">Comment pouvons-nous vous aider ?</p>
+          <p className="text-[#34495e] text-lg mt-2 font-open-sans">Comment pouvons-nous vous aider ?</p>
         </div>
       </div>
       
@@ -34,11 +33,11 @@ const HelpCenterHeader = () => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <Search className="w-6 h-6 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+        <Search className="w-6 h-6 text-[#bdc3c7] absolute left-4 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           placeholder="Rechercher un article, un guide..."
-          className="w-full p-4 pl-14 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-400 transition-all duration-300"
+          className="w-full p-4 pl-14 bg-white border border-[#bdc3c7] rounded-2xl shadow-lg focus:ring-2 focus:ring-[#2c3e50] focus:border-[#2c3e50] text-[#2c3e50] placeholder-[#bdc3c7] transition-all duration-300 font-open-sans"
         />
       </motion.div>
     </div>
@@ -57,25 +56,23 @@ type CategoryCardProps = {
 
 const CategoryCard = ({ icon: Icon, title, description, count, color, delay }: CategoryCardProps) => (
   <motion.div 
-    className="bg-white/10 backdrop-blur-xl p-8 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl hover:border-white/30 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+    className="bg-[#ecf0f1] p-8 rounded-2xl shadow-xl border border-[#bdc3c7] hover:shadow-2xl hover:border-[#34495e] transition-all duration-300 cursor-pointer group relative overflow-hidden"
     initial={{ opacity: 0.3, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
   >
-    {/* Effet glassmorphism coloré */}
-    <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
     
     <div className="relative z-10">
-      <div className={`flex items-center justify-center w-14 h-14 bg-gradient-to-r ${color.replace('from-', 'from-').replace(' to-', ' to-')} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-        <Icon className="w-7 h-7 text-white" />
+      <div className="flex items-center justify-center w-14 h-14 bg-[#2c3e50] rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <Icon className="w-7 h-7 text-[#ecf0f1]" />
       </div>
-      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-200 transition-colors duration-300">{title}</h3>
-      <p className="text-gray-300 mb-4 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-bold text-[#2c3e50] mb-3 group-hover:text-[#34495e] transition-colors duration-300 font-montserrat tracking-wide">{title}</h3>
+      <p className="text-[#34495e] mb-4 leading-relaxed font-open-sans">{description}</p>
       <div className="flex items-center gap-2">
-        <BookOpen className="w-4 h-4 text-blue-400" />
-        <p className="text-blue-300 font-medium">{count} articles</p>
+        <BookOpen className="w-4 h-4 text-[#2c3e50]" />
+        <p className="text-[#2c3e50] font-medium font-ibm-plex-mono text-sm tracking-wider">{count} articles</p>
       </div>
     </div>
   </motion.div>
@@ -93,7 +90,7 @@ const FaqItem = ({ question, answer, delay }: FaqItemProps) => {
 
   return (
     <motion.div 
-      className="border-b border-white/10 py-6 last:border-b-0"
+      className="border-b border-[#bdc3c7] py-6 last:border-b-0"
       initial={{ opacity: 0.3, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -102,12 +99,12 @@ const FaqItem = ({ question, answer, delay }: FaqItemProps) => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center text-left group"
       >
-        <h4 className="font-semibold text-white pr-4 group-hover:text-blue-300 transition-colors duration-200">{question}</h4>
+        <h4 className="font-semibold text-[#2c3e50] pr-4 group-hover:text-[#34495e] transition-colors duration-200 font-montserrat tracking-wide">{question}</h4>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors duration-200 flex-shrink-0" />
+          <ChevronDown className="w-5 h-5 text-[#bdc3c7] group-hover:text-[#2c3e50] transition-colors duration-200 flex-shrink-0" />
         </motion.div>
       </button>
       <AnimatePresence>
@@ -119,7 +116,7 @@ const FaqItem = ({ question, answer, delay }: FaqItemProps) => {
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="mt-4 text-gray-300 leading-relaxed">
+            <div className="mt-4 text-[#34495e] leading-relaxed font-open-sans">
               {answer}
             </div>
           </motion.div>
@@ -136,25 +133,23 @@ const ContactSection = () => (
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.5, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
   >
-    <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl sticky top-8 border border-white/20 relative overflow-hidden shadow-xl">
-      {/* Effet glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-indigo-500/10 to-blue-500/20"></div>
+    <div className="bg-[#ecf0f1] p-8 rounded-3xl sticky top-8 border border-[#bdc3c7] relative overflow-hidden shadow-xl">
       
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl">
-            <MessageSquare className="w-6 h-6 text-white" />
+          <div className="p-2 bg-[#2c3e50] rounded-xl">
+            <MessageSquare className="w-6 h-6 text-[#ecf0f1]" />
           </div>
-          <h3 className="text-xl font-bold text-white">Besoin d&apos;aide ?</h3>
+          <h3 className="text-xl font-bold text-[#2c3e50] font-montserrat tracking-wide">Besoin d&apos;aide ?</h3>
         </div>
         
-        <p className="text-gray-300 mb-6 leading-relaxed">
+        <p className="text-[#34495e] mb-6 leading-relaxed font-open-sans">
           Notre équipe est là pour vous aider. Contactez-nous et nous vous répondrons rapidement.
         </p>
         
         <div className="space-y-4">
           <motion.button 
-            className="w-full bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-sm text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 border border-white/20 hover:from-white/30 hover:to-white/20 hover:scale-105 shadow-lg"
+            className="w-full bg-white text-[#2c3e50] font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 border border-[#bdc3c7] hover:bg-[#bdc3c7] hover:scale-105 shadow-lg font-open-sans"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -163,7 +158,7 @@ const ContactSection = () => (
           </motion.button>
           
           <motion.button 
-            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 hover:from-purple-600 hover:to-indigo-600 hover:scale-105 shadow-lg"
+            className="w-full bg-[#2c3e50] text-[#ecf0f1] font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 hover:bg-[#34495e] hover:scale-105 shadow-lg font-open-sans"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -174,19 +169,19 @@ const ContactSection = () => (
         
         {/* Stats de support */}
         <motion.div 
-          className="mt-6 pt-6 border-t border-white/10"
+          className="mt-6 pt-6 border-t border-[#bdc3c7]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 0.5 }}
         >
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <div className="text-lg font-bold text-white">&lt; 2h</div>
-              <div className="text-xs text-gray-400">Temps de réponse</div>
+              <div className="text-lg font-bold text-[#2c3e50] font-ibm-plex-mono tracking-wider">&lt; 2h</div>
+              <div className="text-xs text-[#34495e] font-open-sans">Temps de réponse</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-white">24/7</div>
-              <div className="text-xs text-gray-400">Disponibilité</div>
+              <div className="text-lg font-bold text-[#2c3e50] font-ibm-plex-mono tracking-wider">24/7</div>
+              <div className="text-xs text-[#34495e] font-open-sans">Disponibilité</div>
             </div>
           </div>
         </motion.div>
@@ -256,9 +251,7 @@ export default function HelpCenterPage() {
   ];
 
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-full relative overflow-hidden">
-      {/* Effet glassmorphism moderne pour la page centre d'aide */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-blue-500/10 to-purple-500/10"></div>
+    <div className="p-8 bg-[#bdc3c7] min-h-full relative overflow-hidden">
       
       <div className="relative z-10 max-w-7xl mx-auto">
         <HelpCenterHeader />
@@ -271,8 +264,8 @@ export default function HelpCenterPage() {
           transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <div className="flex items-center gap-3 mb-8">
-            <Zap className="w-6 h-6 text-indigo-400" />
-            <h2 className="text-3xl font-bold text-white">Explorer par catégorie</h2>
+            <Zap className="w-6 h-6 text-[#2c3e50]" />
+            <h2 className="text-3xl font-bold text-[#2c3e50] font-montserrat tracking-tight">Explorer par catégorie</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((cat, index) => 
@@ -290,11 +283,10 @@ export default function HelpCenterPage() {
               transition={{ duration: 0.5, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <div className="flex items-center gap-3 mb-8">
-                <HelpCircle className="w-6 h-6 text-blue-400" />
-                <h2 className="text-3xl font-bold text-white">Questions fréquentes</h2>
+                <HelpCircle className="w-6 h-6 text-[#2c3e50]" />
+                <h2 className="text-3xl font-bold text-[#2c3e50] font-montserrat tracking-tight">Questions fréquentes</h2>
               </div>
-              <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/20 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10"></div>
+              <div className="bg-[#ecf0f1] p-8 rounded-3xl shadow-xl border border-[#bdc3c7] relative overflow-hidden">
                 <div className="relative z-10">
                   {faqs.map((faq, index) => 
                     <FaqItem key={faq.question} {...faq} delay={0.6 + index * 0.1} />
@@ -315,35 +307,34 @@ export default function HelpCenterPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/20 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-emerald-500/10 to-teal-500/20"></div>
+          <div className="bg-[#ecf0f1] p-8 rounded-3xl shadow-xl border border-[#bdc3c7] relative overflow-hidden">
             <div className="relative z-10 text-center">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl">
-                  <BookOpen className="w-8 h-8 text-white" />
+                <div className="p-3 bg-[#2c3e50] rounded-2xl">
+                  <BookOpen className="w-8 h-8 text-[#ecf0f1]" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">Ressources utiles</h3>
+                <h3 className="text-2xl font-bold text-[#2c3e50] font-montserrat tracking-wide">Ressources utiles</h3>
               </div>
-              <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+              <p className="text-[#34495e] mb-6 max-w-2xl mx-auto font-open-sans leading-relaxed">
                 Découvrez nos guides détaillés, tutoriels vidéo et bonnes pratiques pour tirer le meilleur parti de notre plateforme d&apos;analyse IA.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <motion.button 
-                  className="bg-gradient-to-r from-blue-500/20 to-blue-600/20 backdrop-blur-sm text-white font-medium py-3 px-6 rounded-xl border border-blue-400/30 hover:from-blue-500/30 hover:to-blue-600/30 transition-all duration-300"
+                  className="bg-white text-[#2c3e50] font-medium py-3 px-6 rounded-xl border border-[#bdc3c7] hover:bg-[#bdc3c7] transition-all duration-300 font-open-sans"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   📖 Guide de démarrage
                 </motion.button>
                 <motion.button 
-                  className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 backdrop-blur-sm text-white font-medium py-3 px-6 rounded-xl border border-purple-400/30 hover:from-purple-500/30 hover:to-purple-600/30 transition-all duration-300"
+                  className="bg-[#34495e] text-[#ecf0f1] font-medium py-3 px-6 rounded-xl border border-[#34495e] hover:bg-[#2c3e50] transition-all duration-300 font-open-sans"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   🎥 Tutoriels vidéo
                 </motion.button>
                 <motion.button 
-                  className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 backdrop-blur-sm text-white font-medium py-3 px-6 rounded-xl border border-emerald-400/30 hover:from-emerald-500/30 hover:to-emerald-600/30 transition-all duration-300"
+                  className="bg-white text-[#2c3e50] font-medium py-3 px-6 rounded-xl border border-[#bdc3c7] hover:bg-[#bdc3c7] transition-all duration-300 font-open-sans"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >

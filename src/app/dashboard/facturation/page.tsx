@@ -1,9 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard, ExternalLink, Loader2, CheckCircle, AlertCircle, Download, HelpCircle, Calendar, DollarSign, Zap } from 'lucide-react';
+import { 
+  CreditCard, 
+  ExternalLink, 
+  Loader2, 
+  CheckCircle, 
+  AlertCircle, 
+  Download, 
+  Calendar, 
+  DollarSign, 
+  Crown,
+  Settings,
+  User,
+  Building2
+} from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
+import '../../../styles/fonts.css';
 
 interface SubscriptionData {
   currentPlan: string;
@@ -23,14 +37,14 @@ const BillingHeader = () => (
     transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
   >
     <div className="flex items-center gap-4 mb-2">
-      <div className="p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl shadow-lg">
+      <div className="p-3 bg-[#2c3e50] rounded-2xl shadow-lg">
         <CreditCard className="w-8 h-8 text-white" />
       </div>
       <div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-          Facturation
+        <h1 className="text-4xl font-bold text-[#2c3e50] font-montserrat tracking-tight">
+          Abonnement
         </h1>
-        <p className="text-gray-300 text-lg">Gérez votre abonnement et vos paiements</p>
+        <p className="text-[#34495e] text-lg font-open-sans">Gérez votre abonnement et vos paiements</p>
       </div>
     </div>
   </motion.header>
@@ -39,337 +53,317 @@ const BillingHeader = () => (
 // --- COMPOSANT : CARTE DE PLAN ACTUEL ---
 const CurrentPlanCard = ({ subscriptionData }: { subscriptionData: SubscriptionData }) => {
   const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
-  const remainingCredits = subscriptionData.documentsLimit - subscriptionData.documentsUsed;
-  const usagePercentage = (subscriptionData.documentsUsed / subscriptionData.documentsLimit) * 100;
+  const isFreePlan = subscriptionData.currentPlan === 'free';
+  
+  const getPlanInfo = (plan: string) => {
+    switch (plan.toLowerCase()) {
+      case 'starter':
+      case 'pack 50 crédits':
+        return {
+          name: 'Starter',
+          icon: <Building2 className="w-6 h-6 text-white" />,
+          color: 'from-blue-500 to-blue-600',
+          features: ['50 documents/mois', 'Analyse IA avancée', 'Support par email']
+        };
+      case 'pro':
+      case 'abonnement pro':
+      case 'abonnement smart':
+        return {
+          name: 'Professional',
+          icon: <Crown className="w-6 h-6 text-white" />,
+          color: 'from-purple-500 to-purple-600',
+          features: ['Documents illimités', 'Analyses IA premium', 'Support prioritaire', 'API access']
+        };
+      case 'enterprise':
+        return {
+          name: 'Enterprise',
+          icon: <Crown className="w-6 h-6 text-white" />,
+          color: 'from-gold-500 to-gold-600',
+          features: ['Documents illimités', 'IA personnalisée', 'Support dédié', 'Intégrations custom']
+        };
+      default:
+        return {
+          name: 'Gratuit',
+          icon: <User className="w-6 h-6 text-white" />,
+          color: 'from-gray-500 to-gray-600',
+          features: ['5 documents/mois', 'Analyses de base', 'Support communautaire']
+        };
+    }
+  };
+
+  const planInfo = getPlanInfo(subscriptionData.currentPlan);
 
   return (
     <motion.div 
-      className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-8 relative overflow-hidden"
+      className="bg-[#ecf0f1] rounded-2xl shadow-xl border border-[#bdc3c7] p-8 relative overflow-hidden"
       initial={{ opacity: 0.3, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      {/* Effet glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-green-500/10 to-teal-500/20"></div>
+      {/* Gradient background pour les plans premium */}
+      {!isFreePlan && (
+        <div className={`absolute inset-0 bg-gradient-to-br ${planInfo.color} opacity-5`} />
+      )}
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl">
-              <Zap className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-4">
+            <div className={`p-3 bg-gradient-to-br ${planInfo.color} rounded-xl shadow-lg`}>
+              {planInfo.icon}
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-white">Plan {subscriptionData.currentPlan}</h3>
-              <p className="text-gray-300">Votre abonnement actuel</p>
+              <h3 className="text-2xl font-bold text-[#2c3e50] font-montserrat tracking-tight">
+                Plan {planInfo.name}
+              </h3>
+              <p className="text-[#34495e] font-open-sans">
+                {hasActiveSubscription ? 'Abonnement actif' : 'Plan gratuit'}
+              </p>
             </div>
           </div>
-          {hasActiveSubscription && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded-full backdrop-blur-sm">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-green-200 text-sm font-medium">Actif</span>
-            </div>
-          )}
+          
+          <div className="flex items-center gap-3">
+            {hasActiveSubscription ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-200 rounded-full">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-green-700 text-sm font-medium font-open-sans">Actif</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-200 rounded-full">
+                <AlertCircle className="w-4 h-4 text-orange-600" />
+                <span className="text-orange-700 text-sm font-medium font-open-sans">Gratuit</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Statistiques d'utilisation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white mb-1">{remainingCredits}</div>
-            <div className="text-gray-300 text-sm">Crédits restants</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white mb-1">{subscriptionData.documentsUsed}</div>
-            <div className="text-gray-300 text-sm">Documents analysés</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white mb-1">{subscriptionData.documentsLimit}</div>
-            <div className="text-gray-300 text-sm">Limite mensuelle</div>
-          </div>
-        </div>
-
-        {/* Barre de progression moderne */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-300 text-sm">Utilisation ce mois-ci</span>
-            <span className="text-white font-semibold">{usagePercentage.toFixed(0)}%</span>
-          </div>
-          <div className="h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg"
-              initial={{ width: 0 }}
-              animate={{ width: `${usagePercentage}%` }}
-              transition={{ duration: 1, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            />
-          </div>
-        </div>
-
-        {/* Alerte si usage élevé */}
-        {usagePercentage > 80 && (
-          <motion.div 
-            className="flex items-center gap-3 p-4 bg-orange-500/20 border border-orange-400/30 rounded-xl backdrop-blur-sm"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.8 }}
-          >
-            <AlertCircle className="w-5 h-5 text-orange-400" />
-            <div>
-              <p className="text-orange-200 font-medium">Attention à votre usage</p>
-              <p className="text-orange-300 text-sm">
-                Vous avez utilisé {usagePercentage.toFixed(0)}% de vos crédits ce mois-ci
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl border border-[#bdc3c7] shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-[#2c3e50] rounded-lg">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-[#2c3e50] font-montserrat">
+                  {subscriptionData.documentsUsed}
+                </div>
+                <div className="text-[#34495e] text-sm font-open-sans">Documents analysés ce mois</div>
+              </div>
             </div>
-          </motion.div>
-        )}
+          </div>
+          
+          <div className="bg-white p-6 rounded-xl border border-[#bdc3c7] shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-[#2c3e50] rounded-lg">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-[#2c3e50] font-montserrat">
+                  {hasActiveSubscription ? 'Illimité' : '5'}
+                </div>
+                <div className="text-[#34495e] text-sm font-open-sans">
+                  {hasActiveSubscription ? 'Analyses par mois' : 'Limite gratuite'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fonctionnalités du plan */}
+        <div className="bg-white p-6 rounded-xl border border-[#bdc3c7] shadow-sm mb-6">
+          <h4 className="text-lg font-semibold text-[#2c3e50] mb-4 font-montserrat">
+            Fonctionnalités incluses
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {planInfo.features.map((feature, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <span className="text-[#34495e] font-open-sans">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {hasActiveSubscription ? (
+            <>
+              <button className="flex-1 bg-[#2c3e50] text-white font-semibold py-3 px-6 rounded-xl hover:bg-[#34495e] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:scale-105 font-open-sans">
+                <Settings className="w-5 h-5" />
+                Gérer l'abonnement
+              </button>
+              <button className="flex-1 bg-white text-[#2c3e50] font-semibold py-3 px-6 rounded-xl hover:bg-[#ecf0f1] transition-all duration-300 border border-[#bdc3c7] flex items-center justify-center gap-2 font-open-sans">
+                <Download className="w-5 h-5" />
+                Télécharger factures
+              </button>
+            </>
+          ) : (
+            <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:scale-105 font-open-sans">
+              <Crown className="w-5 h-5" />
+              Passer au plan Pro
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
 };
 
-// --- COMPOSANT : PORTAIL DE GESTION ---
-const ManagementPortal = ({ subscriptionData, onPortalOpen }: { 
-  subscriptionData: SubscriptionData; 
-  onPortalOpen: () => void;
-}) => {
-  const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
-  
-  if (!hasActiveSubscription || !subscriptionData.stripeCustomerId) {
-    return null;
-  }
+// --- COMPOSANT : HISTORIQUE DES PAIEMENTS ---
+const PaymentHistoryCard = () => {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simuler le chargement des paiements
+    setTimeout(() => {
+      setPayments([
+        {
+          id: '1',
+          date: '2024-01-15',
+          amount: 29.99,
+          plan: 'Plan Pro',
+          status: 'paid'
+        },
+        {
+          id: '2', 
+          date: '2023-12-15',
+          amount: 29.99,
+          plan: 'Plan Pro',
+          status: 'paid'
+        }
+      ]);
+      setLoading(false);
+    }, 1000);
+  }, []);
 
   return (
     <motion.div 
-      className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-8 relative overflow-hidden"
+      className="bg-[#ecf0f1] rounded-2xl shadow-xl border border-[#bdc3c7] p-8"
       initial={{ opacity: 0.3, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      {/* Effet glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-indigo-500/20"></div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
-            <ExternalLink className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-white">Portail de gestion Stripe</h3>
-            <p className="text-gray-300">Gérez tous vos paramètres de facturation</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-            <Download className="w-5 h-5 text-blue-400" />
-            <div>
-              <p className="text-white font-medium">Télécharger les factures</p>
-              <p className="text-gray-400 text-sm">Historique complet</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-            <CreditCard className="w-5 h-5 text-purple-400" />
-            <div>
-              <p className="text-white font-medium">Moyens de paiement</p>
-              <p className="text-gray-400 text-sm">Cartes et méthodes</p>
-            </div>
-          </div>
-        </div>
-
-        <button 
-          onClick={onPortalOpen}
-          className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white font-semibold py-4 px-6 rounded-2xl hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
-        >
-          <ExternalLink className="w-5 h-5" />
-          Ouvrir le portail de gestion
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-// --- COMPOSANT : PROCHAINE FACTURATION ---
-const NextBillingCard = ({ subscriptionData }: { subscriptionData: SubscriptionData }) => {
-  const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
-  
-  if (!hasActiveSubscription) {
-    return null;
-  }
-
-  // Simulation - dans un vrai cas, ces données viendraient de Stripe
-  const nextBillingDate = new Date();
-  nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-  
-  return (
-    <motion.div 
-      className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-8 relative overflow-hidden"
-      initial={{ opacity: 0.3, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-    >
-      {/* Effet glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-cyan-500/20"></div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-xl">
-            <Calendar className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-white">Prochaine facturation</h3>
-            <p className="text-gray-300">Détails de votre prochain paiement</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-            <span className="text-gray-300">Date de facturation</span>
-            <span className="text-white font-semibold">
-              {nextBillingDate.toLocaleDateString('fr-FR', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-            <span className="text-gray-300">Montant</span>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-400" />
-              <span className="text-white font-semibold">29,99 €</span>
-            </div>
-          </div>
-          <div className="flex justify-between items-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-            <span className="text-gray-300">Renouvellement automatique</span>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-green-400 font-medium">Activé</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// --- COMPOSANT : AIDE ET SUPPORT ---
-const SupportCard = () => (
-  <motion.div 
-    className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-8 relative overflow-hidden"
-    initial={{ opacity: 0.3, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-  >
-    {/* Effet glassmorphism */}
-    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-yellow-500/20"></div>
-    
-    <div className="relative z-10">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
-          <HelpCircle className="w-6 h-6 text-white" />
+        <div className="p-2 bg-[#2c3e50] rounded-xl">
+          <Calendar className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-white">Besoin d&apos;aide ?</h3>
-          <p className="text-gray-300">Notre équipe est là pour vous accompagner</p>
+          <h3 className="text-2xl font-bold text-[#2c3e50] font-montserrat tracking-tight">
+            Historique des paiements
+          </h3>
+          <p className="text-[#34495e] font-open-sans">Vos dernières factures</p>
         </div>
       </div>
 
-      <div className="space-y-4 mb-6">
-        <div className="p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-          <p className="text-white font-medium mb-2">Questions sur votre facturation ?</p>
-          <p className="text-gray-400 text-sm">
-            Contactez notre équipe support pour toute question concernant votre abonnement, 
-            vos factures ou vos paiements.
-          </p>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#2c3e50]" />
         </div>
-      </div>
+      ) : payments.length === 0 ? (
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-[#bdc3c7] mx-auto mb-4" />
+          <p className="text-[#34495e] font-open-sans">Aucun paiement enregistré</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {payments.map((payment: any) => (
+            <div key={payment.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-[#bdc3c7] hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[#2c3e50] font-montserrat">{payment.plan}</p>
+                  <p className="text-sm text-[#34495e] font-open-sans">
+                    {new Date(payment.date).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#2c3e50] font-montserrat">
+                  {payment.amount}€
+                </p>
+                <button className="text-sm text-[#2c3e50] hover:text-[#34495e] flex items-center gap-1 font-open-sans">
+                  <Download className="w-4 h-4" />
+                  Facture
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
-      <button className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold py-3 px-6 rounded-2xl hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
-        Contacter le support
-      </button>
-    </div>
-  </motion.div>
-);
-
-// --- COMPOSANT PRINCIPAL DE LA PAGE ---
+// --- COMPOSANT PRINCIPAL ---
 export default function BillingPage() {
+  const { user } = useUser();
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const { user } = useUser();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
+      if (!user) return;
+
       try {
         const response = await fetch('/api/user/subscription');
         if (response.ok) {
           const data = await response.json();
           setSubscriptionData(data);
+        } else {
+          setError('Erreur lors du chargement des données d\'abonnement');
         }
-      } catch (error) {
-        console.error('Error fetching subscription data:', error);
+      } catch (err) {
+        setError('Erreur de connexion');
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      fetchSubscriptionData();
-    }
+    fetchSubscriptionData();
   }, [user]);
 
-  const handleManageSubscription = async () => {
-    if (!subscriptionData?.stripeCustomerId) return;
-    
-    setPortalLoading(true);
+  const openStripePortal = async () => {
     try {
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          customerId: subscriptionData.stripeCustomerId,
-          returnUrl: window.location.href 
-        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Impossible d&apos;accéder au portail de gestion');
-      }
-
-      const { url } = await response.json();
-      if (url) {
+      if (response.ok) {
+        const { url } = await response.json();
         window.location.href = url;
       }
     } catch (error) {
-      console.error("Erreur:", error);
-      alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setPortalLoading(false);
+      console.error('Error opening Stripe portal:', error);
     }
   };
 
   if (loading) {
     return (
-      <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-full relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-green-500/10 to-teal-500/10"></div>
-        <div className="relative z-10 flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-emerald-400 mx-auto mb-4" />
-            <p className="text-gray-300 text-lg">Chargement de vos informations de facturation...</p>
+      <div className="min-h-screen bg-[#bdc3c7] p-8">
+        <div className="max-w-6xl mx-auto">
+          <BillingHeader />
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 animate-spin text-[#2c3e50]" />
           </div>
         </div>
       </div>
     );
   }
 
-  if (!subscriptionData) {
+  if (error) {
     return (
-      <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-full relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-green-500/10 to-teal-500/10"></div>
-        <div className="relative z-10">
+      <div className="min-h-screen bg-[#bdc3c7] p-8">
+        <div className="max-w-6xl mx-auto">
           <BillingHeader />
-          <div className="text-center py-16">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Impossible de charger les données</h3>
-            <p className="text-gray-400">Veuillez réessayer plus tard.</p>
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <p className="text-[#34495e] font-open-sans">{error}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -377,45 +371,14 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-full relative overflow-hidden">
-      {/* Effet glassmorphism moderne pour la page facturation */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-green-500/10 to-teal-500/10"></div>
-      
-      <div className="relative z-10 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#bdc3c7] p-8">
+      <div className="max-w-6xl mx-auto">
         <BillingHeader />
         
-        <div className="space-y-8">
-          {/* Plan actuel - pleine largeur */}
-          <CurrentPlanCard subscriptionData={subscriptionData} />
-          
-          {/* Grille 2 colonnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ManagementPortal 
-              subscriptionData={subscriptionData} 
-              onPortalOpen={handleManageSubscription}
-            />
-            <NextBillingCard subscriptionData={subscriptionData} />
-          </div>
-          
-          {/* Support - pleine largeur */}
-          <SupportCard />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {subscriptionData && <CurrentPlanCard subscriptionData={subscriptionData} />}
+          <PaymentHistoryCard />
         </div>
-
-        {/* Loading overlay pour le portail */}
-        {portalLoading && (
-          <motion.div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 text-center border border-white/20">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
-              <p className="text-white text-lg font-medium">Ouverture du portail de gestion...</p>
-              <p className="text-gray-300 text-sm mt-2">Vous allez être redirigé vers Stripe</p>
-            </div>
-          </motion.div>
-        )}
       </div>
     </div>
   );

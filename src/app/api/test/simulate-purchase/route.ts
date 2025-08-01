@@ -23,15 +23,16 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Simuler un achat réussi
+    // Simuler l'activation d'un abonnement
     await prisma.user.update({
       where: { id: user.id },
       data: {
         currentPlan: plan.name,
         subscriptionStatus: 'active',
-        documentsLimit: {
-          increment: plan.documentsLimit
-        },
+        // Garder la limite pour référence mais ne plus l'utiliser comme contrainte
+        documentsLimit: plan.documentsLimit,
+        // Réinitialiser le compteur d'utilisation
+        documentsUsed: 0,
       }
     });
 

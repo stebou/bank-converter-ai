@@ -267,26 +267,14 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[DOCUMENTS_GET] ✅ User authenticated, looking up in database...');
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
-    console.log('[DOCUMENTS_GET] Database user lookup result:', { 
-      found: !!user, 
-      id: user?.id, 
-      email: user?.email,
-      name: user?.name 
-    });
-
-    if (!user) {
-      console.log('[DOCUMENTS_GET] ❌ User not found in database');
-      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
-    }
-
-    console.log('[DOCUMENTS_GET] 🔍 Searching documents for userId:', user.id);
     
-    // Récupérer tous les documents de l'utilisateur
-    const documents = await prisma.document.findMany({
-      where: { userId: user.id },
+    // Utiliser une requête relationnelle comme dans le dashboard principal
+    const userDocuments = await prisma.document.findMany({
+      where: {
+        user: {
+          clerkId: userId,
+        },
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -298,20 +286,22 @@ export async function GET(req: NextRequest) {
         aiConfidence: true,
         anomaliesDetected: true,
         status: true,
+        fileSize: true,
       }
     });
-    console.log('[DOCUMENTS_GET] 📊 Documents found:', documents.length);
     
-    if (documents.length > 0) {
+    console.log('[DOCUMENTS_GET] 📊 Documents found via relation:', userDocuments.length);
+    
+    if (userDocuments.length > 0) {
       console.log('[DOCUMENTS_GET] First document sample:', {
-        id: documents[0].id,
-        originalName: documents[0].originalName,
-        bankDetected: documents[0].bankDetected,
-        totalTransactions: documents[0].totalTransactions
+        id: userDocuments[0].id,
+        originalName: userDocuments[0].originalName,
+        bankDetected: userDocuments[0].bankDetected,
+        totalTransactions: userDocuments[0].totalTransactions
       });
     }
 
-    const formattedDocuments = documents.map(doc => ({
+    const formattedDocuments = userDocuments.map(doc => ({
       id: doc.id,
       filename: doc.filename,
       originalName: doc.originalName,
@@ -349,9 +339,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Utilisateur non trouvé dans la base de données." }, { status: 404 });
     }
 
-    if (user.documentsLimit <= 0) {
-      return NextResponse.json({ error: "Crédits insuffisants pour analyser le document." }, { status: 402 });
-    }
+    // Plus de vérification de crédits - système d'abonnement pur
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
@@ -508,12 +496,10 @@ Réponds UNIQUEMENT avec un JSON valide:
                     lastAnalyzedAt: new Date(),
                   },
                 }),
+                // Système de crédits supprimé - plus de décrémentation des limites
                 prisma.user.update({
                   where: { id: user.id },
                   data: {
-                    documentsLimit: {
-                      decrement: 1,
-                    },
                     documentsUsed: {
                       increment: 1,
                     },

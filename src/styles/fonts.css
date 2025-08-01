@@ -1,0 +1,17 @@
+/* Google Fonts - Typographie Centre d'aide */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+
+/* Classe utilitaires pour les polices */
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-open-sans {
+  font-family: 'Open Sans', sans-serif;
+}
+
+.font-ibm-plex-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}

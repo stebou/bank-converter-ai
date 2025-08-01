@@ -66,7 +66,7 @@ try {
         });
       }
 
-      // Si c'est un abonnement, récupérer l'ID de subscription ET ajouter les crédits
+      // Si c'est un abonnement, activer le plan
       if (session.mode === 'subscription' && session.subscription) {
         await prisma.user.update({
           where: { id: userId },
@@ -74,20 +74,17 @@ try {
             stripeSubscriptionId: session.subscription as string,
             subscriptionStatus: 'active',
             currentPlan: plan.name,
-            // CORRECTION : Ajouter les crédits du plan aux crédits existants
+            // Garder la limite de documents pour référence/historique mais ne plus l'utiliser comme contrainte
             documentsLimit: plan.documentsLimit,
             // Réinitialiser le compteur d'utilisation pour le nouvel abonnement
             documentsUsed: 0,
           }
         });
-        console.log(`[STRIPE_WEBHOOK] Subscription created for user ${userId} with ${plan.documentsLimit} credits`);
+        console.log(`[STRIPE_WEBHOOK] Subscription activated for user ${userId} with plan ${plan.name}`);
       } else {
-        // Paiement unique - ajouter des crédits
-        await prisma.user.update({
-          where: { id: userId },
-          data: { documentsLimit: { increment: plan.documentsLimit } },
-        });
-        console.log(`[STRIPE_WEBHOOK] Credits added for user ${userId}`);
+        // Plus de paiements uniques - système d'abonnement pur
+        console.log(`[STRIPE_WEBHOOK] Unsupported payment mode: ${session.mode}. Only subscriptions are supported.`);
+        return new NextResponse('Only subscription payments are supported', { status: 400 });
       }
 
       // Créer un enregistrement de paiement

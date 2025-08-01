@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import DashboardClientPage from './DashboardClientPage';
-import AuthTransition from '@/components/AuthTransition';
-import type { DocumentType } from '@/types';
+import ProBankingDashboard from './ProBankingDashboard';
+import AuthTransition from './AuthTransition';
 
+// Types pour les données d'abonnement
 type SubscriptionData = {
   currentPlan: string;
   subscriptionStatus: string | null;
@@ -15,14 +15,12 @@ type SubscriptionData = {
   stripeSubscriptionId: string | null;
 };
 
-type DashboardWrapperProps = {
+interface BankingDashboardWrapperProps {
   userName: string;
-  initialDocuments: DocumentType[];
-  initialCredits: number;
   subscriptionData: SubscriptionData;
-};
+}
 
-export default function DashboardWrapper(props: DashboardWrapperProps) {
+export default function BankingDashboardWrapper(props: BankingDashboardWrapperProps) {
   const searchParams = useSearchParams();
   const fromAuth = searchParams.get('from_auth');
   const paymentStatus = searchParams.get('payment');
@@ -31,8 +29,6 @@ export default function DashboardWrapper(props: DashboardWrapperProps) {
   const [showTransition, setShowTransition] = useState(
     fromAuth === 'true' || paymentStatus === 'success'
   );
-
-
 
   useEffect(() => {
     // Nettoyer l'URL si on vient d'une authentification
@@ -59,5 +55,10 @@ export default function DashboardWrapper(props: DashboardWrapperProps) {
     );
   }
 
-  return <DashboardClientPage {...props} />;
+  return (
+    <ProBankingDashboard 
+      userName={props.userName}
+      subscriptionData={props.subscriptionData}
+    />
+  );
 }

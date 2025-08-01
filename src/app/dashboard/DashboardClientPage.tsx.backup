@@ -10,6 +10,7 @@ import SubscriptionBadge from '@/components/SubscriptionBadge';
 import StripePaymentModal from '@/components/StripePaymentModal';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { TransactionsList } from '@/components/TransactionsList';
+import '../../styles/fonts.css';
 
 // Types spécifiques à ce composant client
 type SubscriptionData = {
@@ -72,98 +73,92 @@ const BulkDeleteConfirmationModal = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl max-w-lg w-full p-6 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="bg-[#ecf0f1] rounded-2xl max-w-lg w-full p-6 relative overflow-hidden max-h-[90vh] overflow-y-auto shadow-2xl border border-[#bdc3c7]"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Effet glassmorphism */}
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-orange-500/10 to-transparent"></div>
-          
-          {/* Contenu */}
-          <div className="relative z-10">
-            {/* Header avec icône d'alerte */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl shadow-lg">
-                <AlertTriangle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Suppression en lot</h3>
-                <p className="text-sm text-gray-300">Supprimer {documents.length} document{documents.length > 1 ? 's' : ''}</p>
-              </div>
+          {/* Header avec icône d'alerte */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-[#2c3e50] rounded-2xl shadow-lg">
+              <AlertTriangle className="w-6 h-6 text-[#ecf0f1]" />
             </div>
+            <div>
+              <h3 className="text-xl font-bold text-[#2c3e50] font-montserrat tracking-wide">Suppression en lot</h3>
+              <p className="text-sm text-[#34495e] font-open-sans">Supprimer {documents.length} document{documents.length > 1 ? 's' : ''}</p>
+            </div>
+          </div>
 
-            {/* Liste des documents sélectionnés */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10 max-h-48 overflow-y-auto">
-              <p className="text-sm font-medium text-gray-200 mb-3">Documents sélectionnés :</p>
-              <div className="space-y-2">
-                {documents.map((doc, index) => (
-                  <div key={doc.id} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
-                    <div className="p-1.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                      <Brain className="w-3 h-3 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{doc.filename}</p>
-                      <p className="text-xs text-gray-400">
-                        {doc.bankDetected} • {doc.totalTransactions} transactions
-                      </p>
-                    </div>
+          {/* Liste des documents sélectionnés */}
+          <div className="bg-white rounded-xl p-4 mb-6 border border-[#bdc3c7] max-h-48 overflow-y-auto">
+            <p className="text-sm font-medium text-[#2c3e50] mb-3 font-montserrat">Documents sélectionnés :</p>
+            <div className="space-y-2">
+              {documents.map((doc, index) => (
+                <div key={doc.id} className="flex items-center gap-3 p-2 bg-[#ecf0f1] rounded-lg border border-[#bdc3c7]">
+                  <div className="p-1.5 bg-[#2c3e50] rounded-lg">
+                    <Brain className="w-3 h-3 text-[#ecf0f1]" />
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#2c3e50] truncate font-open-sans">{doc.filename}</p>
+                    <p className="text-xs text-[#34495e] font-ibm-plex-mono">
+                      {doc.bankDetected} • {doc.totalTransactions} transactions
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Résumé de suppression */}
-            <div className="mb-6">
-              <p className="text-sm font-medium text-gray-200 mb-3">Cette action supprimera définitivement :</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  {documents.length} document{documents.length > 1 ? 's' : ''} PDF
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  {totalTransactions} transaction{totalTransactions > 1 ? 's' : ''} associée{totalTransactions > 1 ? 's' : ''}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  Toutes les données d&apos;analyse IA
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  L&apos;historique des conversations IA liées
-                </div>
+          {/* Résumé de suppression */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-900 mb-3">Cette action supprimera définitivement :</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                {documents.length} document{documents.length > 1 ? 's' : ''} PDF
               </div>
-              <div className="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg">
-                <p className="text-xs text-orange-300">⚠️ Les crédits utilisés pour analyser ces documents ne seront pas remboursés.</p>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                {totalTransactions} transaction{totalTransactions > 1 ? 's' : ''} associée{totalTransactions > 1 ? 's' : ''}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                Toutes les données d'analyse IA
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                L'historique des conversations IA liées
               </div>
             </div>
+            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-xs text-orange-700">⚠️ Les crédits utilisés pour analyser ces documents ne seront pas remboursés.</p>
+            </div>
+          </div>
 
-            {/* Boutons d'action */}
-            <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                disabled={isDeleting}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={isDeleting}
-                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Suppression...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer tout
-                  </>
-                )}
-              </button>
-            </div>
+          {/* Boutons d'action */}
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              disabled={isDeleting}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer tout
+                </>
+              )}
+            </button>
           </div>
         </motion.div>
       </motion.div>
@@ -200,93 +195,87 @@ const DeleteConfirmationModal = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl max-w-md w-full p-6 relative overflow-hidden"
+          className="bg-white rounded-2xl max-w-md w-full p-6 relative overflow-hidden shadow-2xl border border-gray-200"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Effet glassmorphism */}
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-orange-500/10 to-transparent"></div>
-          
-          {/* Contenu */}
-          <div className="relative z-10">
-            {/* Header avec icône d'alerte */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl shadow-lg">
-                <AlertTriangle className="w-6 h-6 text-white" />
+          {/* Header avec icône d'alerte */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-red-600 rounded-2xl shadow-lg">
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Confirmer la suppression</h3>
+              <p className="text-sm text-gray-600">Cette action est irréversible</p>
+            </div>
+          </div>
+
+          {/* Informations du document */}
+          <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Brain className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Confirmer la suppression</h3>
-                <p className="text-sm text-gray-300">Cette action est irréversible</p>
+                <p className="font-medium text-gray-900 truncate">{document.filename}</p>
+                <p className="text-xs text-gray-500">
+                  {document.bankDetected} • {document.totalTransactions} transactions
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* Informations du document */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                  <Brain className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-white truncate">{document.filename}</p>
-                  <p className="text-xs text-gray-400">
-                    {document.bankDetected} • {document.totalTransactions} transactions
-                  </p>
-                </div>
+          {/* Liste des éléments qui seront supprimés */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-900 mb-3">Cette action supprimera définitivement :</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                Le document PDF original
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                Toutes les {document.totalTransactions} transactions associées
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                Les données d'analyse IA
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                L'historique des conversations IA liées
               </div>
             </div>
+            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-xs text-orange-700">⚠️ Le crédit utilisé pour analyser ce document ne sera pas remboursé.</p>
+            </div>
+          </div>
 
-            {/* Liste des éléments qui seront supprimés */}
-            <div className="mb-6">
-              <p className="text-sm font-medium text-gray-200 mb-3">Cette action supprimera définitivement :</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  Le document PDF original
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  Toutes les {document.totalTransactions} transactions associées
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  Les données d&apos;analyse IA
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
-                  L&apos;historique des conversations IA liées
-                </div>
-              </div>
-              <div className="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg">
-                <p className="text-xs text-orange-300">⚠️ Le crédit utilisé pour analyser ce document ne sera pas remboursé.</p>
-              </div>
-            </div>
-
-            {/* Boutons d'action */}
-            <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                disabled={isDeleting}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={isDeleting}
-                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Suppression...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer
-                  </>
-                )}
-              </button>
-            </div>
+          {/* Boutons d'action */}
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              disabled={isDeleting}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer
+                </>
+              )}
+            </button>
           </div>
         </motion.div>
       </motion.div>
@@ -330,8 +319,8 @@ const DocumentDetailView = ({ documentData, onClose, transactions = [] }: {
       URL.revokeObjectURL(url);
       
     } catch (error) {
-      console.error('Erreur lors de l&apos;export CSV:', error);
-      alert('Erreur lors de l&apos;export CSV');
+      console.error('Erreur lors de l\'export CSV:', error);
+      alert('Erreur lors de l\'export CSV');
     }
   };
 
@@ -382,49 +371,50 @@ const DocumentDetailView = ({ documentData, onClose, transactions = [] }: {
       XLSX.writeFile(wb, fileName);
       
     } catch (error) {
-      console.error('Erreur lors de l&apos;export Excel:', error);
-      alert('Erreur lors de l&apos;export Excel');
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Erreur lors de l\'export Excel');
     }
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent"></div>
-      <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-white transition-colors duration-200 z-20">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 relative overflow-hidden">
+      <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200 z-20">
         <X className="w-6 h-6" />
       </button>
-      <div className="flex items-center space-x-3 mb-6 relative z-10">
-        <CheckCircle className="w-6 h-6 text-green-400" />
-        <h3 className="text-xl font-bold text-white">Analyse IA Terminée</h3>
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-2 bg-blue-600 rounded-xl">
+          <CheckCircle className="w-6 h-6 text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Analyse IA Terminée</h3>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 relative z-10">
-        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-xl border border-green-400/30 backdrop-blur-sm">
-          <div className="text-2xl font-bold text-green-300">{documentData.aiConfidence?.toFixed(1) ?? 'N/A'}%</div>
-          <div className="text-sm text-green-200">Confiance IA</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-blue-600">{documentData.aiConfidence?.toFixed(1) ?? 'N/A'}%</div>
+          <div className="text-sm text-gray-600">Confiance IA</div>
         </div>
-        <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 p-4 rounded-xl border border-orange-400/30 backdrop-blur-sm">
-          <div className="text-2xl font-bold text-orange-300">{documentData.anomaliesDetected ?? 0}</div>
-          <div className="text-sm text-orange-200">Anomalies détectées</div>
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-red-600">{documentData.anomaliesDetected ?? 0}</div>
+          <div className="text-sm text-gray-600">Anomalies détectées</div>
         </div>
-        <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 p-4 rounded-xl border border-blue-400/30 backdrop-blur-sm">
-          <div className="text-2xl font-bold text-blue-300">{documentData.totalTransactions ?? 0}</div>
-          <div className="text-sm text-blue-200">Transactions</div>
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-blue-600">{documentData.totalTransactions ?? 0}</div>
+          <div className="text-sm text-gray-600">Transactions</div>
         </div>
-        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-xl border border-purple-400/30 backdrop-blur-sm">
-          <div className="text-2xl font-bold text-purple-300">~€0.04</div>
-          <div className="text-sm text-purple-200">Coût IA (simulé)</div>
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-gray-700">~€0.04</div>
+          <div className="text-sm text-gray-600">Coût IA (simulé)</div>
         </div>
       </div>
-      <div className="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 relative z-10">
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
         <div>
-          <div className="font-semibold text-white">Banque détectée: {documentData.bankDetected ?? 'Non identifiée'}</div>
-          <div className="text-sm text-gray-300">{documentData.filename}</div>
+          <div className="font-semibold text-gray-900">Banque détectée: {documentData.bankDetected ?? 'Non identifiée'}</div>
+          <div className="text-sm text-gray-600">{documentData.filename}</div>
         </div>
         <div className="flex items-center space-x-2">
           <button 
             onClick={exportToCSV}
             disabled={transactions.length === 0}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2 text-sm shadow-lg"
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2 text-sm shadow-sm"
           >
             <Download className="w-4 h-4" />
             <span>CSV</span>
@@ -432,13 +422,13 @@ const DocumentDetailView = ({ documentData, onClose, transactions = [] }: {
           <button 
             onClick={exportToExcel}
             disabled={transactions.length === 0}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-2 rounded-lg hover:from-green-600 hover:to-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2 text-sm shadow-lg"
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2 text-sm shadow-sm"
           >
             <Download className="w-4 h-4" />
             <span>Excel</span>
           </button>
           {transactions.length === 0 && (
-            <span className="text-sm text-gray-400">Aucune transaction</span>
+            <span className="text-sm text-gray-500">Aucune transaction</span>
           )}
         </div>
       </div>
@@ -476,22 +466,20 @@ const DocumentHistoryTable = ({
   const someSelected = selectedDocuments.length > 0 && selectedDocuments.length < documents.length;
 
   return (
-    <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-indigo-400/10 to-transparent"></div>
-      
+    <div className="bg-[#ecf0f1] rounded-2xl shadow-xl border border-[#bdc3c7] relative overflow-hidden">
       {/* Header avec menu et barre d'actions */}
-      <div className="p-6 border-b border-white/20 relative z-10">
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-white">Historique des analyses</h3>
+            <h3 className="text-lg font-semibold text-[#2c3e50] font-montserrat tracking-wide">Historique des analyses</h3>
             
             {/* Bouton 3 points pour activer la suppression multiple */}
             <button
               onClick={() => onToggleSelectionMode(true)}
-              className="p-3 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-3 hover:bg-white rounded-lg transition-colors"
               title="Activer la sélection multiple"
             >
-              <MoreVertical className="w-5 h-5 text-gray-400 hover:text-white" />
+              <MoreVertical className="w-5 h-5 text-[#34495e] hover:text-[#2c3e50]" />
             </button>
           </div>
           
@@ -504,7 +492,7 @@ const DocumentHistoryTable = ({
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="flex items-center gap-3"
               >
-                <span className="text-sm text-gray-300">
+                <span className="text-sm text-[#34495e] font-open-sans">
                   {selectedDocuments.length > 0 
                     ? `${selectedDocuments.length} sélectionné${selectedDocuments.length > 1 ? 's' : ''}` 
                     : 'Mode sélection actif'
@@ -513,14 +501,14 @@ const DocumentHistoryTable = ({
                 <button
                   onClick={onBulkDelete}
                   disabled={selectedDocuments.length === 0}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="bg-[#2c3e50] hover:bg-[#34495e] text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-sm hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-open-sans"
                 >
                   <Trash2 className="w-4 h-4" />
                   Supprimer
                 </button>
                 <button
                   onClick={() => onToggleSelectionMode(false)}
-                  className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:scale-105"
+                  className="bg-[#34495e] hover:bg-[#2c3e50] text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-sm hover:scale-105 font-open-sans"
                 >
                   <X className="w-4 h-4" />
                   Annuler la sélection
@@ -531,25 +519,25 @@ const DocumentHistoryTable = ({
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm relative z-10">
-          <thead className="bg-white/5 backdrop-blur-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-white border-b border-[#bdc3c7]">
             <tr>
-              <th className="px-6 py-3 text-left font-medium text-gray-200">Nom du fichier</th>
-              <th className="px-6 py-3 text-left font-medium text-gray-200">Date</th>
-              <th className="px-6 py-3 text-left font-medium text-gray-200">Transactions</th>
-              <th className="px-6 py-3 text-left font-medium text-gray-200">Anomalies</th>
-              <th className="px-6 py-3 text-left font-medium text-gray-200">Voir le PDF</th>
-              <th className="px-6 py-3 text-right font-medium text-gray-200 w-20">Actions</th>
+              <th className="px-6 py-3 text-left font-medium text-[#2c3e50] font-montserrat">Nom du fichier</th>
+              <th className="px-6 py-3 text-left font-medium text-[#2c3e50] font-montserrat">Date</th>
+              <th className="px-6 py-3 text-left font-medium text-[#2c3e50] font-montserrat">Transactions</th>
+              <th className="px-6 py-3 text-left font-medium text-[#2c3e50] font-montserrat">Anomalies</th>
+              <th className="px-6 py-3 text-left font-medium text-[#2c3e50] font-montserrat">Voir le PDF</th>
+              <th className="px-6 py-3 text-right font-medium text-[#2c3e50] font-montserrat w-20">Actions</th>
               {selectionMode && (
-                <th className="px-6 py-3 text-right font-medium text-gray-200 w-12">
+                <th className="px-6 py-3 text-right font-medium text-gray-700 w-12">
                   <button
                     onClick={() => onSelectAll(!allSelected)}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
                   >
                     {allSelected ? (
-                      <CheckSquare className="w-4 h-4 text-blue-400" />
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
                     ) : someSelected ? (
-                      <CheckSquare className="w-4 h-4 text-blue-400 opacity-50" />
+                      <CheckSquare className="w-4 h-4 text-blue-600 opacity-50" />
                     ) : (
                       <Square className="w-4 h-4 text-gray-400" />
                     )}
@@ -558,19 +546,19 @@ const DocumentHistoryTable = ({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/10">
+          <tbody className="divide-y divide-gray-200">
             {documents.length > 0 ? documents.map((doc) => {
               const isSelected = selectedDocuments.includes(doc.id);
               return (
-                <tr key={doc.id} className={`hover:bg-white/5 transition-colors duration-200 ${isSelected && selectionMode ? 'bg-blue-500/10 border-blue-400/30' : ''}`}>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-white">{doc.filename}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-300">{new Date(doc.createdAt).toLocaleDateString('fr-FR')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-300">{doc.totalTransactions}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap font-bold ${doc.anomaliesDetected > 0 ? 'text-red-400' : 'text-green-400'}`}>{doc.anomaliesDetected}</td>
+                <tr key={doc.id} className={`hover:bg-gray-50 transition-colors duration-200 ${isSelected && selectionMode ? 'bg-blue-50 border-blue-200' : ''}`}>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{doc.filename}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{new Date(doc.createdAt).toLocaleDateString('fr-FR')}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{doc.totalTransactions}</td>
+                  <td className={`px-6 py-4 whitespace-nowrap font-bold ${doc.anomaliesDetected > 0 ? 'text-red-600' : 'text-green-600'}`}>{doc.anomaliesDetected}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button 
                       onClick={() => onSelectDocument(doc)} 
-                      className="text-blue-400 hover:text-blue-300 hover:underline font-medium transition-colors duration-200"
+                      className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors duration-200"
                     >
                       Voir les détails
                     </button>
@@ -579,7 +567,7 @@ const DocumentHistoryTable = ({
                     <button
                       onClick={(e) => onDeleteClick(doc, e)}
                       disabled={isDeleting && documentToDelete?.id === doc.id}
-                      className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Supprimer le document"
                     >
                       {isDeleting && documentToDelete?.id === doc.id ? (
@@ -593,10 +581,10 @@ const DocumentHistoryTable = ({
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => onDocumentSelect(doc.id)}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        className="p-1 hover:bg-gray-100 rounded transition-colors"
                       >
                         {isSelected ? (
-                          <CheckSquare className="w-4 h-4 text-blue-400" />
+                          <CheckSquare className="w-4 h-4 text-blue-600" />
                         ) : (
                           <Square className="w-4 h-4 text-gray-400" />
                         )}
@@ -607,11 +595,11 @@ const DocumentHistoryTable = ({
               );
             }) : (
               <tr>
-                <td colSpan={selectionMode ? 7 : 6} className="text-center py-16 text-gray-300">
+                <td colSpan={selectionMode ? 7 : 6} className="text-center py-16 text-gray-500">
                   <div className="text-center">
-                    <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-300 mb-2">Aucune analyse pour le moment</h3>
-                    <p className="text-gray-400">Utilisez le module de téléversement pour commencer.</p>
+                    <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">Aucune analyse pour le moment</h3>
+                    <p className="text-gray-500">Utilisez le module de téléversement pour commencer.</p>
                   </div>
                 </td>
               </tr>
@@ -635,38 +623,35 @@ const CompactSubscription = ({
 }) => {
   const hasActiveSubscription = subscriptionData.subscriptionStatus === 'active';
 
-
   return (
-    <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6 relative overflow-hidden">
-      {/* Effet glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent"></div>
+    <div className="bg-[#ecf0f1] rounded-2xl shadow-xl border border-[#bdc3c7] p-6 relative overflow-hidden">
       {/* Header avec crédits intégrés */}
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <h3 className="text-lg font-semibold text-white">Mon Abonnement</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-[#2c3e50] font-montserrat tracking-wide">Mon Abonnement</h3>
         <div className="text-right">
-          <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+          <div className="text-2xl font-bold text-[#2c3e50] font-ibm-plex-mono tracking-wider">
             {credits}
           </div>
-          <div className="text-xs text-gray-300">crédits</div>
+          <div className="text-xs text-[#34495e] font-open-sans">crédits</div>
         </div>
       </div>
       
       {/* Infos abonnement */}
       {hasActiveSubscription ? (
-        <div className="mb-4 p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg border border-green-400/30 backdrop-blur-sm relative z-10">
-          <p className="text-sm font-medium text-green-200">
+        <div className="mb-4 p-3 bg-white rounded-lg border border-[#bdc3c7]">
+          <p className="text-sm font-medium text-[#2c3e50] font-open-sans">
             {subscriptionData.currentPlan}
           </p>
-          <p className="text-xs text-green-300">
+          <p className="text-xs text-[#34495e] font-ibm-plex-mono tracking-wider">
             {subscriptionData.documentsUsed}/{subscriptionData.documentsLimit} analyses utilisées
           </p>
         </div>
       ) : (
-        <div className="mb-4 p-3 bg-gradient-to-r from-gray-500/20 to-gray-400/20 rounded-lg border border-gray-400/30 backdrop-blur-sm relative z-10">
-          <p className="text-sm font-medium text-gray-200">
+        <div className="mb-4 p-3 bg-white rounded-lg border border-[#bdc3c7]">
+          <p className="text-sm font-medium text-[#2c3e50] font-open-sans">
             Plan Gratuit
           </p>
-          <p className="text-xs text-gray-300">
+          <p className="text-xs text-[#34495e] font-ibm-plex-mono tracking-wider">
             {subscriptionData.documentsUsed}/{subscriptionData.documentsLimit} analyses utilisées
           </p>
         </div>
@@ -675,7 +660,7 @@ const CompactSubscription = ({
       {/* Bouton d'action compact */}
       {hasActiveSubscription ? (
         <button 
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm relative z-10"
+          className="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-sm text-sm font-open-sans"
         >
           <Settings className="w-4 h-4" />
           Gérer
@@ -683,7 +668,7 @@ const CompactSubscription = ({
       ) : (
         <button 
           onClick={onOpenPaymentModal} 
-          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm relative z-10"
+          className="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-sm text-sm font-open-sans"
         >
           <Plus className="w-4 h-4" />
           Souscrire
@@ -776,8 +761,6 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
     refreshUserData();
     setShowStripeModal(false);
   };
-
-
 
   // Fonction pour gérer la suppression d'un document
   const handleDeleteDocument = (documentId: string) => {
@@ -937,7 +920,7 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
               refreshUserData();
             }, 2000); // Attendre 2 secondes pour que le webhook se termine
             
-            // Nettoyer l&apos;URL pour éviter de réafficher la modal au refresh
+            // Nettoyer l'URL pour éviter de réafficher la modal au refresh
             window.history.replaceState({}, '', '/dashboard');
           }
         })
@@ -965,59 +948,54 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
     anomalies: documents.reduce((sum, doc) => sum + (doc.anomaliesDetected || 0), 0),
   };
 
-
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-full relative overflow-hidden">
-      {/* Effet glassmorphism moderne pour le dashboard */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-green-500/10"></div>
+    <div className="p-8 bg-[#ecf0f1] min-h-full relative">
       <div className="relative z-10">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">Bonjour, {userName} !</h1>
+            <h1 className="text-4xl font-bold text-[#2c3e50] font-montserrat tracking-tight">Bonjour, {userName} !</h1>
             <SubscriptionBadge 
               currentPlan={subscriptionData.currentPlan} 
               subscriptionStatus={subscriptionData.subscriptionStatus} 
             />
           </div>
-          <p className="text-gray-300 text-lg">Bienvenue sur votre tableau de bord d&apos;analyse IA moderne.</p>
+          <p className="text-[#34495e] text-lg font-open-sans">Bienvenue sur votre tableau de bord d'analyse IA moderne.</p>
         </header>
         
         {/* Niveau 1 : 3 colonnes - Stats + Abonnement avec animations */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <motion.div 
-            className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-white/20 flex items-center gap-4 relative overflow-hidden"
-            initial={{ opacity: 0.3, y: -20 }}
+            className="bg-white p-6 rounded-2xl shadow-xl border border-[#bdc3c7] flex items-center gap-4 relative overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent"></div>
-            <div className="relative z-10 p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <div className="p-3 bg-[#2c3e50] rounded-xl shadow-lg">
               <BarChart2 className="w-6 h-6 text-white" />
             </div>
-            <div className="relative z-10">
-              <p className="text-sm text-gray-200">Documents traités</p>
-              <p className="text-2xl font-bold text-white">{stats.total}</p>
+            <div>
+              <p className="text-sm text-[#34495e] font-open-sans">Documents traités</p>
+              <p className="text-2xl font-bold text-[#2c3e50] font-ibm-plex-mono tracking-wider">{stats.total}</p>
             </div>
           </motion.div>
           <motion.div 
-            className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-white/20 flex items-center gap-4 relative overflow-hidden"
-            initial={{ opacity: 0.3, y: -20 }}
+            className="bg-white p-6 rounded-2xl shadow-xl border border-[#bdc3c7] flex items-center gap-4 relative overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-400/10 to-transparent"></div>
-            <div className="relative z-10 p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg">
+            <div className="p-3 bg-[#2c3e50] rounded-xl shadow-lg">
               <AlertCircle className="w-6 h-6 text-white" />
             </div>
-            <div className="relative z-10">
-              <p className="text-sm text-gray-200">Anomalies détectées</p>
-              <p className="text-2xl font-bold text-white">{stats.anomalies}</p>
+            <div>
+              <p className="text-sm text-[#34495e] font-open-sans">Anomalies détectées</p>
+              <p className="text-2xl font-bold text-[#2c3e50] font-ibm-plex-mono tracking-wider">{stats.anomalies}</p>
             </div>
           </motion.div>
           <motion.div
-            initial={{ opacity: 0.3, y: -20 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
             <CompactSubscription 
               credits={credits} 
@@ -1035,10 +1013,10 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
               {selectedDocument ? (
                 <motion.div
                   key="detail-view"
-                  initial={{ opacity: 0.3, scale: 0.95, y: 20 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0.3, scale: 0.95, y: -20 }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                  transition={{ duration: 0.5 }}
                 >
                   <DocumentDetailView 
                     documentData={selectedDocument} 
@@ -1052,10 +1030,10 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
               ) : (
                 <motion.div
                   key="upload-form"
-                  initial={{ opacity: 0.3, scale: 0.95, y: 20 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0.3, scale: 0.95, y: -20 }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                  transition={{ duration: 0.5 }}
                 >
                   <DocumentUpload 
                     onDocumentUploaded={(uploadedDocument) => {
@@ -1087,9 +1065,9 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
           
           {/* Colonne Transactions avec animation */}
           <motion.div
-            initial={{ opacity: 0.3, x: 20 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
             <TransactionsList 
               documents={documents} 
@@ -1102,9 +1080,9 @@ export default function DashboardClientPage({ userName, initialDocuments, initia
         {/* Niveau 3 : 1 colonne - Historique avec animation */}
         <motion.div 
           className="mb-8"
-          initial={{ opacity: 0.3, y: 20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.5, delay: 0.4 }}
         >
           <DocumentHistoryTable 
             documents={documents} 
