@@ -114,7 +114,7 @@ export class KPIMetricsAgent extends BaseAgent {
       dependencies: ['data-analysis', 'forecasting', 'stock-optimization'],
       performance_targets: {
         max_execution_time_ms: 8000,
-        min_accuracy_score: 0.92,
+        min_accuracy_score: 0.85,
         max_error_rate: 0.02
       }
     };

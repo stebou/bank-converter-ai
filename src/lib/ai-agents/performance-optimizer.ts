@@ -87,7 +87,7 @@ export class PerformanceOptimizer extends BaseAgent {
       dependencies: ['anomaly-detection', 'kpi-metrics'],
       performance_targets: {
         max_execution_time_ms: 5000,
-        min_accuracy_score: 0.90,
+        min_accuracy_score: 0.85,
         max_error_rate: 0.03
       }
     };

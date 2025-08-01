@@ -260,31 +260,32 @@ export class MasterCoordinatorAgent extends BaseAgent {
       const externalContextAgent = this.agents.get('external-context');
       let marketIntelligence = null;
       if (externalContextAgent) {
-        const contextResult = await externalContextAgent.run({
-          company_profile: {
-            industry: 'technology', // À personnaliser selon le profil utilisateur
-            business_type: 'B2C',
-            primary_markets: ['France', 'Europe'],
-            competitors: ['Concurrent A', 'Concurrent B', 'Concurrent C'],
-            product_categories: ['electronics', 'tech accessories', 'computers']
-          },
-          analysis_timeframe: {
-            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            end: new Date(),
-            forecast_horizon_days: input.forecast_horizon_days || 30
-          },
-          demand_patterns: currentState.processed_insights.demand_patterns,
-          search_configuration: {
-            enable_competitor_monitoring: true,
-            enable_market_events: true,
-            enable_sentiment_analysis: true,
-            enable_trend_analysis: true,
-            sources_priority: ['news', 'government', 'industry']
-          }
-        }, currentState);
+        try {
+          const contextResult = await externalContextAgent.run({
+            company_profile: {
+              industry: 'technology', // À personnaliser selon le profil utilisateur
+              business_type: 'B2C',
+              primary_markets: ['France', 'Europe'],
+              competitors: ['Concurrent A', 'Concurrent B', 'Concurrent C'],
+              product_categories: ['electronics', 'tech accessories', 'computers']
+            },
+            analysis_timeframe: {
+              start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              end: new Date(),
+              forecast_horizon_days: input.forecast_horizon_days || 30
+            },
+            demand_patterns: currentState.processed_insights.demand_patterns,
+            search_configuration: {
+              enable_competitor_monitoring: true,
+              enable_market_events: true,
+              enable_sentiment_analysis: true,
+              enable_trend_analysis: true,
+              sources_priority: ['news', 'government', 'industry']
+            }
+          }, currentState);
 
-        executedAgents.push('external-context');
-        agentPerformance['external-context'] = contextResult;
+          executedAgents.push('external-context');
+          agentPerformance['external-context'] = contextResult;
 
         if (contextResult.success && contextResult.output) {
           
@@ -310,6 +311,20 @@ export class MasterCoordinatorAgent extends BaseAgent {
               globalFactor: contextResult.output.forecast_adjustments.global_market_factor
             });
           }
+        }
+        } catch (error) {
+          this.log('warn', 'External context agent failed, continuing without market intelligence', { 
+            error: error instanceof Error ? error.message : error 
+          });
+          
+          // Créer un résultat d'échec pour l'agent external-context
+          agentPerformance['external-context'] = {
+            success: false,
+            confidence_score: 0,
+            execution_time_ms: 0,
+            agent_id: 'external-context',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
         }
       }
 

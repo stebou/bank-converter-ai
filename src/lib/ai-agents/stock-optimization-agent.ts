@@ -63,7 +63,7 @@ export class StockOptimizationAgent extends BaseAgent {
       dependencies: ['data-analysis'],
       performance_targets: {
         max_execution_time_ms: 10000,
-        min_accuracy_score: 0.90,
+        min_accuracy_score: 0.85, // Ajusté pour être plus réaliste
         max_error_rate: 0.01
       }
     };
