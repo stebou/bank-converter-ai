@@ -25,6 +25,12 @@ export abstract class BaseAgent {
     const startTime = Date.now();
     this.lastExecution = new Date();
 
+    this.log('info', `Starting agent execution: ${this.config.id}`, {
+      agentId: this.config.id,
+      agentName: this.config.name,
+      inputProvided: !!input
+    });
+
     try {
       // Validation des dépendances
       await this.validateDependencies(state);
@@ -73,14 +79,19 @@ export abstract class BaseAgent {
   protected isDependencyMet(dependency: string, state: StockAnalysisState): boolean {
     switch (dependency) {
       case 'sales_history':
-        return state.raw_data.sales_history.length > 0;
+        return state.raw_data?.sales_history?.length > 0;
       case 'inventory_data':
-        return state.raw_data.current_inventory.length > 0;
+        return state.raw_data?.current_inventory?.length > 0;
       case 'demand_patterns':
-        return state.processed_insights.demand_patterns.length > 0;
+        return state.processed_insights?.demand_patterns?.length > 0;
       case 'forecasts':
-        return state.forecasts.short_term.length > 0;
+        return state.forecasts?.short_term?.length > 0;
+      case 'data-analysis':
+        // Vérifier que l'analyse des données a été exécutée
+        return state.processed_insights != null;
       default:
+        // Log des dépendances inconnues pour debugging
+        this.log('warn', `Unknown dependency: ${dependency}, assuming satisfied`);
         return true;
     }
   }

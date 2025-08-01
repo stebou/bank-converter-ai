@@ -261,10 +261,19 @@ export class MasterCoordinatorAgent extends BaseAgent {
       let marketIntelligence = null;
       if (externalContextAgent) {
         try {
-          const contextResult = await externalContextAgent.run({
+          // Vérification et préparation des demand_patterns
+          const demandPatterns = currentState.processed_insights?.demand_patterns || [];
+          
+          this.log('info', 'Preparing External Context Agent input', {
+            demandPatternsCount: demandPatterns.length,
+            hasProcessedInsights: !!currentState.processed_insights,
+            forecastHorizon: input.forecast_horizon_days || 30
+          });
+          
+          const contextInput = {
             company_profile: {
               industry: 'technology', // À personnaliser selon le profil utilisateur
-              business_type: 'B2C',
+              business_type: 'B2C' as const,
               primary_markets: ['France', 'Europe'],
               competitors: ['Concurrent A', 'Concurrent B', 'Concurrent C'],
               product_categories: ['electronics', 'tech accessories', 'computers']
@@ -274,7 +283,7 @@ export class MasterCoordinatorAgent extends BaseAgent {
               end: new Date(),
               forecast_horizon_days: input.forecast_horizon_days || 30
             },
-            demand_patterns: currentState.processed_insights.demand_patterns,
+            demand_patterns: demandPatterns,
             search_configuration: {
               enable_competitor_monitoring: true,
               enable_market_events: true,
@@ -282,7 +291,14 @@ export class MasterCoordinatorAgent extends BaseAgent {
               enable_trend_analysis: true,
               sources_priority: ['news', 'government', 'industry']
             }
-          }, currentState);
+          };
+          
+          this.log('info', 'Calling External Context Agent', {
+            inputValid: !!contextInput,
+            industry: contextInput.company_profile.industry
+          });
+          
+          const contextResult = await externalContextAgent.run(contextInput, currentState);
 
           executedAgents.push('external-context');
           agentPerformance['external-context'] = contextResult;

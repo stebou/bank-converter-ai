@@ -108,39 +108,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Formatage de la réponse
+    // Formatage de la réponse - Structure corrigée pour frontend
+    const workflowResult = analysisResult.output.workflow_result;
+    const finalState = workflowResult.final_state;
+    
     const response = {
       success: true,
       analysis_id: `analysis_${userId}_${Date.now()}`,
       execution_time_ms: executionTime,
       confidence_score: analysisResult.confidence_score,
       
-      // Résultats principaux
-      workflow_result: analysisResult.output.workflow_result,
-      recommendations: analysisResult.output.final_recommendations,
-      real_time_metrics: analysisResult.output.real_time_metrics,
-      execution_summary: analysisResult.output.execution_summary,
-      
-      // Métriques détaillées
-      kpis: analysisResult.output.workflow_result.final_state.metrics,
-      alerts: analysisResult.output.workflow_result.alerts,
+      // Résultats formatés pour le frontend
+      recommendations: analysisResult.output.final_recommendations || [],
+      alerts: workflowResult.alerts || [],
+      kpis: finalState.metrics || {},
       
       // Insights détaillés
-      demand_patterns: analysisResult.output.workflow_result.final_state.processed_insights.demand_patterns,
-      product_segments: analysisResult.output.workflow_result.final_state.processed_insights.product_segments,
+      demand_patterns: finalState.processed_insights?.demand_patterns || [],
+      product_segments: finalState.processed_insights?.product_segments || [],
       forecasts: {
-        short_term: analysisResult.output.workflow_result.final_state.forecasts.short_term.slice(0, 10), // Limiter la réponse
-        medium_term: analysisResult.output.workflow_result.final_state.forecasts.medium_term.slice(0, 10),
+        short_term: finalState.forecasts?.short_term?.slice(0, 10) || [],
+        medium_term: finalState.forecasts?.medium_term?.slice(0, 10) || [],
         summary: {
           total_forecasts: 
-            analysisResult.output.workflow_result.final_state.forecasts.short_term.length +
-            analysisResult.output.workflow_result.final_state.forecasts.medium_term.length +
-            analysisResult.output.workflow_result.final_state.forecasts.long_term.length
+            (finalState.forecasts?.short_term?.length || 0) +
+            (finalState.forecasts?.medium_term?.length || 0) +
+            (finalState.forecasts?.long_term?.length || 0)
         }
       },
       
+      // Résumé d'exécution
+      execution_summary: analysisResult.output.execution_summary || 'Analyse complétée avec succès',
+      
       // Performance des agents
-      agents_performance: analysisResult.output.workflow_result.performance_summary.agents_performance,
+      agents_performance: workflowResult.performance_summary?.agents_performance || {},
+      
+      // Données complètes pour debugging (optionnel)
+      workflow_result: workflowResult,
+      real_time_metrics: analysisResult.output.real_time_metrics,
       
       // Métadonnées
       generated_at: new Date().toISOString(),
@@ -154,12 +159,14 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // Log pour monitoring
+    // Log pour monitoring - Structure corrigée
     console.log('[AI-AGENTS] Response prepared:', {
-      recommendationsCount: response.recommendations.length,
-      alertsCount: response.alerts.length,
+      recommendationsCount: Array.isArray(response.recommendations) ? response.recommendations.length : 0,
+      alertsCount: Array.isArray(response.alerts) ? response.alerts.length : 0,
       kpiScore: response.confidence_score,
-      totalForecasts: response.forecasts.summary.total_forecasts
+      totalForecasts: response.forecasts.summary.total_forecasts,
+      demandPatternsCount: Array.isArray(response.demand_patterns) ? response.demand_patterns.length : 0,
+      productSegmentsCount: Array.isArray(response.product_segments) ? response.product_segments.length : 0
     });
 
     return NextResponse.json(response);

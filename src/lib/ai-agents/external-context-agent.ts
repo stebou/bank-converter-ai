@@ -233,6 +233,14 @@ Format attendu:
   ]
 }`;
 
+      this.log('info', 'Calling OpenAI API for batch analysis', {
+        model: 'gpt-4o-mini',
+        promptLength: batchPrompt.length,
+        searchesCount: searches.length,
+        temperature: 0.3,
+        maxTokens: 4000
+      });
+
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -241,6 +249,11 @@ Format attendu:
         ],
         temperature: 0.3,
         max_tokens: 4000 // Augmenté pour le batch
+      });
+
+      this.log('info', 'OpenAI API call completed', {
+        usage: completion.usage,
+        responseLength: completion.choices[0]?.message?.content?.length || 0
       });
 
       const response = completion.choices[0]?.message?.content;
@@ -336,8 +349,18 @@ Format attendu:
         industry: input.company_profile.industry,
         markets: input.company_profile.primary_markets.length,
         competitors: input.company_profile.competitors.length,
-        timeframe: input.analysis_timeframe
+        timeframe: input.analysis_timeframe,
+        demandPatternsCount: input.demand_patterns?.length || 0,
+        hasOpenAIKey: !!process.env.OPENAI_API_KEY
       });
+
+      // Debug: Vérifier la clé OpenAI
+      if (!process.env.OPENAI_API_KEY) {
+        this.log('error', 'OPENAI_API_KEY not found in environment variables');
+        throw new Error('OPENAI_API_KEY is required for external context analysis');
+      }
+
+      this.log('info', 'OpenAI integration available, proceeding with market trends analysis');
 
       // 1. Recherche de tendances marché
       const marketTrends = await this.searchMarketTrends(input);
