@@ -2,6 +2,7 @@
 
 import { BaseAgent } from '../shared/base-agent';
 import OpenAI from 'openai';
+import { getJson } from 'serpapi';
 import type { 
   AgentConfig, 
   AgentExecutionResult, 
@@ -281,7 +282,9 @@ Format attendu:
               demand_change_percentage: insight.predicted_impact?.demand_change_percentage || 0,
               direction: insight.predicted_impact?.direction || 'NEUTRAL',
               duration_days: insight.predicted_impact?.duration_days || 30
-            }
+            },
+            discovered_at: new Date(),
+            keywords: ['market_trends', 'ai_analysis', input.company_profile.industry]
           });
         }
       }
@@ -572,12 +575,12 @@ Format attendu:
       {
         title: 'Inflation modérée prévue Q4 2025',
         description: 'Les prévisions économiques anticipent une inflation de 2.8% au Q4',
-        impact: { demand: -0.1, price: 0.2, supply: -0.05 }
+        impact: { demand_impact: -0.1, price_impact: 0.2, supply_chain_impact: -0.05 }
       },
       {
         title: 'Taux d\'intérêt stable maintenu',
         description: 'La banque centrale maintient les taux directeurs inchangés',
-        impact: { demand: 0.05, price: 0, supply: 0.02 }
+        impact: { demand_impact: 0.05, price_impact: 0, supply_chain_impact: 0.02 }
       }
     ];
 
@@ -592,7 +595,11 @@ Format attendu:
           geographic_scope: 'NATIONAL',
           impact_magnitude: 'MEDIUM',
           affected_industries: [input.company_profile.industry],
-          predicted_effects: event.impact,
+          predicted_effects: {
+            demand_impact: event.impact.demand_impact,
+            price_impact: event.impact.price_impact,
+            supply_chain_impact: event.impact.supply_chain_impact
+          },
           preparation_recommendations: [
             'Ajuster stratégie pricing',
             'Réviser prévisions de demande',
@@ -815,16 +822,37 @@ Analyse le sentiment global et par catégorie.`;
     }
   }
 
-  // Méthode pour exécuter la recherche web via l'outil WebSearch
+  // Méthode pour exécuter la recherche web via SerpAPI
   private async executeWebSearch(query: string, industry: string): Promise<any[]> {
     try {
       // Construction de la requête optimisée pour le secteur
       const optimizedQuery = `${query} ${industry} 2025 market trends analysis`;
       
-      this.log('info', 'Executing real web search', { optimizedQuery });
+      this.log('info', 'Executing real web search with SerpAPI', { optimizedQuery });
       
-      // Utilisation de vraies recherches web
-      const webResults = await this.generateEnhancedWebResults(optimizedQuery, industry);
+      // Vérification de la clé API
+      if (!process.env.SERPAPI_API_KEY) {
+        this.log('warn', 'SERPAPI_API_KEY not found, falling back to OpenAI simulation');
+        return await this.generateEnhancedWebResults(optimizedQuery, industry);
+      }
+
+      // Recherche Google via SerpAPI
+      const searchResults = await getJson({
+        engine: "google",
+        q: optimizedQuery,
+        api_key: process.env.SERPAPI_API_KEY,
+        num: 10,
+        hl: "fr",
+        gl: "fr"
+      });
+
+      this.log('info', 'SerpAPI search completed', { 
+        query: optimizedQuery,
+        organicResults: searchResults.organic_results?.length || 0
+      });
+
+      // Convertir les résultats SerpAPI au format attendu
+      const webResults = this.convertSerpAPIResults(searchResults, industry);
       
       this.log('info', 'Web search completed', { 
         query: optimizedQuery,
@@ -833,9 +861,74 @@ Analyse le sentiment global et par catégorie.`;
 
       return webResults;
     } catch (error) {
-      this.log('error', 'Web search execution failed', { error: error instanceof Error ? error.message : error });
-      return [];
+      this.log('error', 'SerpAPI search failed, falling back to OpenAI simulation', { 
+        error: error instanceof Error ? error.message : error 
+      });
+      
+      // Fallback vers OpenAI si SerpAPI échoue
+      const optimizedQuery = `${query} ${industry} 2025 market trends analysis`;
+      return await this.generateEnhancedWebResults(optimizedQuery, industry);
     }
+  }
+
+  // Convertir les résultats SerpAPI en format structuré
+  private convertSerpAPIResults(searchResults: any, industry: string): any[] {
+    const results: any[] = [];
+    
+    if (!searchResults.organic_results) {
+      this.log('warn', 'No organic results found in SerpAPI response');
+      return results;
+    }
+
+    for (const result of searchResults.organic_results.slice(0, 8)) {
+      results.push({
+        title: result.title || 'Sans titre',
+        content: result.snippet || 'Contenu non disponible',
+        url: result.link || '',
+        date: new Date().toISOString(),
+        source: this.extractDomainName(result.link || ''),
+        reliability: this.calculateSourceReliability(result.link || ''),
+        source_type: 'Real Web Search Result'
+      });
+    }
+    
+    this.log('info', 'Converted SerpAPI results', {
+      originalResults: searchResults.organic_results?.length || 0,
+      convertedResults: results.length,
+      industry
+    });
+
+    return results;
+  }
+
+  // Extraire le nom de domaine d'une URL
+  private extractDomainName(url: string): string {
+    try {
+      const domain = new URL(url).hostname;
+      return domain.replace('www.', '');
+    } catch {
+      return 'Source inconnue';
+    }
+  }
+
+  // Calculer la fiabilité d'une source basée sur son domaine
+  private calculateSourceReliability(url: string): number {
+    const domain = this.extractDomainName(url);
+    
+    // Sources premium avec haute fiabilité
+    const premiumSources = {
+      'mckinsey.com': 0.95,
+      'deloitte.com': 0.92,
+      'pwc.com': 0.90,
+      'bcg.com': 0.94,
+      'reuters.com': 0.88,
+      'bloomberg.com': 0.87,
+      'economist.com': 0.85,
+      'ft.com': 0.84,
+      'wsj.com': 0.83
+    };
+
+    return premiumSources[domain] || 0.7; // Fiabilité par défaut
   }
 
   // Génération de résultats web avec la nouvelle Assistants API OpenAI
@@ -847,7 +940,27 @@ Analyse le sentiment global et par catégorie.`;
         model: 'gpt-4o-mini'
       });
 
+      // Créer un thread de conversation AVANT l'assistant
+      this.log('info', 'Creating OpenAI thread...');
+      const thread = await this.openai.beta.threads.create();
+
+      // CRITICAL: Extraire explicitement l'ID du thread
+      const threadId = thread?.id;
+
+      this.log('info', 'OpenAI thread creation result', { 
+        threadId: threadId,
+        threadExists: !!thread,
+        threadIdType: typeof threadId,
+        threadIdValid: threadId && threadId.startsWith('thread_')
+      });
+
+      // Validation stricte selon la documentation OpenAI
+      if (!threadId || typeof threadId !== 'string' || !threadId.startsWith('thread_')) {
+        throw new Error(`Invalid thread ID received: ${threadId}. Expected ID starting with 'thread_'`);
+      }
+
       // Créer un Assistant spécialisé en intelligence marché
+      this.log('info', 'Creating OpenAI assistant...');
       const assistant = await this.openai.beta.assistants.create({
         name: "Market Intelligence Agent",
         instructions: `Tu es un expert en intelligence marché spécialisé dans l'analyse de données pour la gestion des stocks. 
@@ -862,42 +975,25 @@ Pour chaque requête, fournis:
 5. Opportunités et risques pour la gestion des stocks
 
 Réponds toujours avec des données structurées et exploitables.`,
-        model: "gpt-4o-mini",
-        tools: [
-          {
-            "type": "function",
-            "function": {
-              "name": "analyze_market_data",
-              "description": "Analyse des données de marché pour l'intelligence commerciale",
-              "parameters": {
-                "type": "object",
-                "properties": {
-                  "query": {
-                    "type": "string",
-                    "description": "Requête de recherche marché"
-                  },
-                  "industry": {
-                    "type": "string", 
-                    "description": "Secteur d'activité"
-                  },
-                  "sources": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Sources premium à consulter"
-                  }
-                },
-                "required": ["query", "industry"]
-              }
-            }
-          }
-        ]
+        model: "gpt-4o-mini"
       });
 
-      // Créer un thread de conversation
-      const thread = await this.openai.beta.threads.create();
+      this.log('info', 'OpenAI assistant created successfully', { 
+        assistantId: assistant.id 
+      });
 
-      // Envoyer le message
-      await this.openai.beta.threads.messages.create(thread.id, {
+      if (!assistant || !assistant.id) {
+        throw new Error('Failed to create OpenAI assistant - invalid response');
+      }
+
+      // Validation avant ajout de message
+      if (!threadId || typeof threadId !== 'string') {
+        throw new Error(`threadId is undefined or invalid: ${threadId}`);
+      }
+      
+      // Envoyer le message dans le thread
+      this.log('info', 'Adding message to thread...', { threadId: threadId });
+      const message = await this.openai.beta.threads.messages.create(threadId, {
         role: "user",
         content: `Analyse les données de marché pour: "${query}" dans l'industrie ${industry}.
 
@@ -910,26 +1006,86 @@ Concentre-toi sur ces sources premium:
 Fournis des insights exploitables pour la gestion des stocks et la prévision de la demande.`
       });
 
-      // Exécuter l'Assistant
-      const run = await this.openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistant.id
+      this.log('info', 'Message added to thread successfully', { 
+        messageId: message.id 
       });
 
-      // Attendre la completion
-      let runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
+      // Validation avant création du run
+      if (!threadId || typeof threadId !== 'string') {
+        throw new Error(`threadId is undefined or invalid: ${threadId}`);
+      }
+      if (!assistant?.id) {
+        throw new Error(`Assistant ID is undefined: ${assistant?.id}`);
+      }
       
-      while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+      // Exécuter l'Assistant avec le thread
+      this.log('info', 'Creating run...', { 
+        threadId: threadId, 
+        assistantId: assistant.id 
+      });
+      
+      const run = await this.openai.beta.threads.runs.create(threadId, {
+        assistant_id: assistant.id,
+        instructions: "Analyse les données demandées et fournis des insights structurés pour la gestion des stocks."
+      });
+
+      this.log('info', 'Run created successfully', { 
+        runId: run.id, 
+        status: run.status 
+      });
+
+      // Validation avant récupération du run
+      if (!run?.id) {
+        throw new Error(`Run ID is undefined: ${run?.id}`);
+      }
+      if (!threadId || typeof threadId !== 'string') {
+        throw new Error(`threadId is undefined or invalid before run retrieval: ${threadId}`);
+      }
+      
+      // Attendre la completion avec timeout
+      let runStatus = await this.openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
+      let attempts = 0;
+      const maxAttempts = 60; // 60 secondes max
+      
+      while ((runStatus.status === 'in_progress' || runStatus.status === 'queued') && attempts < maxAttempts) {
+        this.log('info', 'Waiting for run completion...', { 
+          status: runStatus.status, 
+          attempt: attempts + 1,
+          maxAttempts 
+        });
+        
         await new Promise(resolve => setTimeout(resolve, 1000));
-        runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
+        // Validation avant retry
+        if (!run?.id || !threadId) {
+          throw new Error(`IDs undefined during retry - runId: ${run?.id}, threadId: ${threadId}`);
+        }
+        runStatus = await this.openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
+        attempts++;
       }
 
-      this.log('info', 'OpenAI Assistant analysis completed', {
+      this.log('info', 'Run completed', {
         status: runStatus.status,
-        usage: runStatus.usage
+        usage: runStatus.usage,
+        totalAttempts: attempts
       });
 
+      if (runStatus.status !== 'completed') {
+        throw new Error(`Run failed with status: ${runStatus.status}`);
+      }
+
+      // Validation avant récupération des messages
+      if (!threadId || typeof threadId !== 'string') {
+        throw new Error(`threadId is undefined or invalid before message retrieval: ${threadId}`);
+      }
+      
       // Récupérer les messages de réponse
-      const messages = await this.openai.beta.threads.messages.list(thread.id);
+      this.log('info', 'Retrieving messages from thread...');
+      const messages = await this.openai.beta.threads.messages.list(threadId);
+      
+      this.log('info', 'Messages retrieved', { 
+        totalMessages: messages.data.length 
+      });
+
       const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
       
       let marketContent = '';
@@ -939,10 +1095,25 @@ Fournis des insights exploitables pour la gestion des stocks et la prévision de
           .filter(content => content.type === 'text')
           .map(content => content.text.value)
           .join('\n');
+        
+        this.log('info', 'Market content extracted', { 
+          contentLength: marketContent.length,
+          messageCount: assistantMessages.length
+        });
+      } else {
+        this.log('warn', 'No assistant messages found in response');
       }
 
-      // Nettoyage
-      await this.openai.beta.assistants.del(assistant.id);
+      // Nettoyage des ressources
+      this.log('info', 'Cleaning up OpenAI resources...');
+      try {
+        await this.openai.beta.assistants.delete(assistant.id);
+        this.log('info', 'Assistant deleted successfully');
+      } catch (cleanupError) {
+        this.log('warn', 'Failed to delete assistant', { 
+          error: cleanupError instanceof Error ? cleanupError.message : cleanupError 
+        });
+      }
 
       // Convertir le contenu en résultats web structurés
       return this.convertOpenAIToWebResults(marketContent, query, industry);
@@ -960,7 +1131,7 @@ Fournis des insights exploitables pour la gestion des stocks et la prévision de
   // Convertir le contenu OpenAI en résultats web structurés
   private convertOpenAIToWebResults(marketContent: string, query: string, industry: string): any[] {
     const currentDate = new Date();
-    const results = [];
+    const results: any[] = [];
 
     // Sources premium pour la structuration
     const premiumSources = [
@@ -1005,7 +1176,7 @@ Fournis des insights exploitables pour la gestion des stocks et la prévision de
 
     // Extraire et structurer les informations des vraies recherches web
     const segments = webContent.split('\n\n');
-    const results = [];
+    const results: any[] = [];
 
     // Créer des résultats structurés à partir du contenu web réel
     const premiumSources = [
@@ -1042,7 +1213,7 @@ Fournis des insights exploitables pour la gestion des stocks et la prévision de
   // Données de fallback si la recherche web échoue
   private generateFallbackWebResults(query: string, industry: string): any[] {
     const currentDate = new Date();
-    const results = [];
+    const results: any[] = [];
     
     this.log('info', 'Using fallback web results', { query, industry });
     
@@ -1324,7 +1495,7 @@ Analyse ces données et fournis des insights exploitables pour optimiser la gest
   }
 
   private generateInsightTitle(query: string, type: MarketInsight['type']): string {
-    const templates = {
+    const templates: Record<MarketInsight['type'], string[]> = {
       'TREND': [
         `Nouvelle tendance détectée: ${query}`,
         `Évolution marché: ${query}`,
@@ -1339,6 +1510,21 @@ Analyse ces données et fournis des insights exploitables pour optimiser la gest
         `Mouvement concurrentiel: ${query}`,
         `Action concurrent: ${query}`,
         `Veille concurrence: ${query}`
+      ],
+      'REGULATION': [
+        `Nouvelle réglementation: ${query}`,
+        `Changement réglementaire: ${query}`,
+        `Impact réglementaire: ${query}`
+      ],
+      'ECONOMIC': [
+        `Indicateur économique: ${query}`,
+        `Évolution économique: ${query}`,
+        `Impact économique: ${query}`
+      ],
+      'SEASONAL': [
+        `Pattern saisonnier: ${query}`,
+        `Variation saisonnière: ${query}`,
+        `Tendance saisonnière: ${query}`
       ]
     };
 

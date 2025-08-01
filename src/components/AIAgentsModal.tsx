@@ -46,6 +46,64 @@ interface AnalysisResult {
   };
   execution_summary: string;
   agents_performance: { [key: string]: AgentPerformance };
+  market_intelligence?: MarketIntelligence;
+}
+
+interface MarketIntelligence {
+  market_insights: MarketInsight[];
+  competitor_analysis: CompetitorAnalysis[];
+  market_events: MarketEvent[];
+  sentiment_analysis: SentimentAnalysis | null;
+  contextual_recommendations: string[];
+  forecast_adjustments: any;
+  intelligence_summary: string;
+}
+
+interface MarketInsight {
+  id: string;
+  type: 'TREND' | 'EVENT' | 'COMPETITOR' | 'REGULATION' | 'ECONOMIC' | 'SEASONAL';
+  source: string;
+  title: string;
+  description: string;
+  impact_score: number;
+  confidence_score: number;
+  time_relevance: 'IMMEDIATE' | 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+  affected_products: string[];
+  predicted_impact: {
+    demand_change_percentage: number;
+    direction: 'INCREASE' | 'DECREASE' | 'NEUTRAL';
+    duration_days: number;
+  };
+  discovered_at: Date;
+  keywords: string[];
+}
+
+interface CompetitorAnalysis {
+  competitor_name: string;
+  actions_detected: any[];
+  market_position: any;
+  recent_activities: any;
+  threat_assessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+}
+
+interface MarketEvent {
+  event_id: string;
+  event_type: string;
+  title: string;
+  description: string;
+  start_date: Date;
+  impact_magnitude: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+}
+
+interface SentimentAnalysis {
+  overall_sentiment: number;
+  sentiment_trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
+  key_topics: any[];
+  consumer_confidence: {
+    current_level: number;
+    three_month_outlook: number;
+    industry_specific: number;
+  };
 }
 
 interface Recommendation {
@@ -259,7 +317,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
 
       const progressInterval = simulateProgress();
 
-      const response = await fetch('/api/ai-agents/analyze', {
+      const response = await fetch('/api/inventory-agents/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -425,7 +483,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Précision Prévisions
               </p>
               <p className="text-lg font-bold font-montserrat text-[#2c3e50]">
-                {(100 - (analysisResult?.kpis.forecast_accuracy.overall_mape || 0)).toFixed(0)}%
+                {(100 - (analysisResult?.kpis?.forecast_accuracy?.overall_mape || 0)).toFixed(0)}%
               </p>
             </div>
           </div>
@@ -441,7 +499,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Niveau Service
               </p>
               <p className="text-lg font-bold font-montserrat text-[#2c3e50]">
-                {(analysisResult?.kpis.service_metrics.service_level || 0).toFixed(0)}%
+                {(analysisResult?.kpis?.service_metrics?.service_level || 0).toFixed(0)}%
               </p>
             </div>
           </div>
@@ -457,7 +515,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Rotation Stock
               </p>
               <p className="text-lg font-bold font-montserrat text-[#2c3e50]">
-                {(analysisResult?.kpis.financial_metrics.inventory_turnover || 0).toFixed(1)}x
+                {(analysisResult?.kpis?.financial_metrics?.inventory_turnover || 0).toFixed(1)}x
               </p>
             </div>
           </div>
@@ -927,35 +985,91 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 
-  const renderMarketIntelligence = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl p-6 border border-[#bdc3c7]">
-        <h3 className="text-lg font-semibold font-montserrat text-[#2c3e50] mb-4">
-          <TrendingUp className="w-5 h-5 inline mr-2" />
-          Intelligence Marché & Veille Concurrentielle
-        </h3>
-        
-        {/* Métriques d'intelligence marché */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Insights Marché', value: '12', icon: '🔍', color: 'text-blue-600', bg: 'bg-blue-100' },
-            { label: 'Actions Concurrents', value: '3', icon: '⚔️', color: 'text-orange-600', bg: 'bg-orange-100' },
-            { label: 'Événements Détectés', value: '5', icon: '📅', color: 'text-green-600', bg: 'bg-green-100' },
-            { label: 'Sentiment Marché', value: '+12%', icon: '📈', color: 'text-purple-600', bg: 'bg-purple-100' }
-          ].map((metric, index) => (
-            <div key={index} className="bg-[#ecf0f1] rounded-lg p-4">
-              <div className={`w-8 h-8 ${metric.bg} rounded-lg flex items-center justify-center mb-2`}>
-                <span className="text-lg">{metric.icon}</span>
+  const renderMarketIntelligence = () => {
+    const marketData = analysisResult?.market_intelligence;
+    const hasRealData = marketData && marketData.market_insights && marketData.market_insights.length > 0;
+    
+    // Métriques basées sur les vraies données ou fallback
+    const metrics = hasRealData ? [
+      { 
+        label: 'Insights Marché', 
+        value: marketData.market_insights.length.toString(), 
+        icon: '🔍', 
+        color: 'text-blue-600', 
+        bg: 'bg-blue-100' 
+      },
+      { 
+        label: 'Actions Concurrents', 
+        value: marketData.competitor_analysis.length.toString(), 
+        icon: '⚔️', 
+        color: 'text-orange-600', 
+        bg: 'bg-orange-100' 
+      },
+      { 
+        label: 'Événements Détectés', 
+        value: marketData.market_events.length.toString(), 
+        icon: '📅', 
+        color: 'text-green-600', 
+        bg: 'bg-green-100' 
+      },
+      { 
+        label: 'Sentiment Marché', 
+        value: marketData.sentiment_analysis 
+          ? `${(marketData.sentiment_analysis.overall_sentiment * 100).toFixed(0)}%`
+          : 'N/A', 
+        icon: '📈', 
+        color: 'text-purple-600', 
+        bg: 'bg-purple-100' 
+      }
+    ] : [
+      { label: 'Insights Marché', value: '0', icon: '🔍', color: 'text-blue-600', bg: 'bg-blue-100' },
+      { label: 'Actions Concurrents', value: '0', icon: '⚔️', color: 'text-orange-600', bg: 'bg-orange-100' },
+      { label: 'Événements Détectés', value: '0', icon: '📅', color: 'text-green-600', bg: 'bg-green-100' },
+      { label: 'Recherches Web', value: 'Actives', icon: '🌐', color: 'text-purple-600', bg: 'bg-purple-100' }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl p-6 border border-[#bdc3c7]">
+          <h3 className="text-lg font-semibold font-montserrat text-[#2c3e50] mb-4">
+            <TrendingUp className="w-5 h-5 inline mr-2" />
+            Intelligence Marché & Veille Concurrentielle
+          </h3>
+          
+          {/* Statut de l'intégration */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Globe className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">
+                  {hasRealData ? '✅ Intelligence Marché Active' : '🔄 SerpAPI Intégrée - Recherches Web Disponibles'}
+                </p>
+                <p className="text-xs text-blue-600">
+                  {hasRealData 
+                    ? `${marketData.intelligence_summary}` 
+                    : 'SerpAPI configurée avec votre clé. Les prochaines analyses incluront des recherches web réelles.'
+                  }
+                </p>
               </div>
-              <p className="font-medium font-montserrat text-[#2c3e50] text-sm">
-                {metric.label}
-              </p>
-              <p className={`text-xl font-bold ${metric.color} font-montserrat`}>
-                {metric.value}
-              </p>
             </div>
-          ))}
-        </div>
+          </div>
+          
+          {/* Métriques d'intelligence marché */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {metrics.map((metric, index) => (
+              <div key={index} className="bg-[#ecf0f1] rounded-lg p-4">
+                <div className={`w-8 h-8 ${metric.bg} rounded-lg flex items-center justify-center mb-2`}>
+                  <span className="text-lg">{metric.icon}</span>
+                </div>
+                <p className="font-medium font-montserrat text-[#2c3e50] text-sm">
+                  {metric.label}
+                </p>
+                <p className={`text-xl font-bold ${metric.color} font-montserrat`}>
+                  {metric.value}
+                </p>
+              </div>
+            ))}
+          </div>
 
         {/* Insights marché prioritaires */}
         <div className="mb-6">
@@ -963,63 +1077,53 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
             Insights Marché Prioritaires
           </h4>
           <div className="space-y-3">
-            {[
-              {
-                title: 'Tendance forte: Demande électronique +18%',
-                source: 'Les Echos Business',
-                impact: 'HIGH',
-                description: 'Croissance soutenue du marché électronique grand public',
-                timeframe: 'Court terme',
-                confidence: 92
-              },
-              {
-                title: 'Événement: Black Friday approche',
-                source: 'Calendrier Commercial',
-                impact: 'CRITICAL',
-                description: 'Pic de demande prévu +200% sur produits tech',
-                timeframe: 'Immédiat',
-                confidence: 95
-              },
-              {
-                title: 'Concurrent A: Promotion -30% laptops',
-                source: 'Veille Concurrentielle',
-                impact: 'MEDIUM',
-                description: 'Action commerciale agressive détectée',
-                timeframe: 'Court terme',
-                confidence: 88
-              }
-            ].map((insight, index) => (
-              <div key={index} className="p-4 bg-[#ecf0f1] rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <h5 className="font-medium font-montserrat text-[#2c3e50] flex-1">
-                    {insight.title}
-                  </h5>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-lg border ${
-                      insight.impact === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-200' :
-                      insight.impact === 'HIGH' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                      'bg-yellow-100 text-yellow-800 border-yellow-200'
-                    }`}>
-                      {insight.impact}
+            {hasRealData && marketData.market_insights.length > 0 ? (
+              marketData.market_insights.slice(0, 5).map((insight) => (
+                <div key={insight.id} className="p-4 bg-[#ecf0f1] rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <h5 className="font-medium font-montserrat text-[#2c3e50] flex-1">
+                      {insight.title}
+                    </h5>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-lg border ${
+                        insight.impact_score > 0.8 ? 'bg-red-100 text-red-800 border-red-200' :
+                        insight.impact_score > 0.6 ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                        'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      }`}>
+                        {insight.impact_score > 0.8 ? 'CRITICAL' : insight.impact_score > 0.6 ? 'HIGH' : 'MEDIUM'}
+                      </span>
+                      <span className="text-xs text-[#34495e] font-open-sans">
+                        {(insight.confidence_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-[#34495e] font-open-sans mb-2">
+                    {insight.description}
+                  </p>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[#34495e] font-open-sans">
+                      Source: {insight.source}
                     </span>
-                    <span className="text-xs text-[#34495e] font-open-sans">
-                      {insight.confidence}%
+                    <span className="text-[#34495e] font-open-sans">
+                      {insight.time_relevance.toLowerCase().replace('_', ' ')}
                     </span>
                   </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {insight.keywords.slice(0, 3).map((keyword, idx) => (
+                      <span key={idx} className="px-2 py-1 text-xs bg-white rounded-lg text-[#34495e]">
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm text-[#34495e] font-open-sans mb-2">
-                  {insight.description}
+              ))
+            ) : (
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 font-open-sans">
+                  {hasRealData ? 'Aucun insight disponible' : 'SerpAPI intégrée - les prochaines analyses incluront des insights marché temps réel'}
                 </p>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#34495e] font-open-sans">
-                    Source: {insight.source}
-                  </span>
-                  <span className="text-[#34495e] font-open-sans">
-                    {insight.timeframe}
-                  </span>
-                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -1029,43 +1133,41 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
             Analyse Concurrentielle
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { name: 'Concurrent A', threat: 'HIGH', actions: 2, trend: 'up' },
-              { name: 'Concurrent B', threat: 'MEDIUM', actions: 1, trend: 'stable' },
-              { name: 'Concurrent C', threat: 'LOW', actions: 0, trend: 'down' }
-            ].map((competitor, index) => (
-              <div key={index} className="p-4 bg-[#ecf0f1] rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <h5 className="font-medium font-montserrat text-[#2c3e50]">
-                    {competitor.name}
-                  </h5>
-                  <span className={`w-2 h-2 rounded-full ${
-                    competitor.threat === 'HIGH' ? 'bg-red-500' :
-                    competitor.threat === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}></span>
+            {hasRealData && marketData.competitor_analysis.length > 0 ? (
+              marketData.competitor_analysis.slice(0, 3).map((competitor, index) => (
+                <div key={index} className="p-4 bg-[#ecf0f1] rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h5 className="font-medium font-montserrat text-[#2c3e50]">
+                      {competitor.competitor_name}
+                    </h5>
+                    <span className={`w-2 h-2 rounded-full ${
+                      competitor.threat_assessment === 'HIGH' || competitor.threat_assessment === 'CRITICAL' ? 'bg-red-500' :
+                      competitor.threat_assessment === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}></span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-[#34495e] font-open-sans">
+                      {competitor.actions_detected.length} actions récentes
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-lg ${
+                      competitor.threat_assessment === 'HIGH' || competitor.threat_assessment === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                      competitor.threat_assessment === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      Menace {competitor.threat_assessment}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-[#34495e] font-open-sans">
-                    {competitor.actions} actions récentes
-                  </span>
-                  <span className={`font-medium ${
-                    competitor.trend === 'up' ? 'text-red-600' :
-                    competitor.trend === 'stable' ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
-                    {competitor.trend === 'up' ? '↗️' : competitor.trend === 'stable' ? '➡️' : '↘️'}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <span className={`text-xs px-2 py-1 rounded-lg ${
-                    competitor.threat === 'HIGH' ? 'bg-red-100 text-red-800' :
-                    competitor.threat === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    Menace {competitor.threat}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-3 p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 font-open-sans">
+                  {hasRealData ? 'Aucune analyse concurrentielle disponible' : 'Analyse concurrentielle sera disponible avec les recherches web'}
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -1080,10 +1182,22 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Facteurs Externes Intégrés
               </h5>
               <ul className="space-y-1 text-sm text-[#34495e] font-open-sans">
-                <li>• Indicateurs économiques: +5% confiance consommateur</li>
-                <li>• Saisonnalité renforcée: Q4 traditionnel</li>
-                <li>• Actions concurrence: Impact modéré évalué</li>
-                <li>• Événements marché: 3 pics identifiés</li>
+                {hasRealData ? (
+                  <>
+                    <li>• Sentiment marché: {marketData.sentiment_analysis ? 
+                      `${(marketData.sentiment_analysis.overall_sentiment * 100).toFixed(0)}% positif` : 'Non disponible'}</li>
+                    <li>• Événements détectés: {marketData.market_events.length} identifiés</li>
+                    <li>• Insights marché: {marketData.market_insights.length} analyses</li>
+                    <li>• Recherches web: Données temps réel intégrées</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• SerpAPI: Intégrée et opérationnelle</li>
+                    <li>• OpenAI GPT-4: Intelligence d'analyse</li>
+                    <li>• Recherches temps réel: Prêt pour activation</li>
+                    <li>• Concurrence: Surveillance automatisée</li>
+                  </>
+                )}
               </ul>
             </div>
             <div>
@@ -1091,17 +1205,26 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Ajustements Recommandés
               </h5>
               <ul className="space-y-1 text-sm text-[#34495e] font-open-sans">
-                <li>• Prévisions +12% pour électronique</li>
-                <li>• Stock sécurité +20% période critique</li>
-                <li>• Surveillance quotidienne concurrent A</li>
-                <li>• Activation plan Black Friday</li>
+                {hasRealData && marketData.contextual_recommendations.length > 0 ? (
+                  marketData.contextual_recommendations.slice(0, 4).map((rec, idx) => (
+                    <li key={idx}>• {rec}</li>
+                  ))
+                ) : (
+                  <>
+                    <li>• Prochaine analyse: Recherches web complètes</li>
+                    <li>• Intelligence marché: Données temps réel</li>
+                    <li>• Surveillance concurrence: Automatique</li>
+                    <li>• Ajustements prévisions: Basés sur web</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <AnimatePresence>

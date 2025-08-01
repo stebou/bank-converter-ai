@@ -145,8 +145,8 @@ export class MasterCoordinatorAgent extends BaseAgent {
       const dataAnalysisAgent = this.agents.get('data-analysis');
       if (dataAnalysisAgent) {
         const analysisResult = await dataAnalysisAgent.run({
-          sales_history: input.sales_history || [],
-          inventory_history: input.inventory_history || [],
+          sales_history: currentState.raw_data?.sales_history || [],
+          inventory_history: currentState.raw_data?.current_inventory || [],
           time_range: input.time_range || { start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), end: new Date() },
           analysis_type: 'FULL_ANALYSIS'
         }, currentState);
@@ -166,10 +166,10 @@ export class MasterCoordinatorAgent extends BaseAgent {
       // Étape 2: Génération des prévisions
       this.log('info', 'Executing forecasting phase');
       const forecastingAgent = this.agents.get('forecasting');
-      if (forecastingAgent && currentState.processed_insights.demand_patterns.length > 0) {
+      if (forecastingAgent && currentState.processed_insights?.demand_patterns?.length > 0) {
         const forecastingResult = await forecastingAgent.run({
-          historical_data: input.sales_history || [],
-          demand_patterns: currentState.processed_insights.demand_patterns,
+          historical_data: currentState.raw_data?.sales_history || [],
+          demand_patterns: currentState.processed_insights?.demand_patterns || [],
           external_factors: input.external_factors || [],
           forecast_horizon_days: input.forecast_horizon_days || 30,
           confidence_level: 0.95
@@ -195,12 +195,12 @@ export class MasterCoordinatorAgent extends BaseAgent {
       // Étape 3: Optimisation des stocks
       this.log('info', 'Executing stock optimization phase');
       const stockOptimizationAgent = this.agents.get('stock-optimization');
-      if (stockOptimizationAgent && currentState.processed_insights.demand_patterns.length > 0) {
+      if (stockOptimizationAgent && currentState.processed_insights?.demand_patterns?.length > 0) {
         const optimizationResult = await stockOptimizationAgent.run({
-          sales_history: input.sales_history || [],
-          demand_patterns: currentState.processed_insights.demand_patterns,
-          current_inventory: input.inventory_history || [],
-          supplier_data: initialState.raw_data.supplier_data || [],
+          sales_history: currentState.raw_data?.sales_history || [],
+          demand_patterns: currentState.processed_insights?.demand_patterns || [],
+          current_inventory: currentState.raw_data?.current_inventory || [],
+          supplier_data: currentState.raw_data?.supplier_data || [],
           cost_parameters: {
             holding_cost_rate: 0.15, // 15% annuel
             ordering_cost: 50, // 50€ par commande
@@ -233,10 +233,10 @@ export class MasterCoordinatorAgent extends BaseAgent {
       const anomalyDetectionAgent = this.agents.get('anomaly-detection');
       if (anomalyDetectionAgent) {
         const anomalyResult = await anomalyDetectionAgent.run({
-          sales_history: input.sales_history || [],
+          sales_history: currentState.raw_data?.sales_history || [],
           forecasts: currentState.forecasts.short_term.concat(currentState.forecasts.medium_term),
-          demand_patterns: currentState.processed_insights.demand_patterns,
-          current_inventory: input.inventory_history || [],
+          demand_patterns: currentState.processed_insights?.demand_patterns || [],
+          current_inventory: currentState.raw_data?.current_inventory || [],
           detection_parameters: {
             sensitivity_level: 'MEDIUM',
             anomaly_threshold: 2.0, // 2 écarts-types
@@ -456,7 +456,7 @@ export class MasterCoordinatorAgent extends BaseAgent {
   private generateDemandBasedRecommendations(state: StockAnalysisState): Recommendation[] {
     const recommendations: Recommendation[] = [];
 
-    for (const pattern of state.processed_insights.demand_patterns) {
+    for (const pattern of state.processed_insights?.demand_patterns || []) {
       const baseRecommendation = {
         id: this.generateRecommendationId(),
         product_id: pattern.product_id,
@@ -849,15 +849,15 @@ export class MasterCoordinatorAgent extends BaseAgent {
   }
 
   private calculateInventoryStatus(state: StockAnalysisState) {
-    const inventory = state.raw_data.current_inventory;
-    const stockoutAlerts = state.alerts.filter(a => a.type === 'STOCKOUT_RISK');
-    const overstockAlerts = state.alerts.filter(a => a.type === 'OVERSTOCK');
+    const inventory = state.raw_data?.current_inventory || [];
+    const stockoutAlerts = state.alerts?.filter(a => a.type === 'STOCKOUT_RISK') || [];
+    const overstockAlerts = state.alerts?.filter(a => a.type === 'OVERSTOCK') || [];
 
     return {
       products_below_min: stockoutAlerts.filter(a => a.severity === 'HIGH' || a.severity === 'CRITICAL').length,
       products_above_max: overstockAlerts.length,
       predicted_stockouts_7d: stockoutAlerts.length,
-      total_inventory_value: inventory.reduce((sum, inv) => sum + inv.available_quantity * 25, 0)
+      total_inventory_value: inventory.reduce((sum, inv) => sum + (inv.available_quantity || 0) * 25, 0)
     };
   }
 
@@ -872,9 +872,9 @@ export class MasterCoordinatorAgent extends BaseAgent {
   }
 
   private calculateTodayForecastConfidence(state: StockAnalysisState): number {
-    const todayForecasts = state.forecasts.short_term.filter(f => 
+    const todayForecasts = state.forecasts?.short_term?.filter(f => 
       this.daysBetween(new Date(), f.forecast_date) <= 1
-    );
+    ) || [];
 
     return todayForecasts.length > 0 
       ? this.calculateMean(todayForecasts.map(f => f.accuracy_score)) * 100
@@ -897,7 +897,7 @@ export class MasterCoordinatorAgent extends BaseAgent {
 
   private calculateInputSize(input: any): number {
     if (!input) return 0;
-    return (input.sales_history?.length || 0) + (input.inventory_history?.length || 0);
+    return (input.sales_history?.length || 0) + (input.current_inventory?.length || 0);
   }
 
   private daysBetween(date1: Date, date2: Date): number {

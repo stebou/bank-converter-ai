@@ -19,7 +19,7 @@ import {
   Lightbulb,
   Users
 } from 'lucide-react';
-import { BusinessInsightReport } from '@/lib/ai-agents';
+import { BusinessInsightReport } from '@/lib/agents/banking';
 
 interface AgentAnalysisModalProps {
   isOpen: boolean;

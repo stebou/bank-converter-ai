@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Récupérer le statut du workflow
-    const workflow = await aiAgentOrchestrator.getWorkflowStatus(workflowId);
+    const workflow = await bankingOrchestrator.getWorkflowStatus(workflowId);
     
     if (!workflow) {
       return NextResponse.json({ error: 'Workflow non trouvé' }, { status: 404 });

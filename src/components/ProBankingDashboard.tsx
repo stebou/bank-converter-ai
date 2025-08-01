@@ -31,7 +31,7 @@ import SubscriptionBadge from './SubscriptionBadge';
 import AgentAnalysisModal from './AgentAnalysisModal';
 import StockModal from './StockModal';
 import AIAgentsModal from './AIAgentsModal';
-import type { BusinessInsightReport } from '@/lib/ai-agents';
+import type { BusinessInsightReport } from '@/lib/agents/banking';
 import '../styles/fonts.css';
 
 // Composant pour les KPIs principaux (style 2025)
@@ -481,7 +481,7 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
     try {
       console.log('[DASHBOARD] Starting agent analysis for user:', user.id);
       
-      const response = await fetch('/api/ai-agents/analyze', {
+      const response = await fetch('/api/agents/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
