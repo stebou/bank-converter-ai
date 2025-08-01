@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { FileText, Brain, CheckCircle, AlertCircle, Download, Zap, Check, Crown, Sparkles, ArrowRight, Mail, Twitter, Linkedin, Github, X } from 'lucide-react';
 import Link from 'next/link';
-import { SignUpModal } from '@/components/SignUpModal';
+import AuthModal from '@/components/AuthModal';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { Navigation } from '@/components/Navigation';
 import AnimatedGradientBackground from '@/components/AnimatedGradientBackground';
@@ -907,7 +907,7 @@ const BankStatementConverter = () => {
       <AnimatedGradientBackground />
       
       <Navigation />
-      <SignUpModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AuthModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} defaultMode="signup" />
       
 
       <main className="pt-24 md:pt-28 relative z-10">

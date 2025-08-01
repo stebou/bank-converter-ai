@@ -252,6 +252,87 @@ function generateBasicTransactions(): TransactionData[] {
   return defaultTransactions;
 }
 
+// GET - Récupérer la liste des documents de l'utilisateur
+export async function GET(req: NextRequest) {
+  try {
+    console.log('[DOCUMENTS_GET] === STARTING REQUEST ===');
+    console.log('[DOCUMENTS_GET] Request headers:', Object.fromEntries(req.headers.entries()));
+    
+    const { userId } = await auth();
+    console.log('[DOCUMENTS_GET] Clerk userId after auth():', userId);
+
+    if (!userId) {
+      console.log('[DOCUMENTS_GET] ❌ No userId found - returning 401');
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    console.log('[DOCUMENTS_GET] ✅ User authenticated, looking up in database...');
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+    console.log('[DOCUMENTS_GET] Database user lookup result:', { 
+      found: !!user, 
+      id: user?.id, 
+      email: user?.email,
+      name: user?.name 
+    });
+
+    if (!user) {
+      console.log('[DOCUMENTS_GET] ❌ User not found in database');
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    console.log('[DOCUMENTS_GET] 🔍 Searching documents for userId:', user.id);
+    
+    // Récupérer tous les documents de l'utilisateur
+    const documents = await prisma.document.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        filename: true,
+        originalName: true,
+        createdAt: true,
+        bankDetected: true,
+        totalTransactions: true,
+        aiConfidence: true,
+        anomaliesDetected: true,
+        status: true,
+      }
+    });
+    console.log('[DOCUMENTS_GET] 📊 Documents found:', documents.length);
+    
+    if (documents.length > 0) {
+      console.log('[DOCUMENTS_GET] First document sample:', {
+        id: documents[0].id,
+        originalName: documents[0].originalName,
+        bankDetected: documents[0].bankDetected,
+        totalTransactions: documents[0].totalTransactions
+      });
+    }
+
+    const formattedDocuments = documents.map(doc => ({
+      id: doc.id,
+      filename: doc.filename,
+      originalName: doc.originalName,
+      createdAt: doc.createdAt.toISOString(),
+      bankDetected: doc.bankDetected,
+      totalTransactions: doc.totalTransactions || 0,
+      aiConfidence: doc.aiConfidence,
+      anomaliesDetected: doc.anomaliesDetected || 0,
+      status: doc.status,
+    }));
+
+    console.log('[DOCUMENTS_GET] ✅ Returning', formattedDocuments.length, 'documents');
+    return NextResponse.json(formattedDocuments);
+
+  } catch (error) {
+    console.error('[DOCUMENTS_GET_ERROR] ❌ Unexpected error:', error);
+    console.error('[DOCUMENTS_GET_ERROR] Stack trace:', error instanceof Error ? error.stack : 'No stack');
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth(); 
@@ -417,6 +498,7 @@ Réponds UNIQUEMENT avec un JSON valide:
                     fileSize: file.size,
                     mimeType: file.type,
                     extractedText: extractedText,
+                    fileContent: pdfBuffer, // Stocker le contenu binaire du PDF
                     bankDetected: bankName,
                     aiConfidence: analysis.confidence || 90,
                     anomaliesDetected: analysis.anomalies || 0,

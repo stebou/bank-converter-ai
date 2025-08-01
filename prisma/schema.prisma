@@ -1,5 +1,3 @@
-// Fichier : prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,38 +8,32 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(cuid())
-  clerkId            String   @unique
-  email              String   @unique
-  name               String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // --- Champs Stripe ---
-  // MODIFICATION : Ajout de @map pour une convention de nommage propre en base de données.
-  stripeCustomerId   String?  @unique @map("stripe_customer_id")
-  stripeSubscriptionId String?  @unique @map("stripe_subscription_id")
-  subscriptionStatus String?  @map("subscription_status")
-  
-  // --- Limites et Plans ---
-  currentPlan        String   @default("free")
-  documentsUsed      Int      @default(0)
-  documentsLimit     Int      @default(5)
-
-  // --- Relations ---
-  documents          Document[]
-  payments           Payment[]
-  chatMessages       ChatMessage[]
+  id                   String         @id @default(cuid())
+  clerkId              String         @unique
+  email                String         @unique
+  name                 String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  currentPlan          String         @default("free")
+  documentsUsed        Int            @default(0)
+  documentsLimit       Int            @default(5)
+  stripeCustomerId     String?        @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?        @unique @map("stripe_subscription_id")
+  subscriptionStatus   String?        @map("subscription_status")
+  chatMessages         ChatMessage[]
+  conversations        Conversation[]
+  documents            Document[]
+  payments             Payment[]
 
   @@map("users")
 }
 
 model Document {
-  id                String   @id @default(cuid())
+  id                String        @id @default(cuid())
   userId            String
   filename          String
-  status            String   
-  createdAt         DateTime @default(now())
+  status            String
+  createdAt         DateTime      @default(now())
   originalName      String
   fileSize          Int
   mimeType          String
@@ -50,71 +42,59 @@ model Document {
   processingTime    Float?
   aiCost            Float?
   ocrConfidence     Float?
-  totalTransactions Int      @default(0)
-  anomaliesDetected Int      @default(0)
-  
-  // --- Nouveau : Contenu extrait pour l'IA ---
-  extractedText     String?  // Texte complet extrait du PDF
-  summary           String?  // Résumé généré par l'IA
-  lastAnalyzedAt    DateTime? // Dernière analyse IA
-
-  // --- Relations ---
+  totalTransactions Int           @default(0)
+  anomaliesDetected Int           @default(0)
+  extractedText     String?
+  lastAnalyzedAt    DateTime?
+  summary           String?
+  fileContent       Bytes?
+  chatMessages      ChatMessage[]
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions      Transaction[]
-  chatMessages      ChatMessage[]
 
   @@map("documents")
 }
 
 model ChatMessage {
-  id          String   @id @default(cuid())
-  userId      String
-  documentId  String?  // Optionnel, pour les questions spécifiques à un document
-  role        String   // "user" ou "assistant"
-  content     String   // Le message
-  tokens      Int?     // Nombre de tokens utilisés
-  cost        Float?   // Coût du message
-  createdAt   DateTime @default(now())
-
-  // --- Relations ---
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document    Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  userId     String
+  documentId String?
+  role       String
+  content    String
+  tokens     Int?
+  cost       Float?
+  createdAt  DateTime  @default(now())
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("chat_messages")
 }
 
 model Transaction {
-  id            String   @id @default(cuid())
-  documentId    String
-  date          DateTime
-  amount        Float
-  description   String
-  originalDesc  String
-  category      String?
-  subcategory   String?
-  aiConfidence  Float?
-  anomalyScore  Float?
-
-  // --- Relations ---
-  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  documentId   String
+  date         DateTime
+  amount       Float
+  description  String
+  originalDesc String
+  category     String?
+  subcategory  String?
+  aiConfidence Float?
+  anomalyScore Float?
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
 }
 
-// MODIFICATION : Votre modèle Plan est parfait. J'ai juste rendu la description optionnelle.
 model Plan {
-  id              String  @id @default(cuid())
-  name            String  @unique // Ex: "Pack 50 Crédits", "Abonnement Pro"
+  id              String    @id @default(cuid())
+  name            String    @unique
   description     String?
   price           Float
-  documentsLimit  Int     // Le nombre de crédits que ce plan donne/ajoute
-  features        Json?   // Vous pouvez garder ça pour plus tard
-  
-  // --- Champs Stripe ---
-  stripeProductId String  @unique @map("stripe_product_id")
-  stripePriceId   String  @unique @map("stripe_price_id")
-
-  // --- Relations ---
+  documentsLimit  Int
+  features        Json?
+  stripePriceId   String    @unique @map("stripe_price_id")
+  stripeProductId String    @unique @map("stripe_product_id")
   payments        Payment[]
 
   @@map("plans")
@@ -127,13 +107,40 @@ model Payment {
   stripeSessionId String?  @unique @map("stripe_session_id")
   amount          Float
   currency        String   @default("eur")
-  status          String   // "pending", "completed", "failed"
+  status          String
   description     String
   createdAt       DateTime @default(now())
-  
-  // --- Relations ---
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan            Plan?    @relation(fields: [planId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model Conversation {
+  id            String                @id @default(cuid())
+  userId        String
+  title         String
+  isFavorite    Boolean               @default(false)
+  lastMessageAt DateTime              @default(now())
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  messages      ConversationMessage[]
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id                  String       @id @default(cuid())
+  conversationId      String
+  role                String
+  content             String
+  documentIds         Json?
+  referencedDocuments Json?
+  tokens              Int?
+  cost                Float?
+  createdAt           DateTime     @default(now())
+  conversation        Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_messages")
 }

@@ -8,6 +8,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       localization={frFR}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       appearance={{
         // Ton objet de personnalisation est maintenant dans un composant client,
         // ce qui est parfaitement valide.

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { currentUser } from '@clerk/nextjs/server';
-import DashboardClientPage from './DashboardClientPage';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import DashboardWrapper from './DashboardWrapper';
 
 // Cette page est un Composant Serveur
 export default async function DashboardPage() {
@@ -29,6 +29,26 @@ export default async function DashboardPage() {
     orderBy: {
       createdAt: 'desc',
     },
+    select: {
+      id: true,
+      filename: true,
+      status: true,
+      createdAt: true,
+      originalName: true,
+      fileSize: true,
+      mimeType: true,
+      bankDetected: true,
+      aiConfidence: true,
+      processingTime: true,
+      aiCost: true,
+      ocrConfidence: true,
+      totalTransactions: true,
+      anomaliesDetected: true,
+      // extractedText: true, // Temporairement exclu pour éviter les stack overflow
+      lastAnalyzedAt: true,
+      summary: true,
+      // Exclure fileContent qui peut être très volumineux
+    },
   });
   
   const dbUser = await prisma.user.findUnique({
@@ -48,7 +68,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <DashboardClientPage 
+    <DashboardWrapper 
       userName={firstName} 
       initialDocuments={documents}
       initialCredits={credits}

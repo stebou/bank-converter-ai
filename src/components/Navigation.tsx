@@ -7,10 +7,13 @@ import Link from 'next/link';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Brain, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AuthModal from './AuthModal';
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +22,18 @@ export const Navigation = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const openSignInModal = () => {
+    setAuthMode('signin');
+    setAuthModalOpen(true);
+    setIsMenuOpen(false);
+  };
+
+  const openSignUpModal = () => {
+    setAuthMode('signup');
+    setAuthModalOpen(true);
+    setIsMenuOpen(false);
+  };
 
   // --- ANIMATION CORRIGÉE POUR L'EFFET DE RÉTRÉCISSEMENT ---
   const navVariants = {
@@ -88,14 +103,18 @@ export const Navigation = () => {
           {/* Section Droite : Authentification */}
           <div className="hidden md:flex items-center space-x-4">
             <SignedOut>
-              <Link href="/sign-in" className="text-sm font-medium text-white/80 transition-colors duration-300 hover:text-white">
+              <button 
+                onClick={openSignInModal}
+                className="text-sm font-medium text-white/80 transition-colors duration-300 hover:text-white"
+              >
                 Se connecter
-              </Link>
-              <Link href="/sign-up">
-                <button className="transform rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:opacity-90">
-                  Commencer
-                </button>
-              </Link>
+              </button>
+              <button 
+                onClick={openSignUpModal}
+                className="transform rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:opacity-90"
+              >
+                Commencer
+              </button>
             </SignedOut>
             <SignedIn>
               <Link href="/dashboard">
@@ -144,16 +163,18 @@ export const Navigation = () => {
               
               <div className="pt-4 border-t border-white/20 w-full flex flex-col items-center space-y-4">
                 <SignedOut>
-                  <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>
-                    <button className="text-lg text-white hover:text-blue-400">
-                      Se connecter
-                    </button>
-                  </Link>
-                  <Link href="/sign-up" onClick={() => setIsMenuOpen(false)}>
-                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold">
-                      Commencer
-                    </button>
-                  </Link>
+                  <button 
+                    onClick={openSignInModal}
+                    className="text-lg text-white hover:text-blue-400"
+                  >
+                    Se connecter
+                  </button>
+                  <button 
+                    onClick={openSignUpModal}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold"
+                  >
+                    Commencer
+                  </button>
                 </SignedOut>
                 <SignedIn>
                   <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
@@ -168,6 +189,13 @@ export const Navigation = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal d'authentification */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+        defaultMode={authMode}
+      />
     </div>
   );
 };
