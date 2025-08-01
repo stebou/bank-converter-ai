@@ -77,7 +77,7 @@ export default function IAChatPage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [documentContent, setDocumentContent] = useState<{
     extractedText: string;
-    transactions: { id: string; date: string; amount: number; description: string }[];
+    transactions: { id: string; date: string; amount: number; description: string; category?: string }[];
   } | null>(null);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
   const [activeTab, setActiveTab] = useState<'pdf' | 'transactions'>('pdf');
@@ -119,7 +119,7 @@ export default function IAChatPage() {
         const docs = await response.json();
         setDocuments(docs);
         console.log('[IA_CHAT] Successfully loaded documents:', docs.length);
-        console.log('[IA_CHAT] Document details:', docs.map(d => ({ id: d.id, name: d.originalName, bank: d.bankDetected })));
+        console.log('[IA_CHAT] Document details:', docs.map((d: any) => ({ id: d.id, name: d.originalName, bank: d.bankDetected })));
       } else {
         console.error('[IA_CHAT] Failed to load documents:', response.status, response.statusText);
         
