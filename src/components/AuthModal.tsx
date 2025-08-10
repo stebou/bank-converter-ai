@@ -2,15 +2,18 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles } from 'lucide-react';
-import { 
-  useSignIn, 
-  useSignUp, 
-  useAuth,
-  useUser
-} from '@clerk/nextjs';
+import {
+  X,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
+import { useSignIn, useSignUp, useAuth, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import AuthTransition from './AuthTransition';
 import '../styles/fonts.css';
 
 type AuthModalProps = {
@@ -22,13 +25,20 @@ type AuthModalProps = {
 type AuthMode = 'signin' | 'signup';
 
 // Fonction pour vérifier si c'est une erreur Clerk
-const isClerkError = (err: unknown): err is { errors: Array<{ message: string }> } => {
-  return err && typeof err === 'object' && 'errors' in err && Array.isArray((err as { errors: unknown }).errors);
+const isClerkError = (
+  err: unknown
+): err is { errors: Array<{ message: string }> } => {
+  return (
+    !!err &&
+    typeof err === 'object' &&
+    'errors' in err &&
+    Array.isArray((err as { errors: unknown }).errors)
+  );
 };
 
 // Composant icône Google
 const GoogleIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24">
+  <svg className="h-5 w-5" viewBox="0 0 24 24">
     <path
       fill="#4285F4"
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -48,7 +58,11 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModalProps) {
+export default function AuthModal({
+  isOpen,
+  onClose,
+  defaultMode = 'signin',
+}: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,24 +105,26 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     try {
       if (mode === 'signin') {
         if (!signIn) throw new Error('SignIn not available');
-        
+
         await signIn.authenticateWithRedirect({
           strategy: 'oauth_google',
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/dashboard?from_auth=true'
+          redirectUrlComplete: '/dashboard?from_auth=true',
         });
       } else {
         if (!signUp) throw new Error('SignUp not available');
-        
+
         await signUp.authenticateWithRedirect({
           strategy: 'oauth_google',
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/dashboard?from_auth=true'
+          redirectUrlComplete: '/dashboard?from_auth=true',
         });
       }
     } catch (err) {
       if (isClerkError(err)) {
-        setError(err.errors[0]?.message || 'Erreur lors de la connexion Google');
+        setError(
+          err.errors[0]?.message || 'Erreur lors de la connexion Google'
+        );
       } else {
         setError('Erreur lors de la connexion Google');
       }
@@ -187,7 +203,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('error') === 'sso_failed') {
-        setError('Erreur lors de la connexion avec Google. Veuillez réessayer.');
+        setError(
+          'Erreur lors de la connexion avec Google. Veuillez réessayer.'
+        );
         // Nettoyer l'URL
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -197,11 +215,15 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   // Afficher la transition si nécessaire
   if (showTransition) {
     console.log('[AUTH] Rendering transition for user:', user?.firstName);
+    // Transition simplifiée après suppression de AuthTransition
+    setTimeout(() => handleTransitionComplete(), 1000);
     return (
-      <AuthTransition 
-        userFirstName={user?.firstName || 'Utilisateur'}
-        onComplete={handleTransitionComplete}
-      />
+      <div className="fixed inset-0 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center z-50">
+        <div className="text-white text-center">
+          <h2 className="text-2xl font-bold mb-2">Bienvenue {user?.firstName || 'Utilisateur'}!</h2>
+          <p>Redirection en cours...</p>
+        </div>
+      </div>
     );
   }
 
@@ -212,36 +234,36 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-[#ecf0f1] rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden border border-[#bdc3c7]"
+            onClick={e => e.stopPropagation()}
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#bdc3c7] bg-[#ecf0f1] shadow-2xl"
           >
             {/* Header professionnel */}
-            <div className="bg-[#bdc3c7] p-6 border-b border-[#bdc3c7] relative">
+            <div className="relative border-b border-[#bdc3c7] bg-[#bdc3c7] p-6">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-[#34495e] hover:text-[#2c3e50] transition-colors p-1"
+                className="absolute right-4 top-4 p-1 text-[#34495e] transition-colors hover:text-[#2c3e50]"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
-              
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-[#2c3e50] rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+
+              <div className="mb-2 flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2c3e50]">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-[#2c3e50] font-montserrat tracking-tight">
+                <h2 className="font-montserrat text-2xl font-bold tracking-tight text-[#2c3e50]">
                   {mode === 'signin' ? 'Connexion' : 'Inscription'}
                 </h2>
               </div>
-              <p className="text-[#34495e] text-sm font-open-sans">
-                {mode === 'signin' 
-                  ? 'Accédez à votre tableau de bord IA' 
+              <p className="font-open-sans text-sm text-[#34495e]">
+                {mode === 'signin'
+                  ? 'Accédez à votre tableau de bord IA'
                   : 'Créez votre compte et commencez'}
               </p>
             </div>
@@ -254,22 +276,26 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={isGoogleLoading || isLoading}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-[#bdc3c7] rounded-xl bg-white hover:bg-[#ecf0f1] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#bdc3c7] bg-white px-4 py-3 transition-colors hover:bg-[#ecf0f1] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isGoogleLoading ? (
-                    <div className="w-5 h-5 border-2 border-[#bdc3c7] border-t-[#2c3e50] rounded-full animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#bdc3c7] border-t-[#2c3e50]" />
                   ) : (
                     <GoogleIcon />
                   )}
-                  <span className="text-[#2c3e50] font-medium font-open-sans">
-                    {mode === 'signin' ? 'Se connecter avec Google' : 'S\'inscrire avec Google'}
+                  <span className="font-open-sans font-medium text-[#2c3e50]">
+                    {mode === 'signin'
+                      ? 'Se connecter avec Google'
+                      : "S'inscrire avec Google"}
                   </span>
                 </button>
 
                 {/* Séparateur */}
-                <div className="flex items-center my-6">
+                <div className="my-6 flex items-center">
                   <div className="flex-1 border-t border-[#bdc3c7]"></div>
-                  <div className="px-4 text-sm text-[#34495e] bg-[#ecf0f1] font-open-sans">ou</div>
+                  <div className="font-open-sans bg-[#ecf0f1] px-4 text-sm text-[#34495e]">
+                    ou
+                  </div>
                   <div className="flex-1 border-t border-[#bdc3c7]"></div>
                 </div>
               </div>
@@ -279,32 +305,36 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 {mode === 'signup' && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-[#2c3e50] mb-2 block font-open-sans">
+                      <label className="font-open-sans mb-2 block text-sm font-medium text-[#2c3e50]">
                         Prénom
                       </label>
                       <div className="relative">
-                        <User className="w-4 h-4 text-[#34495e] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#34495e]" />
                         <input
                           type="text"
                           value={formData.firstName}
-                          onChange={(e) => handleInputChange('firstName', e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-[#bdc3c7] rounded-xl focus:ring-2 focus:ring-[#2c3e50] focus:border-[#2c3e50] transition-colors bg-white font-open-sans"
+                          onChange={e =>
+                            handleInputChange('firstName', e.target.value)
+                          }
+                          className="font-open-sans w-full rounded-xl border border-[#bdc3c7] bg-white py-3 pl-10 pr-4 transition-colors focus:border-[#2c3e50] focus:ring-2 focus:ring-[#2c3e50]"
                           placeholder="Prénom"
                           required
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-[#2c3e50] mb-2 block font-open-sans">
+                      <label className="font-open-sans mb-2 block text-sm font-medium text-[#2c3e50]">
                         Nom
                       </label>
                       <div className="relative">
-                        <User className="w-4 h-4 text-[#34495e] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#34495e]" />
                         <input
                           type="text"
                           value={formData.lastName}
-                          onChange={(e) => handleInputChange('lastName', e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-[#bdc3c7] rounded-xl focus:ring-2 focus:ring-[#2c3e50] focus:border-[#2c3e50] transition-colors bg-white font-open-sans"
+                          onChange={e =>
+                            handleInputChange('lastName', e.target.value)
+                          }
+                          className="font-open-sans w-full rounded-xl border border-[#bdc3c7] bg-white py-3 pl-10 pr-4 transition-colors focus:border-[#2c3e50] focus:ring-2 focus:ring-[#2c3e50]"
                           placeholder="Nom"
                           required
                         />
@@ -315,16 +345,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
                 {/* Email */}
                 <div>
-                  <label className="text-sm font-medium text-[#2c3e50] mb-2 block font-open-sans">
+                  <label className="font-open-sans mb-2 block text-sm font-medium text-[#2c3e50]">
                     Adresse email
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-[#34495e] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#34495e]" />
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-[#bdc3c7] rounded-xl focus:ring-2 focus:ring-[#2c3e50] focus:border-[#2c3e50] transition-colors bg-white font-open-sans"
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      className="font-open-sans w-full rounded-xl border border-[#bdc3c7] bg-white py-3 pl-10 pr-4 transition-colors focus:border-[#2c3e50] focus:ring-2 focus:ring-[#2c3e50]"
                       placeholder="votre@email.com"
                       required
                     />
@@ -333,16 +363,18 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
                 {/* Mot de passe */}
                 <div>
-                  <label className="text-sm font-medium text-[#2c3e50] mb-2 block font-open-sans">
+                  <label className="font-open-sans mb-2 block text-sm font-medium text-[#2c3e50]">
                     Mot de passe
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#34495e] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#34495e]" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      className="w-full pl-10 pr-12 py-3 border border-[#bdc3c7] rounded-xl focus:ring-2 focus:ring-[#2c3e50] focus:border-[#2c3e50] transition-colors bg-white font-open-sans"
+                      onChange={e =>
+                        handleInputChange('password', e.target.value)
+                      }
+                      className="font-open-sans w-full rounded-xl border border-[#bdc3c7] bg-white py-3 pl-10 pr-12 transition-colors focus:border-[#2c3e50] focus:ring-2 focus:ring-[#2c3e50]"
                       placeholder="••••••••"
                       required={mode === 'signup'}
                       minLength={mode === 'signup' ? 8 : undefined}
@@ -350,9 +382,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#34495e] hover:text-[#2c3e50] transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#34495e] transition-colors hover:text-[#2c3e50]"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -362,7 +398,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-open-sans"
+                    className="font-open-sans rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
                   >
                     {error}
                   </motion.div>
@@ -372,14 +408,14 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-open-sans"
+                  className="font-open-sans flex w-full items-center justify-center gap-2 rounded-xl bg-[#2c3e50] py-3 font-semibold text-white transition-all duration-300 hover:bg-[#34495e] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
                   ) : (
                     <>
                       {mode === 'signin' ? 'Se connecter' : 'Créer le compte'}
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="h-4 w-4" />
                     </>
                   )}
                 </button>
@@ -387,13 +423,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
               {/* Basculer entre les modes */}
               <div className="mt-6 text-center">
-                <p className="text-[#34495e] text-sm font-open-sans">
-                  {mode === 'signin' 
-                    ? "Vous n'avez pas de compte ?" 
+                <p className="font-open-sans text-sm text-[#34495e]">
+                  {mode === 'signin'
+                    ? "Vous n'avez pas de compte ?"
                     : 'Vous avez déjà un compte ?'}
                   <button
                     onClick={toggleMode}
-                    className="text-[#2c3e50] hover:text-[#34495e] font-semibold ml-1 transition-colors font-open-sans"
+                    className="font-open-sans ml-1 font-semibold text-[#2c3e50] transition-colors hover:text-[#34495e]"
                   >
                     {mode === 'signin' ? "S'inscrire" : 'Se connecter'}
                   </button>

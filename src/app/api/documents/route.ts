@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { processPdfNative } from '@/lib/pdf-processing-native';
+import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -23,24 +23,29 @@ interface TransactionData {
 }
 
 // Fonction pour extraire des transactions précises avec GPT-4 Vision OU texte seul
-async function extractTransactionsWithAI(extractedText: string, imageBase64?: string): Promise<TransactionData[]> {
+async function extractTransactionsWithAI(
+  extractedText: string,
+  imageBase64?: string
+): Promise<TransactionData[]> {
   console.log('[DOCUMENTS_API] Starting AI-powered transaction extraction...');
   console.log('[DOCUMENTS_API] Text length:', extractedText.length);
   console.log('[DOCUMENTS_API] Has image:', !!imageBase64);
-  
+
   if (!extractedText || extractedText.length < 50) {
-    console.log('[DOCUMENTS_API] Insufficient text, falling back to basic parsing...');
+    console.log(
+      '[DOCUMENTS_API] Insufficient text, falling back to basic parsing...'
+    );
     return generateBasicTransactions();
   }
 
   try {
-    const transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : 'Analyse ce TEXTE extrait d\'un relevé bancaire'} et extrait PRÉCISÉMENT toutes les transactions visibles.
+    const transactionExtractionPrompt = `Tu es un expert en extraction de données bancaires. ${imageBase64 && imageBase64.length > 100 ? 'Analyse cette image de relevé bancaire' : "Analyse ce TEXTE extrait d'un relevé bancaire"} et extrait PRÉCISÉMENT toutes les transactions visibles.
 
 INSTRUCTIONS CRITIQUES :
-- ${imageBase64 && imageBase64.length > 100 ? 'Regarde attentivement l\'image pour identifier les colonnes' : 'Analyse attentivement le texte pour identifier les informations'} : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
+- ${imageBase64 && imageBase64.length > 100 ? "Regarde attentivement l'image pour identifier les colonnes" : 'Analyse attentivement le texte pour identifier les informations'} : DATE, LIBELLÉ/DESCRIPTION, MONTANT, SOLDE
 - Extrait UNIQUEMENT les vraies transactions (pas les en-têtes, totaux, ou métadonnées)
 - Les montants doivent être les vrais montants en euros (ex: 45.67, -123.45)
-- Les dates doivent être au format DD/MM ou DD/MM/YYYY ${imageBase64 && imageBase64.length > 100 ? 'visible dans l\'image' : 'trouvées dans le texte'}
+- Les dates doivent être au format DD/MM ou DD/MM/YYYY ${imageBase64 && imageBase64.length > 100 ? "visible dans l'image" : 'trouvées dans le texte'}
 - Les descriptions doivent être les vrais libellés des opérations
 
 TEXTE EXTRAIT ${imageBase64 && imageBase64.length > 100 ? '(pour contexte)' : '(source principale)'} :
@@ -69,28 +74,32 @@ EXEMPLE de format attendu :
 
     // Préparer le contenu du message
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messageContent: any[] = [{
-      type: 'text',
-      text: transactionExtractionPrompt
-    }];
-    
+    const messageContent: any[] = [
+      {
+        type: 'text',
+        text: transactionExtractionPrompt,
+      },
+    ];
+
     // Ajouter l'image seulement si elle est disponible et valide
     if (imageBase64 && imageBase64.length > 100) {
       messageContent.push({
         type: 'image_url',
         image_url: {
           url: `data:image/png;base64,${imageBase64}`,
-          detail: "high" as const
-        }
+          detail: 'high' as const,
+        },
       });
     }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      messages: [{
-        role: 'user',
-        content: messageContent
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: messageContent,
+        },
+      ],
       max_tokens: 2000,
       temperature: 0.1,
     });
@@ -101,154 +110,199 @@ EXEMPLE de format attendu :
     if (aiResponse) {
       let cleanResponse = aiResponse.trim();
       if (cleanResponse.startsWith('```json')) {
-        cleanResponse = cleanResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
+        cleanResponse = cleanResponse
+          .replace(/```json\s*/, '')
+          .replace(/```\s*$/, '');
       }
       if (cleanResponse.startsWith('```')) {
-        cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
+        cleanResponse = cleanResponse
+          .replace(/```\s*/, '')
+          .replace(/```\s*$/, '');
       }
 
       const aiResult = JSON.parse(cleanResponse);
       const extractedTransactions = aiResult.transactions || [];
-      
-      console.log('[DOCUMENTS_API] AI extracted', extractedTransactions.length, 'transactions');
+
+      console.log(
+        '[DOCUMENTS_API] AI extracted',
+        extractedTransactions.length,
+        'transactions'
+      );
 
       // Convertir au format attendu par l'application
-      const formattedTransactions = extractedTransactions.map((transaction: {
-        date?: string;
-        description?: string;
-        amount?: number;
-        category?: string;
-      }, index: number) => {
-        // Déterminer la catégorie et sous-catégorie
-        let category = 'Autres';
-        let subcategory = 'Divers';
-        
-        const aiCategory = transaction.category?.toLowerCase() || '';
-        const description = transaction.description?.toLowerCase() || '';
-        
-        const amount = transaction.amount || 0;
-        
-        if (aiCategory === 'virement' || description.includes('vir')) {
-          category = amount > 0 ? 'Revenus' : 'Virements';
-          subcategory = amount > 0 ? 'Virement reçu' : 'Virement émis';
-        } else if (aiCategory === 'carte' || description.includes('carte') || description.includes('cb')) {
-          category = 'Dépenses';
-          subcategory = 'Carte bancaire';
-        } else if (aiCategory === 'prélèvement' || description.includes('prel')) {
-          category = 'Prélèvements';
-          subcategory = 'Prélèvement';
-        } else if (aiCategory === 'retrait' || description.includes('retrait')) {
-          category = 'Retraits';
-          subcategory = 'Espèces';
-        } else if (amount < 0) {
-          category = 'Dépenses';
-          subcategory = 'Divers';
-        } else if (amount > 0) {
-          category = 'Revenus';
-          subcategory = 'Divers';
+      const formattedTransactions = extractedTransactions.map(
+        (
+          transaction: {
+            date?: string;
+            description?: string;
+            amount?: number;
+            category?: string;
+          },
+          index: number
+        ) => {
+          // Déterminer la catégorie et sous-catégorie
+          let category = 'Autres';
+          let subcategory = 'Divers';
+
+          const aiCategory = transaction.category?.toLowerCase() || '';
+          const description = transaction.description?.toLowerCase() || '';
+
+          const amount = transaction.amount || 0;
+
+          if (aiCategory === 'virement' || description.includes('vir')) {
+            category = amount > 0 ? 'Revenus' : 'Virements';
+            subcategory = amount > 0 ? 'Virement reçu' : 'Virement émis';
+          } else if (
+            aiCategory === 'carte' ||
+            description.includes('carte') ||
+            description.includes('cb')
+          ) {
+            category = 'Dépenses';
+            subcategory = 'Carte bancaire';
+          } else if (
+            aiCategory === 'prélèvement' ||
+            description.includes('prel')
+          ) {
+            category = 'Prélèvements';
+            subcategory = 'Prélèvement';
+          } else if (
+            aiCategory === 'retrait' ||
+            description.includes('retrait')
+          ) {
+            category = 'Retraits';
+            subcategory = 'Espèces';
+          } else if (amount < 0) {
+            category = 'Dépenses';
+            subcategory = 'Divers';
+          } else if (amount > 0) {
+            category = 'Revenus';
+            subcategory = 'Divers';
+          }
+
+          return {
+            id: index + 1,
+            date: transaction.date || new Date().toISOString().split('T')[0],
+            description:
+              transaction.description?.substring(0, 50) || 'TRANSACTION',
+            originalDesc:
+              transaction.description || 'TRANSACTION EXTRAITE PAR IA',
+            amount: amount,
+            category: category,
+            subcategory: subcategory,
+            confidence: 95, // Haute confiance pour l'extraction IA
+            anomalyScore: Math.abs(amount) > 10000 ? 25 : 0,
+          };
         }
+      );
 
-        return {
-          id: index + 1,
-          date: transaction.date || new Date().toISOString().split('T')[0],
-          description: transaction.description?.substring(0, 50) || 'TRANSACTION',
-          originalDesc: transaction.description || 'TRANSACTION EXTRAITE PAR IA',
-          amount: amount,
-          category: category,
-          subcategory: subcategory,
-          confidence: 95, // Haute confiance pour l'extraction IA
-          anomalyScore: Math.abs(amount) > 10000 ? 25 : 0
-        };
-      });
+      console.log(
+        '[DOCUMENTS_API] Formatted',
+        formattedTransactions.length,
+        'transactions for application'
+      );
 
-      console.log('[DOCUMENTS_API] Formatted', formattedTransactions.length, 'transactions for application');
-      
       return formattedTransactions;
     }
-
   } catch (error) {
     console.error('[DOCUMENTS_API] AI transaction extraction failed:', error);
   }
 
   // Fallback vers les transactions de base
-  console.log('[DOCUMENTS_API] Falling back to basic transaction generation...');
+  console.log(
+    '[DOCUMENTS_API] Falling back to basic transaction generation...'
+  );
   return generateBasicTransactions();
 }
 
 // Fonction pour générer des transactions de base en cas d'échec de l'IA
 function generateBasicTransactions(): TransactionData[] {
   console.log('[DOCUMENTS_API] Generating basic fallback transactions...');
-  
+
   const defaultTransactions = [
     {
       id: 1,
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'VIREMENT SALAIRE',
       originalDesc: 'VIR SEPA SALAIRE ENTREPRISE ABC',
-      amount: 2500.00,
+      amount: 2500.0,
       category: 'Revenus',
       subcategory: 'Salaire',
       confidence: 95,
-      anomalyScore: 0
+      anomalyScore: 0,
     },
     {
       id: 2,
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'PAIEMENT CB SUPERMARCHÉ',
       originalDesc: 'CB LECLERC PARIS',
-      amount: -67.30,
+      amount: -67.3,
       category: 'Alimentation',
       subcategory: 'Courses',
       confidence: 88,
-      anomalyScore: 0
+      anomalyScore: 0,
     },
     {
       id: 3,
-      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'PRÉLÈVEMENT EDF',
       originalDesc: 'PREL SEPA EDF FACTURE ELEC',
-      amount: -78.50,
+      amount: -78.5,
       category: 'Logement',
       subcategory: 'Électricité',
       confidence: 92,
-      anomalyScore: 0
+      anomalyScore: 0,
     },
     {
       id: 4,
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'RETRAIT DAB',
       originalDesc: 'RETRAIT DAB PARIS 15EME',
-      amount: -50.00,
+      amount: -50.0,
       category: 'Retraits',
       subcategory: 'Espèces',
       confidence: 90,
-      anomalyScore: 0
+      anomalyScore: 0,
     },
     {
       id: 5,
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'PAIEMENT CB RESTAURANT',
       originalDesc: 'CB LE BISTROT PARIS',
-      amount: -32.80,
+      amount: -32.8,
       category: 'Restauration',
       subcategory: 'Restaurant',
       confidence: 85,
-      anomalyScore: 0
+      anomalyScore: 0,
     },
     {
       id: 6,
-      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       description: 'VIREMENT REÇU',
       originalDesc: 'VIR RECU MARIE D.',
-      amount: 120.00,
+      amount: 120.0,
       category: 'Virements',
       subcategory: 'Virement reçu',
       confidence: 93,
-      anomalyScore: 0
-    }
+      anomalyScore: 0,
+    },
   ];
-  
-  console.log('[DOCUMENTS_API] Generated basic transactions:', defaultTransactions.length);
+
+  console.log(
+    '[DOCUMENTS_API] Generated basic transactions:',
+    defaultTransactions.length
+  );
   return defaultTransactions;
 }
 
@@ -256,8 +310,11 @@ function generateBasicTransactions(): TransactionData[] {
 export async function GET(req: NextRequest) {
   try {
     console.log('[DOCUMENTS_GET] === STARTING REQUEST ===');
-    console.log('[DOCUMENTS_GET] Request headers:', Object.fromEntries(req.headers.entries()));
-    
+    console.log(
+      '[DOCUMENTS_GET] Request headers:',
+      Object.fromEntries(req.headers.entries())
+    );
+
     const { userId } = await auth();
     console.log('[DOCUMENTS_GET] Clerk userId after auth():', userId);
 
@@ -266,8 +323,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    console.log('[DOCUMENTS_GET] ✅ User authenticated, looking up in database...');
-    
+    console.log(
+      '[DOCUMENTS_GET] ✅ User authenticated, looking up in database...'
+    );
+
     // Utiliser une requête relationnelle comme dans le dashboard principal
     const userDocuments = await prisma.document.findMany({
       where: {
@@ -287,17 +346,20 @@ export async function GET(req: NextRequest) {
         anomaliesDetected: true,
         status: true,
         fileSize: true,
-      }
+      },
     });
-    
-    console.log('[DOCUMENTS_GET] 📊 Documents found via relation:', userDocuments.length);
-    
+
+    console.log(
+      '[DOCUMENTS_GET] 📊 Documents found via relation:',
+      userDocuments.length
+    );
+
     if (userDocuments.length > 0) {
       console.log('[DOCUMENTS_GET] First document sample:', {
         id: userDocuments[0].id,
         originalName: userDocuments[0].originalName,
         bankDetected: userDocuments[0].bankDetected,
-        totalTransactions: userDocuments[0].totalTransactions
+        totalTransactions: userDocuments[0].totalTransactions,
       });
     }
 
@@ -313,19 +375,25 @@ export async function GET(req: NextRequest) {
       status: doc.status,
     }));
 
-    console.log('[DOCUMENTS_GET] ✅ Returning', formattedDocuments.length, 'documents');
+    console.log(
+      '[DOCUMENTS_GET] ✅ Returning',
+      formattedDocuments.length,
+      'documents'
+    );
     return NextResponse.json(formattedDocuments);
-
   } catch (error) {
     console.error('[DOCUMENTS_GET_ERROR] ❌ Unexpected error:', error);
-    console.error('[DOCUMENTS_GET_ERROR] Stack trace:', error instanceof Error ? error.stack : 'No stack');
+    console.error(
+      '[DOCUMENTS_GET_ERROR] Stack trace:',
+      error instanceof Error ? error.stack : 'No stack'
+    );
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth(); 
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -336,7 +404,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Utilisateur non trouvé dans la base de données." }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé dans la base de données.' },
+        { status: 404 }
+      );
     }
 
     // Plus de vérification de crédits - système d'abonnement pur
@@ -345,30 +416,43 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Aucun fichier fourni' },
+        { status: 400 }
+      );
     }
 
-    console.log('[DOCUMENTS_API] Processing file:', file.name, file.size, file.type);
+    console.log(
+      '[DOCUMENTS_API] Processing file:',
+      file.name,
+      file.size,
+      file.type
+    );
 
     // Traitement principal selon le type de fichier avec PyMuPDF
     if (file.type === 'application/pdf') {
-      console.log('[DOCUMENTS_API] PDF detected - processing with PyMuPDF + GPT-4 Vision...');
-      
+      console.log(
+        '[DOCUMENTS_API] PDF detected - processing with PyMuPDF + GPT-4 Vision...'
+      );
+
       try {
         // Convertir le fichier en buffer
         const pdfBuffer = Buffer.from(await file.arrayBuffer());
         console.log('[DOCUMENTS_API] PDF buffer size:', pdfBuffer.length);
-        
-        // Traitement PDF avec solution JavaScript native
-        console.log('[DOCUMENTS_API] Calling processPdfNative...');
-        const pdfProcessingResult = await processPdfNative(pdfBuffer, file.name);
-        console.log('[DOCUMENTS_API] processPdfNative completed');
-        
+
+        // Traitement PDF avec extraction de texte (hybride)
+        console.log('[DOCUMENTS_API] Calling extractPdfContent...');
+        const pdfProcessingResult = await extractPdfContent(pdfBuffer);
+        console.log('[DOCUMENTS_API] extractPdfContent completed');
+
         if (pdfProcessingResult.success && pdfProcessingResult.extracted_text) {
           const extractedText = pdfProcessingResult.extracted_text;
-          const base64Image = pdfProcessingResult.image_base64;
-          
-          console.log('[DOCUMENTS_API] Analysis available:', base64Image ? 'with image' : 'text-only');
+          const base64Image = undefined; // extractPdfContent ne retourne pas d'image
+
+          console.log(
+            '[DOCUMENTS_API] Analysis available:',
+            base64Image ? 'with image' : 'text-only'
+          );
           console.log('[DOCUMENTS_API] Text length:', extractedText.length);
 
           // Analyser avec GPT-4 (utilise la même logique que validate-document)
@@ -412,69 +496,91 @@ Réponds UNIQUEMENT avec un JSON valide:
 }`;
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const messageContent: any = [{
-            type: 'text',
-            text: analysisPrompt
-          }];
-          
+          const messageContent: any = [
+            {
+              type: 'text',
+              text: analysisPrompt,
+            },
+          ];
+
           // Ajouter l'image si disponible
           if (base64Image) {
             messageContent.push({
               type: 'image_url',
               image_url: {
                 url: `data:image/png;base64,${base64Image}`,
-                detail: "high"
-              }
+                detail: 'high',
+              },
             });
           }
-          
+
           const completion = await openai.chat.completions.create({
             model: 'gpt-4o',
-            messages: [{
-              role: 'user',
-              content: messageContent
-            }],
+            messages: [
+              {
+                role: 'user',
+                content: messageContent,
+              },
+            ],
             max_tokens: 500,
             temperature: 0.1,
           });
 
           const aiResponse = completion.choices[0]?.message?.content;
           console.log('[DOCUMENTS_API] AI analysis completed');
-          
+
           if (aiResponse) {
             try {
               let cleanResponse = aiResponse.trim();
               if (cleanResponse.startsWith('```json')) {
-                cleanResponse = cleanResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
+                cleanResponse = cleanResponse
+                  .replace(/```json\s*/, '')
+                  .replace(/```\s*$/, '');
               }
               if (cleanResponse.startsWith('```')) {
-                cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
+                cleanResponse = cleanResponse
+                  .replace(/```\s*/, '')
+                  .replace(/```\s*$/, '');
               }
-              
+
               const analysis = JSON.parse(cleanResponse);
-              console.log('[DOCUMENTS_API] Analysis result:', analysis.isValidDocument);
+              console.log(
+                '[DOCUMENTS_API] Analysis result:',
+                analysis.isValidDocument
+              );
               console.log('[DOCUMENTS_API] Bank detected:', analysis.bankName);
-              
+
               if (analysis.isValidDocument === false) {
-                console.log('[DOCUMENTS_API] Document rejected by AI analysis:', analysis.rejectionReason);
-                return NextResponse.json({
-                  error: 'DOCUMENT_REJECTED',
-                  message: `Document non valide: ${analysis.rejectionReason || 'Ce document ne semble pas être un relevé bancaire ou une facture valide.'}`,
-                  documentType: analysis.documentType || 'autre'
-                }, { status: 400 });
+                console.log(
+                  '[DOCUMENTS_API] Document rejected by AI analysis:',
+                  analysis.rejectionReason
+                );
+                return NextResponse.json(
+                  {
+                    error: 'DOCUMENT_REJECTED',
+                    message: `Document non valide: ${analysis.rejectionReason || 'Ce document ne semble pas être un relevé bancaire ou une facture valide.'}`,
+                    documentType: analysis.documentType || 'autre',
+                  },
+                  { status: 400 }
+                );
               }
-              
+
               // Document valide avec analyse AI
-              const bankName = pdfProcessingResult.metadata?.detected_bank || analysis.bankName || 'Document Financier';
+              const bankName = analysis.bankName || 'Document Financier';
               console.log('[DOCUMENTS_API] Final bank name determination:');
-              console.log('[DOCUMENTS_API] - From PDF processing:', pdfProcessingResult.metadata?.detected_bank);
-              console.log('[DOCUMENTS_API] - From AI analysis:', analysis.bankName);
+              console.log(
+                '[DOCUMENTS_API] - From AI analysis:',
+                analysis.bankName
+              );
               console.log('[DOCUMENTS_API] - Final bank name:', bankName);
-              
+
               // Extraire les transactions avec l'IA
-              const generatedTransactions = await extractTransactionsWithAI(extractedText, base64Image);
-              console.log('[DOCUMENTS_API] Generated transactions count:', generatedTransactions.length);
-              
+              const generatedTransactions = await extractTransactionsWithAI(extractedText);
+              console.log(
+                '[DOCUMENTS_API] Generated transactions count:',
+                generatedTransactions.length
+              );
+
               // Créer le document avec les résultats de l'analyse
               const [newDocument] = await prisma.$transaction([
                 prisma.document.create({
@@ -507,61 +613,91 @@ Réponds UNIQUEMENT avec un JSON valide:
                 }),
               ]);
 
-              console.log('[DOCUMENTS_API] Document saved with ID:', newDocument.id);
+              console.log(
+                '[DOCUMENTS_API] Document saved with ID:',
+                newDocument.id
+              );
 
               // Sauvegarder les transactions
               if (generatedTransactions.length > 0) {
-                const transactionData = generatedTransactions.map(transaction => ({
-                  documentId: newDocument.id,
-                  date: new Date(transaction.date),
-                  amount: transaction.amount,
-                  description: transaction.description,
-                  originalDesc: transaction.originalDesc,
-                  category: transaction.category,
-                  subcategory: transaction.subcategory,
-                  aiConfidence: transaction.confidence,
-                  anomalyScore: transaction.anomalyScore,
-                }));
+                const transactionData = generatedTransactions.map(
+                  transaction => ({
+                    documentId: newDocument.id,
+                    date: new Date(transaction.date),
+                    amount: transaction.amount,
+                    description: transaction.description,
+                    originalDesc: transaction.originalDesc,
+                    category: transaction.category,
+                    subcategory: transaction.subcategory,
+                    aiConfidence: transaction.confidence,
+                    anomalyScore: transaction.anomalyScore,
+                  })
+                );
 
                 await prisma.transaction.createMany({
-                  data: transactionData
+                  data: transactionData,
                 });
 
-                console.log('[DOCUMENTS_API] Saved', generatedTransactions.length, 'transactions to database');
+                console.log(
+                  '[DOCUMENTS_API] Saved',
+                  generatedTransactions.length,
+                  'transactions to database'
+                );
               }
-              
-              return NextResponse.json({
-                ...newDocument,
-                hasExtractedText: !!extractedText,
-                extractedTextLength: extractedText?.length || 0,
-                transactions: generatedTransactions,
-                analysisMethod: base64Image ? 'hybrid_integrated' : 'text_analysis_integrated',
-                integratedProcessing: true,
-              }, { status: 201 });
-              
+
+              return NextResponse.json(
+                {
+                  ...newDocument,
+                  hasExtractedText: !!extractedText,
+                  extractedTextLength: extractedText?.length || 0,
+                  transactions: generatedTransactions,
+                  analysisMethod: base64Image
+                    ? 'hybrid_integrated'
+                    : 'text_analysis_integrated',
+                  integratedProcessing: true,
+                },
+                { status: 201 }
+              );
             } catch (parseError) {
-              console.error('[DOCUMENTS_API] Failed to parse AI response:', parseError);
-              return NextResponse.json({ error: 'Erreur d\'analyse IA' }, { status: 500 });
+              console.error(
+                '[DOCUMENTS_API] Failed to parse AI response:',
+                parseError
+              );
+              return NextResponse.json(
+                { error: "Erreur d'analyse IA" },
+                { status: 500 }
+              );
             }
           }
-          
         } else {
-          console.log('[DOCUMENTS_API] PDF processing failed, no text extracted');
-          return NextResponse.json({ error: 'Impossible d\'extraire le texte du PDF' }, { status: 400 });
+          console.log(
+            '[DOCUMENTS_API] PDF processing failed, no text extracted'
+          );
+          return NextResponse.json(
+            { error: "Impossible d'extraire le texte du PDF" },
+            { status: 400 }
+          );
         }
-        
       } catch (pdfError) {
         console.error('[DOCUMENTS_API] PDF processing error:', pdfError);
-        return NextResponse.json({ error: 'Erreur lors du traitement du PDF' }, { status: 500 });
+        return NextResponse.json(
+          { error: 'Erreur lors du traitement du PDF' },
+          { status: 500 }
+        );
       }
     }
 
     // Si on arrive ici, le type de fichier n'est pas supporté
     console.log('[DOCUMENTS_API] Unsupported file type:', file.type);
-    return NextResponse.json({ error: 'Type de fichier non supporté. Seuls les PDFs sont acceptés.' }, { status: 400 });
-
+    return NextResponse.json(
+      { error: 'Type de fichier non supporté. Seuls les PDFs sont acceptés.' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('[DOCUMENTS_POST_ERROR]', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erreur interne du serveur' },
+      { status: 500 }
+    );
   }
 }

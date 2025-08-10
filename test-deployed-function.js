@@ -8,8 +8,8 @@ const fs = require('fs');
 const path = require('path');
 
 // URL de base (sera mis à jour avec l'URL réelle après déploiement)
-const BASE_URL = process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}` 
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
   : 'https://bank-converter-fyxcas2m1-stebous-projects.vercel.app';
 
 const FUNCTION_URL = `${BASE_URL}/api/process-pdf-vercel`;
@@ -74,7 +74,7 @@ trailer
 startxref
 350
 %%EOF`);
-  
+
   return pdfContent.toString('base64');
 }
 
@@ -83,7 +83,7 @@ startxref
  */
 async function testVercelFunction() {
   console.log('🚀 Test de la fonction Vercel Python déployée');
-  console.log('='*60);
+  console.log('=' * 60);
   console.log(`📍 URL: ${FUNCTION_URL}`);
   console.log();
 
@@ -94,11 +94,11 @@ async function testVercelFunction() {
 
     const requestBody = {
       pdf_base64: pdfBase64,
-      output_mode: 'hybrid'
+      output_mode: 'hybrid',
     };
 
     console.log('📤 Envoi de la requête...');
-    
+
     // Envoyer la requête
     const startTime = Date.now();
     const response = await fetch(FUNCTION_URL, {
@@ -106,7 +106,7 @@ async function testVercelFunction() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     const endTime = Date.now();
@@ -124,15 +124,25 @@ async function testVercelFunction() {
 
     // Parser la réponse
     const result = await response.json();
-    
+
     console.log('\n📊 Résultat de la fonction:');
     console.log(`  ✅ Succès: ${result.success}`);
-    console.log(`  📝 Texte extrait: ${result.extracted_text?.length || 0} caractères`);
-    console.log(`  🖼️  Image générée: ${result.image_base64?.length || 0} caractères base64`);
+    console.log(
+      `  📝 Texte extrait: ${result.extracted_text?.length || 0} caractères`
+    );
+    console.log(
+      `  🖼️  Image générée: ${result.image_base64?.length || 0} caractères base64`
+    );
     console.log(`  📈 Pages traitées: ${result.metadata?.page_count || 0}`);
-    console.log(`  🏷️  Mots-clés trouvés: ${result.metadata?.keyword_count || 0}`);
-    console.log(`  🔧 Méthode: ${result.metadata?.processing_method || 'unknown'}`);
-    console.log(`  🏦 Banque détectée: ${result.metadata?.detected_bank || 'aucune'}`);
+    console.log(
+      `  🏷️  Mots-clés trouvés: ${result.metadata?.keyword_count || 0}`
+    );
+    console.log(
+      `  🔧 Méthode: ${result.metadata?.processing_method || 'unknown'}`
+    );
+    console.log(
+      `  🏦 Banque détectée: ${result.metadata?.detected_bank || 'aucune'}`
+    );
 
     if (result.extracted_text && result.extracted_text.length > 0) {
       console.log('\n📄 Aperçu du texte extrait:');
@@ -149,24 +159,27 @@ async function testVercelFunction() {
     }
 
     if (result.success) {
-      console.log('\n🎉 Test réussi! La fonction Vercel fonctionne correctement.');
+      console.log(
+        '\n🎉 Test réussi! La fonction Vercel fonctionne correctement.'
+      );
       return true;
     } else {
-      console.log('\n⚠️  La fonction a répondu mais n\'a pas réussi le traitement.');
+      console.log(
+        "\n⚠️  La fonction a répondu mais n'a pas réussi le traitement."
+      );
       return false;
     }
-
   } catch (error) {
     console.error('\n❌ Erreur lors du test:');
     console.error(error.message);
-    
+
     if (error.code === 'ENOTFOUND') {
       console.error('\n💡 Vérifiez que:');
-      console.error('  1. L\'URL de déploiement est correcte');
+      console.error("  1. L'URL de déploiement est correcte");
       console.error('  2. La fonction est bien déployée sur Vercel');
       console.error('  3. Vous avez une connexion internet');
     }
-    
+
     return false;
   }
 }
@@ -176,28 +189,27 @@ async function testVercelFunction() {
  */
 async function testCORS() {
   console.log('\n🌐 Test CORS...');
-  
+
   try {
     const response = await fetch(FUNCTION_URL, {
-      method: 'OPTIONS'
+      method: 'OPTIONS',
     });
-    
+
     console.log(`📥 CORS Status: ${response.status}`);
     console.log('📋 Headers CORS:');
-    
+
     const corsHeaders = [
       'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Methods', 
-      'Access-Control-Allow-Headers'
+      'Access-Control-Allow-Methods',
+      'Access-Control-Allow-Headers',
     ];
-    
+
     corsHeaders.forEach(header => {
       const value = response.headers.get(header);
       console.log(`  ${header}: ${value || 'non défini'}`);
     });
-    
+
     return response.ok;
-    
   } catch (error) {
     console.error('❌ Erreur test CORS:', error.message);
     return false;
@@ -207,22 +219,24 @@ async function testCORS() {
 // Exécution du script
 async function main() {
   console.log('🔧 Test complet de la fonction Vercel Python');
-  console.log('='*60);
-  
+  console.log('=' * 60);
+
   // Test CORS
   const corsOk = await testCORS();
   if (!corsOk) {
     console.log('⚠️  Problème CORS détecté');
   }
-  
+
   console.log();
-  
+
   // Test principal
   const success = await testVercelFunction();
-  
-  console.log('\n' + '='*60);
+
+  console.log('\n' + '=' * 60);
   if (success) {
-    console.log('🎉 Tous les tests sont passés! La fonction est opérationnelle.');
+    console.log(
+      '🎉 Tous les tests sont passés! La fonction est opérationnelle.'
+    );
     process.exit(0);
   } else {
     console.log('❌ Des problèmes ont été détectés.');

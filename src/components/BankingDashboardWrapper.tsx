@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import ProBankingDashboard from './ProBankingDashboard';
+import { useEffect, useState } from 'react';
 import AuthTransition from './AuthTransition';
+import ProBankingDashboard from './ProBankingDashboard';
 
 // Types pour les données d'abonnement
 type SubscriptionData = {
@@ -20,11 +20,13 @@ interface BankingDashboardWrapperProps {
   subscriptionData: SubscriptionData;
 }
 
-export default function BankingDashboardWrapper(props: BankingDashboardWrapperProps) {
+export default function BankingDashboardWrapper(
+  props: BankingDashboardWrapperProps
+) {
   const searchParams = useSearchParams();
   const fromAuth = searchParams.get('from_auth');
   const paymentStatus = searchParams.get('payment');
-  
+
   // Initialiser showTransition à true si on vient d'une authentification
   const [showTransition, setShowTransition] = useState(
     fromAuth === 'true' || paymentStatus === 'success'
@@ -48,7 +50,7 @@ export default function BankingDashboardWrapper(props: BankingDashboardWrapperPr
 
   if (showTransition) {
     return (
-      <AuthTransition 
+      <AuthTransition
         userFirstName={props.userName}
         onComplete={handleTransitionComplete}
       />
@@ -56,7 +58,7 @@ export default function BankingDashboardWrapper(props: BankingDashboardWrapperPr
   }
 
   return (
-    <ProBankingDashboard 
+    <ProBankingDashboard
       userName={props.userName}
       subscriptionData={props.subscriptionData}
     />

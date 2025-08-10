@@ -1,25 +1,14 @@
-// Inventory/Stock Management AI Agents Team
+// Inventory/Stock Management AI Agents Team - Nouvelle structure optimisée
 // Équipe d'agents IA spécialisés dans la gestion des stocks et inventaires
 
-export { BaseAgent } from '../shared/base-agent';
-export { MasterCoordinatorAgent as InventoryCoordinator } from './inventory-coordinator';
-export { DataAnalysisAgent } from './data-analysis-agent';
-export { ForecastingAgent } from './forecasting-agent';
-export { StockOptimizationAgent } from './stock-optimization-agent';
-export { ExternalContextAgent } from './external-context-agent';
-export { AnomalyDetectionAgent } from './anomaly-detection-agent';
-export { KPIMetricsAgent } from './kpi-metrics-agent';
+// Export des nouveaux agents optimisés
+export * from './agents';
+export * from './tools';
 
-// Types pour l'équipe inventory
-export type {
-  AgentConfig,
-  AgentExecutionResult,
-  StockAnalysisState,
-  WorkflowResult,
-  SalesRecord,
-  ForecastResult,
-  StockManagementKPIs,
-  DemandPattern,
-  Alert,
-  Recommendation
-} from '@/types/ai-agents';
+// Types pour l'équipe inventory (à partir de la nouvelle structure)
+export interface AgentConfig {
+  name: string;
+  model: string;
+  instructions: string;
+  tools: any[];
+}

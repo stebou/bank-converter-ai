@@ -8,7 +8,7 @@ Cette documentation détaille l'intégration complète d'un dashboard bancaire d
 
 - **Backend API Banking** avec Bridge API
 - **Base de données** étendue avec modèles bancaires
-- **Interface utilisateur** moderne et responsive  
+- **Interface utilisateur** moderne et responsive
 - **Sécurité** et validation des données sensibles
 - **Navigation** intégrée dans l'app existante
 
@@ -60,8 +60,9 @@ model BankTransaction {
 ### API Routes
 
 **Routes créées :**
+
 - `GET /api/banking/accounts` - Récupération des comptes
-- `GET /api/banking/transactions` - Récupération des transactions  
+- `GET /api/banking/transactions` - Récupération des transactions
 - `POST /api/banking/sync` - Synchronisation avec Bridge API
 - `GET /api/banking/analytics` - Analyses financières
 
@@ -95,7 +96,7 @@ Ajoutez ces variables à votre fichier `.env.local` :
 ```env
 # Bridge API Configuration
 BRIDGE_CLIENT_ID="your_bridge_client_id"
-BRIDGE_CLIENT_SECRET="your_bridge_client_secret"  
+BRIDGE_CLIENT_SECRET="your_bridge_client_secret"
 BRIDGE_API_URL="https://api.bridgeapi.io"
 BRIDGE_ENVIRONMENT="sandbox"
 
@@ -149,10 +150,10 @@ npx prisma migrate dev --name add_banking_models
 // Exemple de validation automatique
 export function validateBankingRequest(request: any) {
   const errors: string[] = [];
-  
+
   if (!request.userId) errors.push('User ID is required');
   if (request.amount && isNaN(request.amount)) errors.push('Invalid amount');
-  
+
   return { isValid: errors.length === 0, errors };
 }
 ```
@@ -164,18 +165,21 @@ export function validateBankingRequest(request: any) {
 ### Navigation
 
 Le dashboard bancaire est accessible via :
+
 - **URL :** `/dashboard/banking`
 - **Navigation :** Sidebar → "Banking" (icône Building2)
 
 ### Fonctionnalités Principales
 
 1. **Synchronisation des données :**
+
    ```typescript
    const { syncData, syncing } = useBanking();
    await syncData(); // Synchronise avec Bridge API
    ```
 
 2. **Récupération des comptes :**
+
    ```typescript
    const { accounts, loading } = useBanking();
    // Comptes bancaires de l'utilisateur
@@ -207,7 +211,7 @@ npm run dev                 # Serveur de développement
 npm run build              # Test de compilation
 npm run lint               # Vérification du code
 
-# Tests base de données  
+# Tests base de données
 npx prisma studio          # Interface DB
 npx prisma generate        # Génération client
 ```
@@ -285,7 +289,7 @@ npx prisma generate        # Génération client
 ### v1.0.0 - Intégration Initiale
 
 - ✅ Modèles de données bancaires (Prisma)
-- ✅ Service API Bridge complet  
+- ✅ Service API Bridge complet
 - ✅ Routes API sécurisées
 - ✅ Interface utilisateur moderne
 - ✅ Navigation intégrée
@@ -295,4 +299,4 @@ npx prisma generate        # Génération client
 
 ---
 
-*Cette intégration respecte entièrement l'architecture existante de votre application et s'intègre de manière transparente avec votre stack technique (Next.js 15, Clerk, Prisma, Stripe, Tailwind CSS).*
+_Cette intégration respecte entièrement l'architecture existante de votre application et s'intègre de manière transparente avec votre stack technique (Next.js 15, Clerk, Prisma, Stripe, Tailwind CSS)._

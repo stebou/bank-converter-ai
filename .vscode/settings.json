@@ -1,0 +1,23 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  },
+  "emmet.includeLanguages": {
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  }
+}
