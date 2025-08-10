@@ -5,7 +5,7 @@ test-python-pdf.py
 
 # Conserver seulement les fonctions Vercel dans api/
 src/lib/pdf-processing-server.ts
-src/lib/pdf-processing-hybrid.ts
+# src/lib/pdf-processing-hybrid.ts - Commenté car nécessaire pour les routes API
 
 # Garder api/requirements.txt pour les fonctions Vercel
 !api/requirements.txt
