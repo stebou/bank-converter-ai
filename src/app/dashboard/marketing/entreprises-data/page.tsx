@@ -44,7 +44,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCompanyData, type EnrichedCompany, type CompanyFilters } from '@/hooks/useCompanyData';
 
@@ -112,6 +112,14 @@ function CompaniesSkeleton() {
 
 export default function CompaniesDataPage() {
   const { user, isLoaded } = useUser();
+  const router = useRouter();
+
+  // Redirection conditionnelle avec useEffect pour éviter les boucles
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, user, router]);
   
   // Hook pour les données d'entreprises avec recherche en temps réel
   const {
@@ -190,8 +198,7 @@ export default function CompaniesDataPage() {
   }
 
   if (!user) {
-    redirect('/sign-in');
-    return null;
+    return <CompaniesSkeleton />; // Retour immédiat en attendant la redirection
   }
 
   // Fonctions API (supprimées car gérées par le hook useCompanyData)

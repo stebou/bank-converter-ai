@@ -16,6 +16,8 @@ export default clerkMiddleware((auth, req) => {
   if (!isPublicRoute(req)) {
     auth.protect();
   }
+}, {
+  debug: false // Désactiver les logs de debug en production
 });
 
 export const config = {
