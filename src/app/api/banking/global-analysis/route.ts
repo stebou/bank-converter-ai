@@ -45,21 +45,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GLOBAL_ANALYSIS] ${documents.length} documents trouvés`);
 
-    // 2. Récupérer les comptes bancaires
+    // 2. Récupérer les comptes bancaires directement via le service
     let bankAccounts = [];
     try {
-      const accountsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/banking/accounts`, {
-        headers: {
-          'Authorization': `Bearer ${userId}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        bankAccounts = accountsData.accounts || [];
-      }
-    } catch (error) {
-      console.log('[GLOBAL_ANALYSIS] Bank accounts not available:', error);
+      // Utiliser directement le service au lieu d'un appel HTTP interne
+      const { bankingService } = await import('@/lib/banking');
+      bankAccounts = await bankingService.getUserBankAccounts(userId);
+      console.log(`[GLOBAL_ANALYSIS] ${bankAccounts.length} comptes bancaires trouvés`);
+    } catch (accountsError) {
+      console.warn('[GLOBAL_ANALYSIS] Erreur lors de la récupération des comptes:', accountsError);
+      // Continuer sans les comptes bancaires si nécessaire
     }
 
     // 3. Calculer les métriques financières à partir des transactions

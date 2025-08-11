@@ -108,15 +108,13 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     try {
       const startTime = performance.now();
       
-      const result = await companyDataService.searchCompanies({
+      const result = await companyDataService.getAllSearchResults({
         q: params.query,
         siren: params.siren,
         siret: params.siret,
         nom: params.nom,
         ville: params.ville,
         departement: params.departement,
-        page: params.page || 1,
-        nombre: params.limit || 5, // Par défaut 5 résultats pour la recherche en temps réel
         etatAdministratif: 'A', // Par défaut, chercher les entreprises actives
         siege: filters.headOfficeOnly || undefined
       });

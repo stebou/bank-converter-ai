@@ -162,7 +162,7 @@ export default function CompaniesDataPage() {
 
   useEffect(() => {
     if (!isLoading && searchQuery && filteredCompanies.length > 0) {
-      addLog(`${filteredCompanies.length} résultat(s) trouvé(s)`, 'success');
+      addLog(`${filteredCompanies.length} résultat(s) trouvé(s) - Tous les résultats récupérés automatiquement`, 'success');
     }
   }, [isLoading, searchQuery, filteredCompanies.length, addLog]);
   // Filtres

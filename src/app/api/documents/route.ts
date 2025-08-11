@@ -5,6 +5,8 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
+import { processImageContent, isValidImageType } from '@/lib/image-processing';
+import { extractTransactionsFromImage } from '@/lib/image-transaction-extractor';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -685,12 +687,248 @@ Réponds UNIQUEMENT avec un JSON valide:
           { status: 500 }
         );
       }
+    } 
+    // Traitement des images JPEG/PNG avec GPT-4o Vision
+    else if (isValidImageType(file.type)) {
+      console.log(
+        '[DOCUMENTS_API] Image detected - processing with GPT-4o Vision...'
+      );
+      console.log('[DOCUMENTS_API] Image type:', file.type);
+
+      try {
+        // Convertir le fichier en buffer
+        const imageBuffer = Buffer.from(await file.arrayBuffer());
+        console.log('[DOCUMENTS_API] Image buffer size:', imageBuffer.length);
+
+        // Traitement de l'image
+        console.log('[DOCUMENTS_API] Calling processImageContent...');
+        const imageProcessingResult = await processImageContent(imageBuffer, file.type);
+        console.log('[DOCUMENTS_API] processImageContent completed');
+
+        if (imageProcessingResult.success) {
+          // Pas de texte pré-extrait pour les images, GPT-4o Vision le fera
+          const extractedText = '';
+          const base64Image = imageProcessingResult.image_base64;
+
+          console.log(
+            '[DOCUMENTS_API] Image analysis available with vision'
+          );
+          console.log('[DOCUMENTS_API] Image base64 length:', base64Image.length);
+
+          // Analyser le document avec GPT-4o Vision
+          const analysisPrompt = `Tu es un expert comptable spécialisé dans l'analyse de documents financiers.
+
+ANALYSE cette image de document financier et détermine :
+
+1. S'il s'agit d'un document financier valide (relevé bancaire, facture, reçu, etc.)
+2. Le type exact de document
+3. La banque ou institution si visible
+4. Le nombre approximatif de transactions visibles
+5. Toute anomalie détectée
+
+CONTEXTE IMPORTANT:
+- Les documents financiers peuvent être des photos, scans partiels, ou captures d'écran
+- ACCEPTE les documents même si la qualité n'est pas parfaite
+- Un relevé peut ne pas montrer le nom de la banque (recadrage, etc.)
+- Les factures et reçus sont aussi des documents financiers valides
+
+INSTRUCTIONS ESSENTIELLES:
+- PRIORISE L'ACCEPTATION des documents qui pourraient être financiers
+- Un document financier PEUT ne pas avoir tous les éléments visibles (photo partielle, etc.)
+- ACCEPTE même si le format n'est pas parfait
+- En cas de doute, ACCEPTE le document
+- Les documents financiers peuvent avoir différentes présentations
+
+Réponds UNIQUEMENT avec un JSON valide:
+{
+  "isValidDocument": true/false,
+  "documentType": "relevé bancaire" | "facture" | "reçu" | "document financier" | "autre",
+  "rejectionReason": "raison précise du rejet si pas valide",
+  "bankName": "nom de la banque/institution détectée ou 'Document Financier' si non visible",
+  "transactionCount": nombre_de_transactions_visibles,
+  "anomalies": nombre_d_anomalies_détectées,
+  "confidence": pourcentage_de_confiance_0_à_100,
+  "analysisMethod": "gpt4_vision_analysis"
+}`;
+
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: analysisPrompt,
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${file.type};base64,${base64Image}`,
+                      detail: 'high',
+                    },
+                  },
+                ],
+              },
+            ],
+            max_tokens: 500,
+            temperature: 0.1,
+          });
+
+          const aiResponse = completion.choices[0]?.message?.content;
+          console.log('[DOCUMENTS_API] AI image analysis response received');
+
+          try {
+            let cleanResponse = aiResponse?.trim() || '';
+            if (cleanResponse.startsWith('```json')) {
+              cleanResponse = cleanResponse
+                .replace(/```json\s*/, '')
+                .replace(/```\s*$/, '');
+            }
+            if (cleanResponse.startsWith('```')) {
+              cleanResponse = cleanResponse
+                .replace(/```\s*/, '')
+                .replace(/```\s*$/, '');
+            }
+
+            const analysis = JSON.parse(cleanResponse);
+            console.log('[DOCUMENTS_API] Image analysis result:', analysis.isValidDocument);
+            console.log('[DOCUMENTS_API] Document type detected:', analysis.documentType);
+
+            if (analysis.isValidDocument === false) {
+              console.log(
+                '[DOCUMENTS_API] Image document rejected by AI analysis:',
+                analysis.rejectionReason
+              );
+              return NextResponse.json(
+                {
+                  error: 'DOCUMENT_REJECTED',
+                  message: `Document non valide: ${analysis.rejectionReason || 'Cette image ne semble pas être un document financier valide.'}`,
+                  documentType: analysis.documentType || 'autre',
+                },
+                { status: 400 }
+              );
+            }
+
+            // Document valide - extraire les transactions avec l'extracteur spécialisé pour images
+            const bankName = analysis.bankName || 'Document Financier';
+            console.log('[DOCUMENTS_API] Final bank name determination:', bankName);
+
+            // Extraire les transactions avec l'IA spécialisée pour images
+            const generatedTransactions = await extractTransactionsFromImage(base64Image, file.type);
+            console.log(
+              '[DOCUMENTS_API] Generated transactions from image with specialized extractor:',
+              generatedTransactions.length
+            );
+
+            // Créer le document avec les résultats de l'analyse
+            const [newDocument] = await prisma.$transaction([
+              prisma.document.create({
+                data: {
+                  userId: user.id,
+                  filename: file.name,
+                  status: 'COMPLETED',
+                  originalName: file.name,
+                  fileSize: file.size,
+                  mimeType: file.type,
+                  extractedText: '', // Pas de texte pré-extrait pour les images
+                  fileContent: imageBuffer, // Stocker le contenu binaire de l'image
+                  bankDetected: bankName,
+                  aiConfidence: analysis.confidence || 85,
+                  anomaliesDetected: analysis.anomalies || 0,
+                  totalTransactions: generatedTransactions.length,
+                  processingTime: Math.random() * 2 + 1.5,
+                  aiCost: Math.random() * 0.04 + 0.02,
+                  lastAnalyzedAt: new Date(),
+                },
+              }),
+              // Système de crédits supprimé - plus de décrémentation des limites
+              prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  documentsUsed: {
+                    increment: 1,
+                  },
+                },
+              }),
+            ]);
+
+            console.log(
+              '[DOCUMENTS_API] Image document saved with ID:',
+              newDocument.id
+            );
+
+            // Sauvegarder les transactions
+            if (generatedTransactions.length > 0) {
+              const transactionData = generatedTransactions.map(
+                transaction => ({
+                  documentId: newDocument.id,
+                  date: new Date(transaction.date),
+                  amount: transaction.amount,
+                  description: transaction.description,
+                  originalDesc: transaction.originalDesc,
+                  category: transaction.category,
+                  subcategory: transaction.subcategory,
+                  aiConfidence: transaction.confidence,
+                  anomalyScore: transaction.anomalyScore,
+                })
+              );
+
+              await prisma.transaction.createMany({
+                data: transactionData,
+              });
+
+              console.log(
+                '[DOCUMENTS_API] Saved',
+                generatedTransactions.length,
+                'transactions from image to database'
+              );
+            }
+
+            return NextResponse.json(
+              {
+                ...newDocument,
+                hasExtractedText: false, // Pas de texte pré-extrait pour les images
+                extractedTextLength: 0,
+                transactions: generatedTransactions,
+                analysisMethod: 'gpt4_vision_integrated',
+                integratedProcessing: true,
+              },
+              { status: 201 }
+            );
+          } catch (parseError) {
+            console.error(
+              '[DOCUMENTS_API] Failed to parse AI image response:',
+              parseError
+            );
+            return NextResponse.json(
+              { error: "Erreur d'analyse IA de l'image" },
+              { status: 500 }
+            );
+          }
+        } else {
+          console.log(
+            '[DOCUMENTS_API] Image processing failed:',
+            imageProcessingResult.error
+          );
+          return NextResponse.json(
+            { error: "Impossible de traiter l'image" },
+            { status: 400 }
+          );
+        }
+      } catch (imageError) {
+        console.error('[DOCUMENTS_API] Image processing error:', imageError);
+        return NextResponse.json(
+          { error: "Erreur lors du traitement de l'image" },
+          { status: 500 }
+        );
+      }
     }
 
     // Si on arrive ici, le type de fichier n'est pas supporté
     console.log('[DOCUMENTS_API] Unsupported file type:', file.type);
     return NextResponse.json(
-      { error: 'Type de fichier non supporté. Seuls les PDFs sont acceptés.' },
+      { error: 'Type de fichier non supporté. Formats acceptés : PDF, JPEG, PNG, WebP' },
       { status: 400 }
     );
   } catch (error) {

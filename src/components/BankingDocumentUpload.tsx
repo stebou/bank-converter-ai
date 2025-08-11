@@ -97,7 +97,11 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files?.[0];
-      if (selectedFile && selectedFile.type === 'application/pdf') {
+      if (selectedFile && (selectedFile.type === 'application/pdf' || 
+          selectedFile.type === 'image/jpeg' || 
+          selectedFile.type === 'image/jpg' || 
+          selectedFile.type === 'image/png' || 
+          selectedFile.type === 'image/webp')) {
         setFile(selectedFile);
         setError(null);
         setUploadSuccess(false);
@@ -127,14 +131,18 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
       setDragActive(false);
 
       const droppedFile = e.dataTransfer.files?.[0];
-      if (droppedFile && droppedFile.type === 'application/pdf') {
+      if (droppedFile && (droppedFile.type === 'application/pdf' || 
+          droppedFile.type === 'image/jpeg' || 
+          droppedFile.type === 'image/jpg' || 
+          droppedFile.type === 'image/png' || 
+          droppedFile.type === 'image/webp')) {
         setFile(droppedFile);
         setError(null);
         setUploadSuccess(false);
         // Déclencher automatiquement le traitement
         await processDocumentWithFile(droppedFile);
       } else {
-        setError('Veuillez déposer un fichier PDF valide');
+        setError('Veuillez déposer un fichier PDF ou image valide (JPEG, PNG, WebP)');
       }
     },
     [processDocumentWithFile]
@@ -218,20 +226,20 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
           >
             <Upload className="mx-auto mb-3 h-8 w-8 text-[#bdc3c7]" />
             <p className="font-montserrat mb-2 text-sm font-semibold text-[#2c3e50]">
-              Glissez-déposez votre PDF
+              Glissez-déposez votre document
             </p>
             <p className="font-open-sans mb-3 text-sm text-[#34495e]">ou</p>
             <label className="font-open-sans inline-block cursor-pointer rounded-lg bg-[#2c3e50] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#34495e]">
               Parcourir
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
                 onChange={handleFileUpload}
                 className="hidden"
               />
             </label>
             <p className="font-open-sans mt-2 text-xs text-[#34495e]">
-              PDF • Max 10MB
+              PDF, JPEG, PNG, WebP • Max 10MB
             </p>
           </div>
         )}

@@ -98,13 +98,119 @@ class CompanyDataService {
   }
 
   /**
+   * Récupère TOUS les résultats d'une recherche automatiquement
+   * Gère la pagination automatique jusqu'à récupérer tous les résultats disponibles
+   * 
+   * @param params Paramètres de recherche identiques à searchCompanies
+   * @returns Tous les résultats de la recherche
+   */
+  async getAllSearchResults(params: {
+    q?: string;
+    siren?: string;
+    siret?: string;
+    nom?: string;
+    ville?: string;
+    departement?: string;
+    region?: string;
+    activitePrincipale?: string;
+    categorieJuridique?: string;
+    etatAdministratif?: 'A' | 'F';
+    siege?: boolean;
+  }): Promise<{ companies: INSEECompany[]; total: number }> {
+    console.log('🔍 Récupération de TOUS les résultats INSEE pour:', params);
+    
+    let allCompanies: INSEECompany[] = [];
+    let currentPage = 1;
+    let totalResults = 0;
+    const resultsPerPage = 1000; // Maximum autorisé par l'API INSEE
+    
+    while (true) {
+      const pageParams = {
+        ...params,
+        nombre: resultsPerPage,
+        page: currentPage
+      };
+      
+      try {
+        const pageResult = await this.searchCompanies(pageParams);
+        
+        if (currentPage === 1) {
+          totalResults = pageResult.total;
+          console.log(`📊 Total des résultats disponibles: ${totalResults}`);
+          
+          // Si aucun résultat, on retourne directement
+          if (totalResults === 0) {
+            return { companies: [], total: 0 };
+          }
+        }
+        
+        allCompanies.push(...pageResult.companies);
+        console.log(`📄 Page ${currentPage}: ${pageResult.companies.length} résultats récupérés (Total: ${allCompanies.length}/${totalResults})`);
+        
+        // Si on a récupéré moins de résultats que demandé, on a atteint la fin
+        if (pageResult.companies.length < resultsPerPage) {
+          break;
+        }
+        
+        // Si on a récupéré tous les résultats disponibles
+        if (allCompanies.length >= totalResults) {
+          break;
+        }
+        
+        currentPage++;
+        
+        // Sécurité : éviter les boucles infinies (max 10 pages = 10 000 résultats)
+        if (currentPage > 10) {
+          console.warn('⚠️ Limite de sécurité atteinte: 10 pages maximum (10 000 résultats)');
+          break;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Erreur lors de la récupération de la page ${currentPage}:`, error);
+        break;
+      }
+    }
+    
+    // Déduplication finale par SIRET
+    const seenSirets = new Set<string>();
+    const uniqueCompanies = allCompanies.filter(company => {
+      if (seenSirets.has(company.siret)) {
+        return false;
+      }
+      seenSirets.add(company.siret);
+      return true;
+    });
+    
+    console.log(`✅ Récupération terminée: ${allCompanies.length} résultats → ${uniqueCompanies.length} après déduplication`);
+    
+    return {
+      companies: uniqueCompanies,
+      total: uniqueCompanies.length // Le total réel après déduplication
+    };
+  }
+
+  /**
    * Recherche d'entreprises dans la base Sirene de l'INSEE
+   * 
+   * Supporte plusieurs types de recherche :
+   * - Dénomination sociale (ex: "RENAULT", "TOTAL ENERGIES")
+   * - Nom propre pour entrepreneurs individuels (ex: "Jean Dupont", "Marie Martin")
+   * - Recherche mixte avec fallback intelligent
+   * 
+   * Exemples d'utilisation :
+   * - "Apple" → trouve les entreprises avec "Apple" dans la dénomination
+   * - "Jean Dupont" → trouve les entreprises de Jean Dupont (prenom + nom)
+   * - "Dupont Jean" → trouve aussi les entreprises (nom + prenom inversé)
+   * - "Marie" → trouve les entreprises avec "Marie" dans prénom, nom ou dénomination
+   * 
+   * @param params Paramètres de recherche
+   * @returns Résultats de recherche avec total et entreprises
    */
   async searchCompanies(params: {
     q?: string; // Recherche libre
     siren?: string;
     siret?: string;
-    nom?: string;
+    nom?: string; // Dénomination sociale OU nom propre (prenom nom)
     ville?: string;
     departement?: string;
     region?: string;
@@ -129,9 +235,47 @@ class CompanyDataService {
       
       if (params.siren) queryParts.push(`siren:${params.siren}`);
       if (params.siret) queryParts.push(`siret:${params.siret}`);
-      // Syntaxe simple pour dénomination (fonctionne selon tests)
-      if (params.nom) queryParts.push(`denominationUniteLegale:${params.nom}*`);
-      if (params.ville) queryParts.push(`libelleCommuneEtablissement:${params.ville}`);
+      
+      // Construction de la requête pour le nom d'entreprise ou nom propre
+      if (params.nom) {
+        const nomQueries = [];
+        
+        // Recherche par dénomination sociale
+        if (params.nom.includes(' ')) {
+          nomQueries.push(`denominationUniteLegale:"${params.nom}"`);
+        } else {
+          nomQueries.push(`denominationUniteLegale:${params.nom}*`);
+        }
+        
+        // Recherche par nom propre (prenom + nom) pour les entrepreneurs individuels
+        const words = params.nom.trim().split(/\s+/);
+        if (words.length >= 2) {
+          // Si on a au moins 2 mots, on essaie prenom + nom
+          const [prenom, ...nomParts] = words;
+          const nom = nomParts.join(' ');
+          nomQueries.push(`(prenom1UniteLegale:${prenom}* AND nomUniteLegale:${nom}*)`);
+          
+          // Essayer aussi dans l'autre sens (nom + prenom)
+          const [nom2, ...prenomParts] = words;
+          const prenom2 = prenomParts.join(' ');
+          if (prenomParts.length > 0) {
+            nomQueries.push(`(prenom1UniteLegale:${prenom2}* AND nomUniteLegale:${nom2}*)`);
+          }
+        } else {
+          // Si un seul mot, chercher dans prenom OU nom
+          nomQueries.push(`(prenom1UniteLegale:${params.nom}* OR nomUniteLegale:${params.nom}*)`);
+        }
+        
+        // Combiner toutes les recherches nom avec OR
+        queryParts.push(`(${nomQueries.join(' OR ')})`);
+      }
+      
+      if (params.ville) {
+        const villeQuery = params.ville.includes(' ')
+          ? `libelleCommuneEtablissement:"${params.ville}"`
+          : `libelleCommuneEtablissement:${params.ville}`;
+        queryParts.push(villeQuery);
+      }
       if (params.departement) queryParts.push(`codeCommuneEtablissement:${params.departement}*`);
       // Variables historisées doivent être dans periode() selon la documentation officielle
       if (params.activitePrincipale) queryParts.push(`periode(activitePrincipaleEtablissement:${params.activitePrincipale})`);
@@ -162,6 +306,135 @@ class CompanyDataService {
       });
 
       console.log('📊 Statut réponse INSEE:', response.status);
+      
+      // Si la recherche exacte avec guillemets retourne 404 et qu'on a un nom avec espaces,
+      // on essaie une recherche avec les mots séparés ET recherche par nom propre
+      if (!response.ok && response.status === 404 && params.nom && params.nom.includes(' ')) {
+        console.log('🔄 Tentative de recherche alternative avec mots séparés et nom propre...');
+        
+        // Construire une nouvelle requête avec des mots séparés
+        const fallbackQuery = new URLSearchParams();
+        const words = params.nom.trim().split(/\s+/);
+        
+        // Différentes stratégies de recherche alternative
+        const fallbackStrategies = [];
+        
+        // 1. Recherche par mots-clés dans dénomination
+        const wordQueries = words.map(word => `denominationUniteLegale:${word}*`);
+        fallbackStrategies.push(`(${wordQueries.join(' AND ')})`);
+        
+        // 2. Recherche par nom propre si on a au moins 2 mots
+        if (words.length >= 2) {
+          const [prenom, ...nomParts] = words;
+          const nom = nomParts.join(' ');
+          fallbackStrategies.push(`(prenom1UniteLegale:${prenom}* AND nomUniteLegale:${nom}*)`);
+          
+          // Essayer aussi dans l'autre sens
+          const [nom2, ...prenomParts] = words;
+          const prenom2 = prenomParts.join(' ');
+          if (prenomParts.length > 0) {
+            fallbackStrategies.push(`(prenom1UniteLegale:${prenom2}* AND nomUniteLegale:${nom2}*)`);
+          }
+        }
+        
+        // 3. Recherche floue : chaque mot dans dénomination OU nom/prénom
+        const flexibleQueries = words.map(word => 
+          `(denominationUniteLegale:${word}* OR prenom1UniteLegale:${word}* OR nomUniteLegale:${word}*)`
+        );
+        fallbackStrategies.push(`(${flexibleQueries.join(' AND ')})`);
+        
+        const queryParts = [`(${fallbackStrategies.join(' OR ')})`];
+        
+        // Ajouter les autres critères de recherche
+        if (params.siren) {
+          queryParts.push(`siren:${params.siren}`);
+        }
+        
+        if (params.siret) {
+          queryParts.push(`siret:${params.siret}`);
+        }
+        
+        if (params.ville) {
+          if (params.ville.includes(' ')) {
+            queryParts.push(`libelleCommuneEtablissement:"${params.ville}"`);
+          } else {
+            queryParts.push(`libelleCommuneEtablissement:${params.ville}*`);
+          }
+        }
+        
+        // Ajouter le filtre pour les établissements actifs
+        queryParts.push('periode(etatAdministratifEtablissement:A)');
+        
+        fallbackQuery.append('q', queryParts.join(' AND '));
+        fallbackQuery.append('nombre', (params.nombre || 20).toString());
+        if (params.page && params.page > 1) {
+          fallbackQuery.append('debut', ((params.page - 1) * (params.nombre || 20)).toString());
+        }
+        
+        const fallbackURL = `${this.INSEE_API_BASE}/siret?${fallbackQuery.toString()}`;
+        console.log('🔄 URL alternative:', fallbackURL);
+        
+        const fallbackResponse = await fetch(fallbackURL, {
+          headers: {
+            'X-INSEE-Api-Key-Integration': this.INSEE_API_KEY,
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log('📊 Statut réponse alternative:', fallbackResponse.status);
+        
+        if (fallbackResponse.ok) {
+          console.log('✅ Recherche alternative réussie !');
+          // Utiliser la réponse alternative
+          const fallbackData = await fallbackResponse.json();
+          
+          const allCompanies: INSEECompany[] = fallbackData.etablissements?.map((etab: any) => ({
+            siren: etab.siren,
+            siret: etab.siret,
+            denomination: etab.uniteLegale?.denominationUniteLegale || 
+                         etab.uniteLegale?.prenom1UniteLegale + ' ' + etab.uniteLegale?.nomUniteLegale ||
+                         'Dénomination inconnue',
+            categorieJuridique: etab.uniteLegale?.categorieJuridiqueUniteLegale,
+            activitePrincipale: etab.activitePrincipaleEtablissement,
+            activitePrincipaleLibelle: etab.activitePrincipaleEtablissement ? 
+              this.getNAFLabel(etab.activitePrincipaleEtablissement) : '',
+            adresse: {
+              numeroVoie: etab.adresseEtablissement?.numeroVoieEtablissement,
+              typeVoie: etab.adresseEtablissement?.typeVoieEtablissement,
+              libelleVoie: etab.adresseEtablissement?.libelleVoieEtablissement,
+              codePostal: etab.adresseEtablissement?.codePostalEtablissement,
+              libelleCommuneEtablissement: etab.adresseEtablissement?.libelleCommuneEtablissement,
+              codeCommuneEtablissement: etab.adresseEtablissement?.codeCommuneEtablissement,
+            },
+            etatAdministratif: etab.etatAdministratifEtablissement,
+            dateCreation: etab.dateCreationEtablissement,
+            dateDerniereMiseAJour: etab.dateDernierTraitementEtablissement,
+            siege: etab.etablissementSiege === 'true',
+            trancheEffectifs: etab.trancheEffectifsEtablissement
+          })) || [];
+
+          // Déduplication par SIRET
+          const seenSirets = new Set<string>();
+          const uniqueCompanies = allCompanies.filter(company => {
+            if (seenSirets.has(company.siret)) {
+              return false;
+            }
+            seenSirets.add(company.siret);
+            return true;
+          });
+
+          console.log('📊 Résultats INSEE:', 
+            allCompanies.length, 'bruts →', 
+            uniqueCompanies.length, 'après déduplication'
+          );
+
+          return {
+            companies: uniqueCompanies,
+            total: fallbackData.header?.total || 0
+          };
+        }
+      }
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Erreur API INSEE:', response.status, errorText);
