@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback',
   '/privacy-policy',
   '/api/stripe/webhooks(.*)',
+  '/api/test-sirene(.*)', // Endpoint de test public
 ]);
 
 export default clerkMiddleware((auth, req) => {

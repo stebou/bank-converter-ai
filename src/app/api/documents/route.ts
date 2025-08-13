@@ -1,12 +1,12 @@
 // API de documents pour dashboard - AVEC PyMuPDF + GPT-4 Vision
 
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
-import OpenAI from 'openai';
-import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
-import { processImageContent, isValidImageType } from '@/lib/image-processing';
+import { isValidImageType, processImageContent } from '@/lib/image-processing';
 import { extractTransactionsFromImage } from '@/lib/image-transaction-extractor';
+import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

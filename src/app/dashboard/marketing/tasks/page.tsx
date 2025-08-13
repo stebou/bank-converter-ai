@@ -1,41 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Suspense } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Download, 
-  Upload, 
-  HelpCircle, 
-  Filter,
-  ChevronDown,
-  MoreHorizontal,
-  Play,
-  Pause,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  User,
-  Calendar,
-  Tag,
-  Target,
-  Folder,
-  ExternalLink,
-  Edit3,
-  Trash2,
-  Archive,
-  X,
-  ChevronUp,
-  Settings,
-  Save,
-  Share2,
-  Eye,
-  EyeOff
-} from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Download,
+    Filter,
+    HelpCircle,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Upload,
+    X
+} from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Suspense, useEffect, useState } from 'react';
 
 // Types
 type TaskStatus = 'Open' | 'In Progress' | 'Blocked' | 'Review' | 'Resolved' | 'Closed';

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  inventoryAnalystAgent,
-  stockOptimizationAgent,
-  demandForecastAgent,
-  runInventoryAgent
+import {
+    demandForecastAgent,
+    inventoryAnalystAgent,
+    runInventoryAgent,
+    stockOptimizationAgent
 } from '@/lib/agents/inventory/agents';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {

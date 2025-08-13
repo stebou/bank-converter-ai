@@ -1,9 +1,8 @@
-import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import BankingDashboardWrapper from '@/components/BankingDashboardWrapper';
+import { prisma } from '@/lib/prisma';
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
-import BankingDashboardWrapper from '@/components/BankingDashboardWrapper';
+import { Suspense } from 'react';
 
 function DashboardSkeleton() {
   return (

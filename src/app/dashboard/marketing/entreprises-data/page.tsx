@@ -1,1162 +1,1003 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Suspense } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Download, 
-  Upload, 
-  HelpCircle, 
-  Filter,
-  ChevronDown,
-  MoreHorizontal,
-  Building2,
-  MapPin,
-  Users,
-  Calendar,
-  Tag,
-  Target,
-  Folder,
-  ExternalLink,
-  Edit3,
-  Trash2,
-  Archive,
-  X,
-  ChevronUp,
-  Settings,
-  Save,
-  Share2,
-  Eye,
-  EyeOff,
-  Building,
-  Globe,
-  Star,
-  TrendingUp,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  Phone,
-  Mail,
-  Linkedin,
-  Link,
-  FileText,
-  BarChart3
-} from 'lucide-react';
+import { CompanySearchPopup } from '@/components/CompanySearchPopup';
+import { AddCompaniesDialog } from '@/components/ui/AddCompaniesDialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useCompanyListsStore } from '@/stores/company-lists';
+import { CompanyList, CompanyStatus } from '@/types/company-lists';
+import { CompanySearchResult, SearchCriteria } from '@/types/search-criteria';
 import { useUser } from '@clerk/nextjs';
+import { motion } from 'framer-motion';
+import {
+  AlertCircle,
+  Building2,
+  Calendar,
+  Download,
+  Edit3,
+  Filter,
+  FolderOpen,
+  Globe,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  Users,
+  X
+} from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useCompanyData, type EnrichedCompany, type CompanyFilters } from '@/hooks/useCompanyData';
+import { useEffect, useState } from 'react';
 
-// Types pour les vues sauvegardées
-interface SavedView {
-  id: string;
-  name: string;
-  filters: CompanyFilters;
-  isPublic: boolean;
-  createdBy: string;
+// Composants pour les modales
+interface CreateListModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onListCreated?: (listId: string) => void;
 }
 
-interface KPIData {
-  totalCompanies: number;
-  activeCompanies: number;
-  withLinkedin: number;
-  averageScore: number;
-  topSectors: Array<{ naf: string; label: string; count: number }>;
-}
+function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProps) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('');
+  const { createList } = useCompanyListsStore();
 
-// Mock KPIs pour la démonstration
-const mockKPIs: KPIData = {
-  totalCompanies: 31000000,
-  activeCompanies: 28500000,
-  withLinkedin: 2100000,
-  averageScore: 74.2,
-  topSectors: [
-    { naf: '62.01Z', label: 'Programmation informatique', count: 485000 },
-    { naf: '73.11Z', label: 'Activités des agences de publicité', count: 125000 },
-    { naf: '66.12Z', label: 'Courtage de valeurs mobilières', count: 85000 }
-  ]
-};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-const nafCodes = [
-  { code: '62.01Z', label: 'Programmation informatique' },
-  { code: '73.11Z', label: 'Activités des agences de publicité' },
-  { code: '66.12Z', label: 'Courtage de valeurs mobilières et de marchandises' },
-  { code: '70.22Z', label: 'Conseil pour les affaires et autres conseils de gestion' },
-  { code: '82.99Z', label: 'Autres services de soutien aux entreprises' }
-];
+    try {
+      const newList = await createList({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        color: color || undefined
+      });
+      setName('');
+      setDescription('');
+      setColor('');
+      onClose();
+      
+      // Proposer d'ajouter des entreprises avec popup personnalisée
+      if (onListCreated && newList?.id) {
+        setTimeout(() => {
+          onListCreated(newList.id);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de la liste:', error);
+    }
+  };
 
-const regions = [
-  'Île-de-France',
-  'Auvergne-Rhône-Alpes',
-  'Nouvelle-Aquitaine',
-  'Occitanie',
-  'Hauts-de-France',
-  'Grand Est',
-  'Provence-Alpes-Côte d\'Azur',
-  'Pays de la Loire',
-  'Normandie',
-  'Bretagne'
-];
+  if (!isOpen) return null;
 
-function CompaniesSkeleton() {
   return (
-    <div className="space-y-6 p-8">
-      <div className="h-8 w-64 rounded bg-[#bdc3c7]"></div>
-      <div className="h-12 w-full rounded bg-[#bdc3c7]"></div>
-      <div className="h-32 w-full rounded bg-[#bdc3c7]"></div>
-      <div className="h-96 w-full rounded bg-[#bdc3c7]"></div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-lg p-6 w-full max-w-md"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">Créer une nouvelle liste</h2>
+          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Nom de la liste *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Prospects Fintech Paris"
+              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Description (optionnel)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description de la liste et critères de ciblage"
+              rows={3}
+              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Couleur (optionnel)
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'].map((colorOption) => (
+                <button
+                  key={colorOption}
+                  type="button"
+                  onClick={() => setColor(colorOption)}
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    color === colorOption ? 'border-gray-400 scale-110' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  style={{ backgroundColor: colorOption }}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setColor('')}
+                className={`w-8 h-8 rounded-full border-2 bg-gray-100 flex items-center justify-center transition-all ${
+                  color === '' ? 'border-gray-400 scale-110' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+            >
+              Créer la liste
+            </button>
+          </div>
+        </form>
+      </motion.div>
     </div>
   );
 }
 
-export default function CompaniesDataPage() {
-  const { user, isLoaded } = useUser();
-  const router = useRouter();
+// Modal d'édition de liste
+interface EditListModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  list: CompanyList | null;
+  onListUpdated?: () => void;
+}
 
-  // Redirection conditionnelle avec useEffect pour éviter les boucles
+function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalProps) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('');
+  const { updateList } = useCompanyListsStore();
+
+  // Pré-remplir les champs quand la liste change
   useEffect(() => {
-    if (isLoaded && !user) {
-      router.push('/sign-in');
+    if (list) {
+      setName(list.name || '');
+      setDescription(list.description || '');
+      setColor(list.color || '');
     }
-  }, [isLoaded, user, router]);
-  
-  // Hook pour les données d'entreprises avec recherche en temps réel
-  const {
-    companies: filteredCompanies,
-    allCompanies,
-    isLoading,
-    error,
-    total,
-    searchQuery,
-    lastSearchTime,
-    searchInRealTime,
-    clearResults,
-    exportToCSV,
-    validateIdentifier,
-    stats
-  } = useCompanyData({
-    enableRealTimeSearch: true,
-    searchDebounceMs: 500
-  });
-  
-  // États locaux
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<EnrichedCompany | null>(null);
-  const [showKPIs, setShowKPIs] = useState(true);
-  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
-  const [activeView, setActiveView] = useState<string | null>(null);
-  const [showLogs, setShowLogs] = useState(false);
-  const [logs, setLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'error' }>>([]);
+  }, [list]);
 
-  // Ajouter un log à l'historique
-  const addLog = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
-    const newLog = {
-      time: new Date().toLocaleTimeString('fr-FR'),
-      message,
-      type
-    };
-    setLogs(prev => [newLog, ...prev.slice(0, 9)]); // Garder les 10 derniers logs
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !list) return;
 
-  // Observer les changements pour ajouter des logs
-  useEffect(() => {
-    if (isLoading && searchQuery) {
-      addLog(`Recherche en cours pour "${searchQuery}"`, 'info');
-    }
-  }, [isLoading, searchQuery, addLog]);
-
-  useEffect(() => {
-    if (!isLoading && searchQuery && filteredCompanies.length > 0) {
-      addLog(`${filteredCompanies.length} résultat(s) trouvé(s) - Tous les résultats récupérés automatiquement`, 'success');
-    }
-  }, [isLoading, searchQuery, filteredCompanies.length, addLog]);
-  // Filtres
-  const [filters, setFilters] = useState<CompanyFilters>({
-    status: [],
-    nafCodes: [],
-    effectifs: [],
-    regions: [],
-    departments: [],
-    headOfficeOnly: false,
-    hasLinkedin: false,
-    hasWebsite: false,
-    scoreRange: {}
-  });
-
-  // Options de tri et groupement
-  const [sortBy, setSortBy] = useState<{ field: string; direction: 'asc' | 'desc' }>({
-    field: 'score',
-    direction: 'desc'
-  });
-  const [groupBy, setGroupBy] = useState<string>('');
-
-  if (!isLoaded) {
-    return <CompaniesSkeleton />;
-  }
-
-  if (!user) {
-    return <CompaniesSkeleton />; // Retour immédiat en attendant la redirection
-  }
-
-  // Fonctions API (supprimées car gérées par le hook useCompanyData)
-
-  // Fonctions utilitaires
-  const getStatusColor = (status: 'A' | 'F'): string => {
-    const colors = {
-      'A': 'bg-[#2ecc71] text-white',
-      'F': 'bg-[#e74c3c] text-white'
-    };
-    return colors[status] || 'bg-[#95a5a6] text-white';
-  };
-
-  const getStatusLabel = (status: 'A' | 'F'): string => {
-    const labels = {
-      'A': 'Actif',
-      'F': 'Fermé'
-    };
-    return labels[status] || status;
-  };
-
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return 'text-[#2ecc71]';
-    if (score >= 60) return 'text-[#f39c12]';
-    return 'text-[#e74c3c]';
-  };
-
-  const formatHeadcount = (headcount?: string): string => {
-    if (!headcount) return 'Non renseigné';
-    const labels: Record<string, string> = {
-      '00': 'Aucun salarié',
-      '01': '1-2 salariés',
-      '02': '3-5 salariés',
-      '03': '6-9 salariés',
-      '11': '10-19 salariés',
-      '12': '20-49 salariés',
-      '21': '50-99 salariés',
-      '22': '100-199 salariés',
-      '31': '200-249 salariés',
-      '32': '250-499 salariés',
-      '41': '500-999 salariés',
-      '42': '1000-1999 salariés',
-      '51': '2000-4999 salariés',
-      '52': '5000-9999 salariés',
-      '53': '10000+ salariés'
-    };
-    return labels[headcount] || headcount;
-  };
-
-  // Gestion des actions
-  const handleCompanySelect = (siren: string) => {
-    const company = filteredCompanies.find(c => c.siren === siren);
-    if (company) {
-      setSelectedCompany(company);
-      setShowDetailsPanel(true);
+    try {
+      await updateList({
+        id: list.id,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        color: color || undefined
+      });
+      onClose();
+      
+      if (onListUpdated) {
+        onListUpdated();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la liste:', error);
     }
   };
 
-  const addToCampaign = (companySirens: string[]) => {
-    console.log('Ajouter à la campagne:', companySirens);
-    // Logique pour ajouter les entreprises à une campagne
-  };
+  if (!isOpen || !list) return null;
 
   return (
-    <div className="min-h-screen bg-[#ecf0f1]">
-      <Suspense fallback={<CompaniesSkeleton />}>
-        <div className="flex flex-col h-screen">
-          {/* Header */}
-          <header className="bg-white shadow-sm border-b border-[#bdc3c7] p-4 sticky top-0 z-30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-[#2c3e50] font-montserrat">
-                  Base entreprises · {filteredCompanies.length.toLocaleString()}
-                </h1>
-                {isLoading && (
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3498db]"></div>
-                )}
-                {process.env.NEXT_PUBLIC_INSEE_API_KEY && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-[#e8f6f3] text-[#27ae60] rounded-full text-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    API INSEE configurée
-                  </div>
-                )}
-                {lastSearchTime && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-[#e3f2fd] text-[#1976d2] rounded-full text-sm">
-                    <Clock className="h-4 w-4" />
-                    Dernière recherche: {lastSearchTime.toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-lg p-6 w-full max-w-md"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">Modifier la liste</h2>
+          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-              <div className="flex items-center gap-4">
-                {/* Recherche globale avec recherche en temps réel */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#7f8c8d]" />
-                  <input
-                    type="text"
-                    placeholder="Nom, SIREN/SIRET..."
-                    value={searchQuery}
-                    onChange={(e) => searchInRealTime(e.target.value)}
-                    className="pl-10 pr-12 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] w-80"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={clearResults}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#7f8c8d] hover:text-[#e74c3c] transition-colors"
-                      title="Effacer les résultats"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Actions rapides */}
-                <motion.button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Filter className="h-4 w-4" />
-                  Filtre avancé
-                </motion.button>
-
-                <button className="flex items-center gap-2 px-4 py-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
-                  <Upload className="h-4 w-4" />
-                  Importer SIREN
-                </button>
-
-                <button className="p-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* Filtres et vues */}
-          <div className="bg-white border-b border-[#bdc3c7] p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    showFilters ? 'bg-[#3498db] text-white' : 'border border-[#bdc3c7] hover:bg-[#ecf0f1]'
-                  }`}
-                >
-                  <Filter className="h-4 w-4" />
-                  Filtres
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                </button>
-
-                <select
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value)}
-                  className="px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
-                >
-                  <option value="">Aucun groupement</option>
-                  <option value="naf">Grouper par NAF</option>
-                  <option value="region">Grouper par région</option>
-                  <option value="headcount">Grouper par effectif</option>
-                  <option value="status">Grouper par statut</option>
-                </select>
-
-                <select
-                  value={`${sortBy.field}-${sortBy.direction}`}
-                  onChange={(e) => {
-                    const [field, direction] = e.target.value.split('-');
-                    setSortBy({ field, direction: direction as 'asc' | 'desc' });
-                  }}
-                  className="px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
-                >
-                  <option value="score-desc">Score ↓</option>
-                  <option value="score-asc">Score ↑</option>
-                  <option value="name-asc">Nom A→Z</option>
-                  <option value="name-desc">Nom Z→A</option>
-                  <option value="creationDate-desc">Création ↓</option>
-                  <option value="creationDate-asc">Création ↑</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[#7f8c8d]">Vues sauvegardées:</span>
-                <button className="px-3 py-1 text-sm bg-[#e8f4fd] text-[#3498db] rounded-lg hover:bg-[#d4e6f1]">
-                  Fintech IDF
-                </button>
-                <button className="px-3 py-1 text-sm border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1]">
-                  PME Marketing
-                </button>
-                <button className="p-1 text-[#7f8c8d] hover:text-[#2c3e50]">
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Panneau de filtres */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-                >
-                  {/* Filtre statut */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Statut</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
-                      <option>Tous les statuts</option>
-                      <option>Actif</option>
-                      <option>Fermé</option>
-                      <option>Suspendu</option>
-                    </select>
-                  </div>
-
-                  {/* Filtre forme juridique */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Forme juridique</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
-                      <option>Toutes formes</option>
-                      <option>SA</option>
-                      <option>SAS</option>
-                      <option>SARL</option>
-                      <option>SASU</option>
-                    </select>
-                  </div>
-
-                  {/* Filtre NAF */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Secteur (NAF)</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
-                      <option>Tous secteurs</option>
-                      {nafCodes.map(naf => (
-                        <option key={naf.code} value={naf.code}>
-                          {naf.code} - {naf.label.substring(0, 20)}...
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Filtre effectif */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Effectif</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
-                      <option>Tous effectifs</option>
-                      <option>1-9 salariés</option>
-                      <option>10-49 salariés</option>
-                      <option>50-99 salariés</option>
-                      <option>100-249 salariés</option>
-                      <option>250+ salariés</option>
-                    </select>
-                  </div>
-
-                  {/* Filtre région */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Région</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
-                      <option>Toutes régions</option>
-                      {regions.map(region => (
-                        <option key={region} value={region}>{region}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Options spéciales */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Options</label>
-                    <div className="space-y-2">
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={filters.headOfficeOnly}
-                          onChange={(e) => setFilters(prev => ({ ...prev, headOfficeOnly: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Siège uniquement
-                      </label>
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={filters.hasLinkedin}
-                          onChange={(e) => setFilters(prev => ({ ...prev, hasLinkedin: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Avec LinkedIn
-                      </label>
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={filters.hasWebsite}
-                          onChange={(e) => setFilters(prev => ({ ...prev, hasWebsite: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Avec site web
-                      </label>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Nom de la liste *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Prospects Fintech Paris"
+              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              required
+            />
           </div>
 
-          {/* KPIs */}
-          <AnimatePresence>
-            {showKPIs && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-white border-b border-[#bdc3c7] p-4"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#2c3e50]">Vue d'ensemble</h3>
-                  <button
-                    onClick={() => setShowKPIs(false)}
-                    className="p-1 text-[#7f8c8d] hover:text-[#2c3e50]"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                </div>
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Description (optionnel)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description de la liste et critères de ciblage"
+              rows={3}
+              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+            />
+          </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <div className="bg-[#e8f4fd] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#3498db]">{total.toLocaleString()}</div>
-                    <div className="text-sm text-[#7f8c8d]">Total résultats</div>
-                  </div>
-
-                  <div className="bg-[#e8f6f3] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#27ae60]">{stats.active.toLocaleString()}</div>
-                    <div className="text-sm text-[#7f8c8d]">Entreprises actives</div>
-                  </div>
-
-                  <div className="bg-[#f0f8ff] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#2980b9]">{stats.withLinkedin.toLocaleString()}</div>
-                    <div className="text-sm text-[#7f8c8d]">Avec LinkedIn</div>
-                  </div>
-
-                  <div className="bg-[#faf7f0] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#f39c12]">{stats.averageScore}</div>
-                    <div className="text-sm text-[#7f8c8d]">Score moyen</div>
-                  </div>
-
-                  <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                    <div className="text-lg font-bold text-[#2c3e50]">Top secteurs</div>
-                    <div className="text-xs text-[#7f8c8d] space-y-1 mt-2">
-                      {mockKPIs.topSectors.slice(0, 2).map(sector => (
-                        <div key={sector.naf}>
-                          {sector.label.substring(0, 15)}... ({sector.count.toLocaleString()})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {!showKPIs && (
-            <div className="bg-white border-b border-[#bdc3c7] p-2">
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              Couleur (optionnel)
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'].map((colorOption) => (
+                <button
+                  key={colorOption}
+                  type="button"
+                  onClick={() => setColor(colorOption)}
+                  className={`w-8 h-8 rounded-full border-2 ${
+                    color === colorOption ? 'border-gray-400' : 'border-gray-200'
+                  }`}
+                  style={{ backgroundColor: colorOption }}
+                />
+              ))}
               <button
-                onClick={() => setShowKPIs(true)}
-                className="text-sm text-[#3498db] hover:text-[#2980b9] flex items-center gap-1"
+                type="button"
+                onClick={() => setColor('')}
+                className={`w-8 h-8 rounded-full border-2 bg-gray-100 ${
+                  color === '' ? 'border-gray-400' : 'border-gray-200'
+                }`}
               >
-                <ChevronDown className="h-4 w-4" />
-                Afficher la vue d'ensemble
+                <X className="h-4 w-4 text-gray-400 mx-auto" />
               </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+            >
+              Mettre à jour
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+interface ImportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  listId?: string;
+}
+
+function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
+  const [importType, setImportType] = useState<'search' | 'csv' | 'siren' | 'linkedin'>('search');
+  const [sirenList, setSirenList] = useState('');
+  const [searchResults, setSearchResults] = useState<CompanySearchResult[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const { importCompanies } = useCompanyListsStore();
+
+  const handleAdvancedSearch = async (criteria: SearchCriteria, page: number = 1) => {
+    setIsSearching(true);
+    setSearchCriteria(criteria);
+    setCurrentPage(page);
+    
+    try {
+      const searchParams = new URLSearchParams();
+      
+      // Ajouter les critères aux paramètres de recherche
+      Object.entries(criteria).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          if (typeof value === 'object') {
+            // Pour les objets comme dateCreation, chiffreAffaires, etc.
+            Object.entries(value).forEach(([subKey, subValue]) => {
+              if (subValue !== undefined && subValue !== null && subValue !== '') {
+                searchParams.append(`${key}.${subKey}`, String(subValue));
+              }
+            });
+          } else {
+            searchParams.append(key, String(value));
+          }
+        }
+      });
+      
+      searchParams.append('page', page.toString());
+      searchParams.append('limit', '20');
+
+      const response = await fetch(`/api/company-search?${searchParams.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 Réponse API reçue:', data);
+        setSearchResults(data.results || []);
+        setTotalResults(data.pagination?.total || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setCurrentPage(data.pagination?.page || 1);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    handleAdvancedSearch(searchCriteria, page);
+  };
+
+  const toggleCompanySelection = (companyId: string) => {
+    setSelectedCompanies(prev => 
+      prev.includes(companyId) 
+        ? prev.filter(id => id !== companyId)
+        : [...prev, companyId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allIds = searchResults.map(company => company.siren);
+    setSelectedCompanies(allIds);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedCompanies([]);
+  };
+
+  const handleImport = async () => {
+    if (!listId) return;
+
+    try {
+      if (importType === 'search' && selectedCompanies.length > 0) {
+        // Import des entreprises sélectionnées depuis la base de données
+        await importCompanies(listId, { companyIds: selectedCompanies });
+      } else if (importType === 'siren' && sirenList.trim()) {
+        const sirens = sirenList.split('\n').map(s => s.trim()).filter(s => s);
+        await importCompanies(listId, { sirens });
+      }
+      onClose();
+    } catch (error) {
+      console.error('Erreur lors de l\'importation:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-lg p-6 w-full max-w-2xl"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">Importer des entreprises</h2>
+          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {/* Choix du type d'import */}
+          <div>
+            <label className="block text-sm font-medium text-[#2c3e50] mb-3">Type d'importation</label>
+            <div className="grid grid-cols-4 gap-3">
+              <button
+                onClick={() => setImportType('search')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  importType === 'search' 
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                    : 'border-[#bdc3c7] hover:border-[#95a5a6]'
+                }`}
+              >
+                <Search className="h-5 w-5 mb-2" />
+                <div className="font-medium">Recherche</div>
+                <div className="text-xs text-[#7f8c8d]">Chercher dans la base</div>
+              </button>
+
+              <button
+                onClick={() => setImportType('csv')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  importType === 'csv' 
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                    : 'border-[#bdc3c7] hover:border-[#95a5a6]'
+                }`}
+              >
+                <Upload className="h-5 w-5 mb-2" />
+                <div className="font-medium">Fichier CSV</div>
+                <div className="text-xs text-[#7f8c8d]">Importer depuis un fichier</div>
+              </button>
+
+              <button
+                onClick={() => setImportType('siren')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  importType === 'siren' 
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                    : 'border-[#bdc3c7] hover:border-[#95a5a6]'
+                }`}
+              >
+                <Building2 className="h-5 w-5 mb-2" />
+                <div className="font-medium">Liste SIREN</div>
+                <div className="text-xs text-[#7f8c8d]">Coller une liste de SIREN</div>
+              </button>
+
+              <button
+                onClick={() => setImportType('linkedin')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  importType === 'linkedin' 
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                    : 'border-[#bdc3c7] hover:border-[#95a5a6]'
+                }`}
+              >
+                <Globe className="h-5 w-5 mb-2" />
+                <div className="font-medium">LinkedIn Sales</div>
+                <div className="text-xs text-[#7f8c8d]">Importer depuis LinkedIn</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Contenu selon le type */}
+          {importType === 'search' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-[#ecf0f1] rounded-lg text-center text-[#7f8c8d]">
+                Utilisez le bouton "Ajouter des entreprises" (icône +) sur les cartes de liste pour ouvrir la recherche avancée.
+              </div>
+              {/* TODO: Réintégrer AdvancedSearch et CompanySearchResults si nécessaire */}
+              {/* 
+              <AdvancedSearch 
+                onSearch={handleAdvancedSearch} 
+                isSearching={isSearching} 
+              />
+
+              <CompanySearchResults
+                results={searchResults}
+                selectedCompanies={selectedCompanies}
+                onCompanySelect={toggleCompanySelection}
+                onSelectAll={handleSelectAll}
+                onDeselectAll={handleDeselectAll}
+                isLoading={isSearching}
+                totalResults={totalResults}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+              */}
             </div>
           )}
 
-          {/* Contenu principal */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Table des entreprises */}
-            <div className={`flex-1 overflow-auto ${showDetailsPanel ? 'mr-96' : ''} transition-all duration-300`}>
-              <div className="bg-white">
-                {/* Message d'aide pour la recherche en temps réel */}
-                {!searchQuery && filteredCompanies.length === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-[#e3f2fd] to-[#f3e5f5] border border-[#bbdefb] rounded-lg p-6 m-4"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="bg-[#2196f3] p-2 rounded-lg">
-                        <Search className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#1565c0] mb-2">
-                          Recherche en temps réel activée
-                        </h3>
-                        <p className="text-[#1976d2] mb-4">
-                          Tapez simplement le nom d'une entreprise, un SIREN ou SIRET pour voir les résultats s'afficher automatiquement.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="flex items-center gap-2 text-[#1976d2]">
-                            <Building2 className="h-4 w-4" />
-                            <span>Recherche par nom d'entreprise</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[#1976d2]">
-                            <FileText className="h-4 w-4" />
-                            <span>SIREN (9 chiffres) ou SIRET (14 chiffres)</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[#1976d2]">
-                            <BarChart3 className="h-4 w-4" />
-                            <span>Résultats limités à 5 pour un aperçu rapide</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Indicateur de recherche en cours */}
-                {isLoading && searchQuery && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="bg-white border border-[#bbdefb] rounded-lg p-4 m-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#2196f3]"></div>
-                      <span className="text-[#1976d2]">
-                        Recherche en cours pour "{searchQuery}"...
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Message d'état pour les résultats */}
-                {searchQuery && !isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="bg-white border border-[#c8e6c9] rounded-lg p-4 m-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="h-5 w-5 text-[#4caf50]" />
-                        <span className="text-[#2e7d32]">
-                          {filteredCompanies.length > 0 
-                            ? `${filteredCompanies.length} résultat${filteredCompanies.length > 1 ? 's' : ''} trouvé${filteredCompanies.length > 1 ? 's' : ''} pour "${searchQuery}"`
-                            : `Aucun résultat pour "${searchQuery}"`
-                          }
-                        </span>
-                      </div>
-                      {total > filteredCompanies.length && (
-                        <span className="text-sm text-[#666] bg-[#f5f5f5] px-2 py-1 rounded">
-                          {total - filteredCompanies.length} autres disponibles
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {filteredCompanies.length === 0 ? (
-                  /* État vide */
-                  <div className="text-center py-16">
-                    <div className="mx-auto w-24 h-24 bg-[#ecf0f1] rounded-full flex items-center justify-center mb-6">
-                      <Building2 className="h-12 w-12 text-[#95a5a6]" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-[#2c3e50] mb-2">
-                      {searchQuery || Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : typeof f === 'boolean' ? f : f !== 'all' && f !== '' && Object.keys(f).length > 0)
-                        ? 'Aucune entreprise trouvée'
-                        : 'Base d\'entreprises vide'
-                      }
-                    </h3>
-                    <p className="text-[#7f8c8d] mb-6 max-w-md mx-auto">
-                      {searchQuery || Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : typeof f === 'boolean' ? f : f !== 'all' && f !== '' && Object.keys(f).length > 0)
-                        ? 'Essayez d\'ajuster vos critères de recherche ou de supprimer certains filtres.'
-                        : 'Commencez par importer des entreprises ou connectez l\'API INSEE Sirene.'
-                      }
-                    </p>
-                    <div className="flex justify-center gap-4">
-                      <button className="flex items-center gap-2 px-6 py-3 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors">
-                        <Upload className="h-5 w-5" />
-                        Importer SIREN/SIRET
-                      </button>
-                      <button className="flex items-center gap-2 px-6 py-3 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
-                        <Settings className="h-5 w-5" />
-                        Connecter API INSEE
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Table des entreprises */
-                  <div className="overflow-x-auto">
-                    <table role="grid" className="w-full">
-                      <thead className="bg-[#f8f9fa] border-b border-[#bdc3c7]">
-                        <tr>
-                          <th className="px-4 py-3 text-left">
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedCompanies(filteredCompanies.map(c => c.siren));
-                                } else {
-                                  setSelectedCompanies([]);
-                                }
-                              }}
-                              checked={selectedCompanies.length === filteredCompanies.length && filteredCompanies.length > 0}
-                            />
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Entreprise</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">SIREN</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Siège</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">NAF</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Effectif</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Localisation</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Statut</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">LinkedIn</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Score</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredCompanies.map((company, index) => (
-                          <tr
-                            key={company.siret}
-                            className={`border-b border-[#ecf0f1] hover:bg-[#f8f9fa] cursor-pointer transition-colors ${
-                              selectedCompany?.siren === company.siren ? 'bg-[#e8f4fd]' : ''
-                            }`}
-                            onClick={() => handleCompanySelect(company.siren)}
-                          >
-                            <td className="px-4 py-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedCompanies.includes(company.siren)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  if (e.target.checked) {
-                                    setSelectedCompanies([...selectedCompanies, company.siren]);
-                                  } else {
-                                    setSelectedCompanies(selectedCompanies.filter(siren => siren !== company.siren));
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Building className="h-4 w-4 text-[#7f8c8d]" />
-                                <div>
-                                  <div className="font-medium text-[#2c3e50]">{company.denomination}</div>
-                                  {company.domain && (
-                                    <div className="text-xs text-[#7f8c8d] flex items-center gap-1">
-                                      <Globe className="h-3 w-3" />
-                                      {company.domain}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-mono text-[#7f8c8d]">{company.siren}</td>
-                            <td className="px-4 py-3">
-                              {company.siege ? (
-                                <span className="inline-flex items-center px-2 py-1 text-xs bg-[#e8f4fd] text-[#3498db] rounded-full">
-                                  <Building2 className="h-3 w-3 mr-1" />
-                                  Siège
-                                </span>
-                              ) : (
-                                <span className="text-xs text-[#7f8c8d]">Établissement</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="text-sm text-[#2c3e50]">{company.activitePrincipale}</div>
-                              <div className="text-xs text-[#7f8c8d]">{company.activitePrincipaleLibelle?.substring(0, 25)}...</div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1 text-sm text-[#7f8c8d]">
-                                <Users className="h-4 w-4" />
-                                {formatHeadcount(company.trancheEffectifs)}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1 text-sm text-[#7f8c8d]">
-                                <MapPin className="h-4 w-4" />
-                                <div>
-                                  <div>{company.adresse.libelleCommuneEtablissement}</div>
-                                  <div className="text-xs">{company.adresse.codePostal}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(company.etatAdministratif)}`}>
-                                {getStatusLabel(company.etatAdministratif)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              {company.linkedin?.organizationUrn ? (
-                                <div className="flex items-center gap-1">
-                                  <Linkedin className="h-4 w-4 text-[#0077b5]" />
-                                  <span className="text-xs text-[#7f8c8d]">
-                                    {company.linkedin.followerCount?.toLocaleString()} followers
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-[#95a5a6]">Non trouvé</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className={`text-sm font-medium ${getScoreColor(company.score)}`}>
-                                  {company.score}
-                                </div>
-                                <div className="w-12 bg-[#ecf0f1] rounded-full h-2">
-                                  <div
-                                    className={`h-2 rounded-full ${
-                                      company.score >= 80 ? 'bg-[#2ecc71]' : 
-                                      company.score >= 60 ? 'bg-[#f39c12]' : 'bg-[#e74c3c]'
-                                    }`}
-                                    style={{ width: `${company.score}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Menu d'actions
-                                }}
-                                className="p-1 hover:bg-[#ecf0f1] rounded"
-                              >
-                                <MoreHorizontal className="h-4 w-4 text-[#7f8c8d]" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+          {importType === 'siren' && (
+            <div>
+              <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+                Liste des SIREN/SIRET (un par ligne)
+              </label>
+              <textarea
+                value={sirenList}
+                onChange={(e) => setSirenList(e.target.value)}
+                placeholder="123456789&#10;987654321&#10;..."
+                rows={8}
+                className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] font-mono text-sm"
+              />
+              <div className="text-xs text-[#7f8c8d] mt-1">
+                {sirenList.split('\n').filter(s => s.trim()).length} identifiants détectés
               </div>
             </div>
+          )}
 
-            {/* Panneau de détail */}
-            <AnimatePresence>
-              {showDetailsPanel && selectedCompany && (
-                <motion.div
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ type: 'tween', duration: 0.3 }}
-                  className="w-96 bg-white border-l border-[#bdc3c7] overflow-y-auto"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-semibold text-[#2c3e50]">Fiche entreprise</h2>
-                      <button
-                        onClick={() => setShowDetailsPanel(false)}
-                        className="p-1 hover:bg-[#ecf0f1] rounded"
-                      >
-                        <X className="h-5 w-5 text-[#7f8c8d]" />
-                      </button>
-                    </div>
+          {importType === 'csv' && (
+            <div>
+              <div className="border-2 border-dashed border-[#bdc3c7] rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 text-[#7f8c8d] mx-auto mb-4" />
+                <div className="text-lg font-medium text-[#2c3e50] mb-2">
+                  Glissez votre fichier CSV ici
+                </div>
+                <div className="text-sm text-[#7f8c8d] mb-4">
+                  ou cliquez pour sélectionner un fichier
+                </div>
+                <button className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors">
+                  Choisir un fichier
+                </button>
+              </div>
+              <div className="text-xs text-[#7f8c8d] mt-2">
+                Formats acceptés: CSV avec colonnes SIREN, nom, adresse, etc.
+              </div>
+            </div>
+          )}
 
-                    {/* Identité INSEE/Sirene */}
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                          <Building className="h-4 w-4" />
-                          Identité
-                        </h3>
-                        <div className="space-y-3">
-                          <div>
-                            <span className="text-sm font-medium text-[#2c3e50]">Raison sociale</span>
-                            <p className="text-sm text-[#7f8c8d]">{selectedCompany.denomination}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <span className="text-sm font-medium text-[#2c3e50]">SIREN</span>
-                              <p className="text-sm font-mono text-[#7f8c8d]">{selectedCompany.siren}</p>
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-[#2c3e50]">SIRET</span>
-                              <p className="text-sm font-mono text-[#7f8c8d]">{selectedCompany.siret}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-[#2c3e50]">Catégorie juridique</span>
-                            <p className="text-sm text-[#7f8c8d]">{selectedCompany.categorieJuridique}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-[#2c3e50]">NAF</span>
-                            <p className="text-sm text-[#7f8c8d]">{selectedCompany.activitePrincipale} - {selectedCompany.activitePrincipaleLibelle}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-[#2c3e50]">Effectif</span>
-                            <p className="text-sm text-[#7f8c8d]">{formatHeadcount(selectedCompany.trancheEffectifs)}</p>
-                          </div>
-                        </div>
-                      </div>
+          {importType === 'linkedin' && (
+            <div className="bg-[#f8f9fa] p-4 rounded-lg">
+              <div className="flex items-center gap-2 text-[#7f8c8d] mb-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">Fonctionnalité en développement</span>
+              </div>
+              <div className="text-sm text-[#7f8c8d]">
+                L'import depuis LinkedIn Sales Navigator sera bientôt disponible.
+              </div>
+            </div>
+          )}
 
-                      {/* Adresse */}
-                      <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Localisation
-                        </h3>
-                        <div className="space-y-2">
-                          {selectedCompany.adresse.numeroVoie && selectedCompany.adresse.libelleVoie && (
-                            <p className="text-sm text-[#7f8c8d]">
-                              {selectedCompany.adresse.numeroVoie} {selectedCompany.adresse.typeVoie} {selectedCompany.adresse.libelleVoie}
-                            </p>
-                          )}
-                          <p className="text-sm text-[#7f8c8d]">
-                            {selectedCompany.adresse.codePostal} {selectedCompany.adresse.libelleCommuneEtablissement}
-                          </p>
-                          <p className="text-sm text-[#7f8c8d]">Département: {selectedCompany.adresse.codeCommuneEtablissement?.substring(0, 2)}</p>
-                        </div>
-                      </div>
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleImport}
+              disabled={
+                importType === 'linkedin' || 
+                (importType === 'siren' && !sirenList.trim()) ||
+                (importType === 'search' && selectedCompanies.length === 0)
+              }
+              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {importType === 'search' && selectedCompanies.length > 0 
+                ? `Importer ${selectedCompanies.length} entreprise${selectedCompanies.length > 1 ? 's' : ''}`
+                : 'Importer'
+              }
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
-                      {/* Contact */}
-                      <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          Contact
-                        </h3>
-                        <div className="space-y-2">
-                          {selectedCompany.phone && (
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-3 w-3 text-[#7f8c8d]" />
-                              <span className="text-sm text-[#7f8c8d]">{selectedCompany.phone}</span>
-                            </div>
-                          )}
-                          {selectedCompany.email && (
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-3 w-3 text-[#7f8c8d]" />
-                              <span className="text-sm text-[#7f8c8d]">{selectedCompany.email}</span>
-                            </div>
-                          )}
-                          {selectedCompany.website && (
-                            <div className="flex items-center gap-2">
-                              <Globe className="h-3 w-3 text-[#7f8c8d]" />
-                              <a 
-                                href={selectedCompany.website} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-sm text-[#3498db] hover:underline"
-                              >
-                                {selectedCompany.domain}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+// Composant pour une carte de liste
+interface ListCardProps {
+  list: CompanyList;
+  onSelect: (list: CompanyList) => void;
+  onEdit: (list: CompanyList) => void;
+  onDelete: (listId: string) => void;
+  onImport: (listId: string) => void;
+  onAddCompanies: (listId: string) => void;
+}
 
-                      {/* LinkedIn */}
-                      {selectedCompany.linkedin?.organizationUrn && (
-                        <div>
-                          <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                            <Linkedin className="h-4 w-4 text-[#0077b5]" />
-                            LinkedIn
-                          </h3>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-[#7f8c8d]">Followers</span>
-                              <span className="text-sm font-medium text-[#2c3e50]">
-                                {selectedCompany.linkedin.followerCount?.toLocaleString()}
-                              </span>
-                            </div>
-                            <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#0077b5] text-white rounded-lg hover:bg-[#005582] transition-colors">
-                              <ExternalLink className="h-4 w-4" />
-                              Ouvrir sur LinkedIn
-                            </button>
-                          </div>
-                        </div>
-                      )}
+function ListCard({ list, onSelect, onEdit, onDelete, onImport, onAddCompanies }: ListCardProps) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className={`bg-white border border-[#bdc3c7] rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow relative ${
+        list.color ? 'border-l-4' : ''
+      }`}
+      style={list.color ? { borderLeftColor: list.color } : {}}
+      onClick={() => onSelect(list)}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-5 w-5 text-[#3498db]" />
+          <h3 className="font-medium text-[#2c3e50]">{list.name}</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCompanies(list.id);
+            }}
+            className="p-1 text-[#7f8c8d] hover:text-[#27ae60] transition-colors"
+            title="Ajouter des entreprises"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onImport(list.id);
+            }}
+            className="p-1 text-[#7f8c8d] hover:text-[#3498db] transition-colors"
+            title="Importer des entreprises"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(list);
+            }}
+            className="p-1 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+          >
+            <Edit3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(list.id);
+            }}
+            className="p-1 text-[#7f8c8d] hover:text-[#e74c3c] transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
-                      {/* Score */}
-                      <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4" />
-                          Score de ciblage
-                        </h3>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-[#7f8c8d]">Score global</span>
-                            <span className={`text-lg font-bold ${getScoreColor(selectedCompany.score)}`}>
-                              {selectedCompany.score}/100
-                            </span>
-                          </div>
-                          <div className="w-full bg-[#ecf0f1] rounded-full h-3">
-                            <div
-                              className={`h-3 rounded-full ${
-                                selectedCompany.score >= 80 ? 'bg-[#2ecc71]' : 
-                                selectedCompany.score >= 60 ? 'bg-[#f39c12]' : 'bg-[#e74c3c]'
-                              }`}
-                              style={{ width: `${selectedCompany.score}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
+      {list.description && (
+        <p className="text-sm text-[#7f8c8d] mb-3 line-clamp-2">{list.description}</p>
+      )}
 
-                      {/* Étiquettes */}
-                      {selectedCompany.tags.length > 0 && (
-                        <div>
-                          <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                            <Tag className="h-4 w-4" />
-                            Étiquettes
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedCompany.tags.map(tag => (
-                              <span
-                                key={tag}
-                                className="px-2 py-1 text-xs bg-[#ecf0f1] text-[#7f8c8d] rounded-full"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-[#7f8c8d]">
+            <Building2 className="h-4 w-4" />
+            <span>{list._count?.companies || list.companies?.length || 0} entreprises</span>
+          </div>
+          <div className="flex items-center gap-1 text-[#7f8c8d]">
+            <Calendar className="h-4 w-4" />
+            <span>{new Date(list.createdAt).toLocaleDateString('fr-FR')}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {list.isShared && (
+            <div className="flex items-center gap-1 text-[#27ae60]">
+              <Users className="h-4 w-4" />
+              <span>Partagée</span>
+            </div>
+          )}
+          {list.color && (
+            <div 
+              className="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0"
+              style={{ backgroundColor: list.color }}
+              title="Couleur de la liste"
+            />
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
-                      {/* Conformité */}
-                      <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-3 flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          Conformité & provenance
-                        </h3>
-                        <div className="space-y-2 text-xs text-[#7f8c8d]">
-                          <p>Source : INSEE Sirene V3 - {new Date(selectedCompany.dateDerniereMiseAJour).toLocaleDateString('fr-FR')}</p>
-                          <p>Données conformes RGPD et Loi Lemaire</p>
-                          <a 
-                            href={`https://www.sirene.fr/sirene/public/recherche?sirene=${selectedCompany.siren}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#3498db] hover:underline flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Voir sur sirene.fr
-                          </a>
-                        </div>
-                      </div>
+export default function CompanyListsPage() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const {
+    lists,
+    currentList,
+    isLoading,
+    fetchLists,
+    selectList,
+    deleteList,
+    createList,
+    importCompanies,
+    addCompaniesToList
+  } = useCompanyListsStore();
 
-                      {/* Actions */}
-                      <div className="pt-4 border-t border-[#ecf0f1]">
-                        <button
-                          onClick={() => addToCampaign([selectedCompany.siren])}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Ajouter à une campagne
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+  const [activeTab, setActiveTab] = useState<'all' | 'shared' | 'archived'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [listToEdit, setListToEdit] = useState<CompanyList | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showCompanySearchPopup, setShowCompanySearchPopup] = useState(false);
+  const [selectedList, setSelectedList] = useState<CompanyList | null>(null);
+  
+  // États pour les popups personnalisées
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [listToDelete, setListToDelete] = useState<string | null>(null);
+  const [showAddCompaniesDialog, setShowAddCompaniesDialog] = useState(false);
+  const [newlyCreatedList, setNewlyCreatedList] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchLists();
+    }
+  }, [isLoaded, user, fetchLists]);
+
+  const filteredLists = lists.filter(list => {
+    const matchesSearch = list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (list.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    
+    switch (activeTab) {
+      case 'shared':
+        return matchesSearch && list.isShared;
+      case 'archived':
+        return matchesSearch && list.isArchived;
+      default:
+        return matchesSearch && !list.isArchived;
+    }
+  });
+
+  const handleSelectList = (list: CompanyList) => {
+    router.push(`/dashboard/marketing/entreprises-data/${list.id}`);
+  };
+
+  const handleEditList = (list: CompanyList) => {
+    setListToEdit(list);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteList = async (listId: string) => {
+    setListToDelete(listId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteList = async () => {
+    if (listToDelete) {
+      await deleteList(listToDelete);
+      setListToDelete(null);
+    }
+  };
+
+  const onListCreatedWithDialog = (listId: string) => {
+    const createdList = lists.find(l => l.id === listId);
+    if (createdList) {
+      setNewlyCreatedList({ id: createdList.id, name: createdList.name });
+      setShowAddCompaniesDialog(true);
+    }
+  };
+
+  const handleAddCompaniesAfterCreate = () => {
+    if (newlyCreatedList) {
+      const list = lists.find(l => l.id === newlyCreatedList.id);
+      if (list) {
+        setSelectedList(list);
+        setShowCompanySearchPopup(true);
+        setNewlyCreatedList(null);
+      }
+    }
+  };
+
+  const handleImportToList = (listId: string) => {
+    const list = lists.find(l => l.id === listId);
+    if (list) {
+      setSelectedList(list);
+      setShowCompanySearchPopup(true);
+    }
+  };
+
+  const handleCompanySearchForList = (list: CompanyList) => {
+    setSelectedList(list);
+    setShowCompanySearchPopup(true);
+  };
+
+  const handleAddCompaniesToList = async (companies: CompanySearchResult[]) => {
+    if (!selectedList || companies.length === 0) return;
+
+    try {
+      // Convertir les CompanySearchResult en format attendu par l'API
+      const companiesData = companies
+        .filter(company => company.siret) // Filtrer les entreprises avec siret valide
+        .map(company => ({
+          siren: company.siren,
+          siret: company.siret!,
+          statut: CompanyStatus.NEW
+        }));
+
+      await addCompaniesToList({
+        listId: selectedList.id,
+        companies: companiesData
+      });
+      setShowCompanySearchPopup(false);
+      // Rediriger vers la liste
+      selectList(selectedList.id);
+      router.push(`/dashboard/marketing/entreprises-data/${selectedList.id}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout des entreprises:', error);
+    }
+  };
+
+  if (!isLoaded || !user) {
+    return (
+      <div className="min-h-screen bg-[#ecf0f1] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3498db]"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#ecf0f1]">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-[#bdc3c7] p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#2c3e50] font-montserrat">Listes d'entreprises</h1>
+            <p className="text-[#7f8c8d] mt-1">
+              Gérez vos listes d'entreprises pour vos campagnes marketing
+            </p>
           </div>
 
-          {/* Barre d'actions bulk */}
-          <AnimatePresence>
-            {selectedCompanies.length > 0 && (
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                className="bg-[#2c3e50] text-white p-4 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-sm">
-                    {selectedCompanies.length} entreprise{selectedCompanies.length > 1 ? 's' : ''} sélectionnée{selectedCompanies.length > 1 ? 's' : ''}
-                  </span>
-                </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#7f8c8d]" />
+              <input
+                type="text"
+                placeholder="Rechercher une liste..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] w-80"
+              />
+            </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => addToCampaign(selectedCompanies)}
-                    className="px-4 py-2 bg-[#3498db] hover:bg-[#2980b9] rounded text-sm transition-colors"
-                  >
-                    Ajouter à une campagne
-                  </button>
+            <Link
+              href="/dashboard/marketing/entreprises-data/recherche"
+              className="flex items-center gap-2 px-4 py-2 border border-[#3498db] text-[#3498db] rounded-lg hover:bg-[#3498db] hover:text-white transition-colors"
+            >
+              <Filter className="h-4 w-4" />
+              Rechercher des entreprises
+            </Link>
 
-                  <button className="px-3 py-1 bg-[#34495e] hover:bg-[#4a5d70] rounded text-sm transition-colors">
-                    Étiqueter
-                  </button>
-
-                  <button
-                    onClick={() => exportToCSV()}
-                    className="px-3 py-1 bg-[#27ae60] hover:bg-[#229954] rounded text-sm transition-colors"
-                  >
-                    Exporter CSV
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedCompanies([])}
-                    className="p-1 hover:bg-[#34495e] rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Panneau de logs en temps réel */}
-          <AnimatePresence>
-            {showLogs && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 200, opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="bg-[#2c3e50] border-t border-[#34495e] text-white overflow-hidden"
-              >
-                <div className="p-3 border-b border-[#34495e] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    <span className="text-sm font-medium">Logs de recherche en temps réel</span>
-                  </div>
-                  <button
-                    onClick={() => setShowLogs(false)}
-                    className="text-[#95a5a6] hover:text-white transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="p-3 space-y-1 overflow-y-auto max-h-40">
-                  {logs.length === 0 ? (
-                    <p className="text-[#95a5a6] text-sm">Aucun log pour le moment. Essayez de faire une recherche...</p>
-                  ) : (
-                    logs.map((log, index) => (
-                      <div key={index} className="text-xs flex items-start gap-2">
-                        <span className="text-[#95a5a6] font-mono">{log.time}</span>
-                        <span className={`flex-1 ${
-                          log.type === 'success' ? 'text-[#2ecc71]' : 
-                          log.type === 'error' ? 'text-[#e74c3c]' : 
-                          'text-[#ecf0f1]'
-                        }`}>
-                          {log.message}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Bouton flottant pour afficher les logs */}
-          <motion.button
-            onClick={() => setShowLogs(!showLogs)}
-            className={`fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-colors z-40 ${
-              showLogs 
-                ? 'bg-[#e74c3c] hover:bg-[#c0392b] text-white' 
-                : 'bg-[#3498db] hover:bg-[#2980b9] text-white'
-            }`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            title={showLogs ? 'Masquer les logs' : 'Afficher les logs'}
-          >
-            {showLogs ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            {logs.length > 0 && !showLogs && (
-              <span className="absolute -top-1 -right-1 bg-[#e74c3c] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {logs.length}
-              </span>
-            )}
-          </motion.button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Créer une liste
+            </button>
+          </div>
         </div>
-      </Suspense>
+      </header>
+
+      {/* Tabs */}
+      <div className="bg-white border-b border-[#bdc3c7] px-6">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'all'
+                ? 'border-[#3498db] text-[#3498db]'
+                : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
+            }`}
+          >
+            Toutes les listes ({lists.filter(l => !l.isArchived).length})
+          </button>
+          <button
+            onClick={() => setActiveTab('shared')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'shared'
+                ? 'border-[#3498db] text-[#3498db]'
+                : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
+            }`}
+          >
+            Partagées ({lists.filter(l => l.isShared && !l.isArchived).length})
+          </button>
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'archived'
+                ? 'border-[#3498db] text-[#3498db]'
+                : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
+            }`}
+          >
+            Archivées ({lists.filter(l => l.isArchived).length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Contenu principal */}
+      <main className="p-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3498db]"></div>
+          </div>
+        ) : filteredLists.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-[#ecf0f1] rounded-full flex items-center justify-center mb-6">
+              <FolderOpen className="h-12 w-12 text-[#95a5a6]" />
+            </div>
+            <h3 className="text-xl font-semibold text-[#2c3e50] mb-2">
+              {searchQuery ? 'Aucune liste trouvée' : 'Aucune liste créée'}
+            </h3>
+            <p className="text-[#7f8c8d] mb-6 max-w-md mx-auto">
+              {searchQuery 
+                ? 'Essayez d\'ajuster votre recherche ou créez une nouvelle liste.'
+                : 'Commencez par créer votre première liste d\'entreprises pour organiser vos campagnes marketing.'
+              }
+            </p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors mx-auto"
+            >
+              <Plus className="h-5 w-5" />
+              Créer ma première liste
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredLists.map((list) => (
+              <ListCard
+                key={list.id}
+                list={list}
+                onSelect={handleSelectList}
+                onEdit={handleEditList}
+                onDelete={handleDeleteList}
+                onImport={handleImportToList}
+                onAddCompanies={handleImportToList}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Modales */}
+      <CreateListModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onListCreated={onListCreatedWithDialog}
+      />
+
+      <EditListModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setListToEdit(null);
+        }}
+        list={listToEdit}
+        onListUpdated={() => {
+          fetchLists(); // Rafraîchir la liste
+        }}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        listId={selectedList?.id}
+      />
+
+      {/* Company Search Popup */}
+      {showCompanySearchPopup && (
+        <CompanySearchPopup
+          isOpen={showCompanySearchPopup}
+          onClose={() => setShowCompanySearchPopup(false)}
+          onAddToList={handleAddCompaniesToList}
+          listName={selectedList?.name}
+        />
+      )}
+
+      {/* Popups personnalisées */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteList}
+        title="Supprimer la liste"
+        message="Êtes-vous sûr de vouloir supprimer cette liste ? Cette action est irréversible et supprimera également toutes les entreprises associées."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+      />
+
+      <AddCompaniesDialog
+        isOpen={showAddCompaniesDialog}
+        onClose={() => setShowAddCompaniesDialog(false)}
+        onAddCompanies={handleAddCompaniesAfterCreate}
+        listName={newlyCreatedList?.name || ''}
+      />
     </div>
   );
 }

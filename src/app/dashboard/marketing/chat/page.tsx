@@ -1,10 +1,10 @@
 'use client';
 
-import { Suspense } from 'react';
-import { MessageCircle, Send, Bot, Users, Clock } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Bot, Clock, MessageCircle, Send, Users } from 'lucide-react';
+import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 
 function ChatSkeleton() {
   return (

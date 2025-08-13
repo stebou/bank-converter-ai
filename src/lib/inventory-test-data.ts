@@ -1,6 +1,6 @@
 // Données de test pour l'inventaire et Odoo
 
-import type { Product, StockMovement, InventoryStats, OdooConfig, StockMode } from '@/types';
+import type { InventoryStats, OdooConfig, Product, StockMovement } from '@/types';
 
 // Configuration Odoo par défaut pour les tests
 export const DEFAULT_TEST_CONFIG: OdooConfig = {

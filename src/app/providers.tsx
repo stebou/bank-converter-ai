@@ -1,7 +1,7 @@
 'use client'; // LA LIGNE LA PLUS IMPORTANTE !
 
-import { ClerkProvider } from '@clerk/nextjs';
 import { frFR } from '@clerk/localizations';
+import { ClerkProvider } from '@clerk/nextjs';
 
 // Ce composant est maintenant un "Client Component"
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -9,6 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ClerkProvider
       localization={frFR}
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      telemetry={false}
       appearance={{
         // Ton objet de personnalisation est maintenant dans un composant client,
         // ce qui est parfaitement valide.

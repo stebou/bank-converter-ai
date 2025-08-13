@@ -6,8 +6,8 @@ import Sidebar from '@/components/Sidebar';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { Brain, ChevronLeft, Menu } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 // Fonction pour synchroniser l'utilisateur avec la base de données
 async function syncUserToDatabase(clerkUser: {
@@ -62,10 +62,12 @@ export default function DashboardLayout({
   const pagesWithoutSidebar = [
     '/dashboard/marketing/creer-campagne',
     '/dashboard/marketing/chat',
-    '/dashboard/marketing/tasks',
-    '/dashboard/marketing/entreprises-data'
+    '/dashboard/marketing/tasks'
   ];
-  const shouldShowSidebar = !pagesWithoutSidebar.includes(pathname);
+  
+  // Vérifier si on est sur une page entreprises-data (y compris les sous-pages)
+  const isEntreprisesDataPage = pathname.startsWith('/dashboard/marketing/entreprises-data');
+  const shouldShowSidebar = !pagesWithoutSidebar.includes(pathname) && !isEntreprisesDataPage;
 
   // Si c'est une page sans sidebar, on rend juste les children
   if (!shouldShowSidebar) {
@@ -85,7 +87,7 @@ export default function DashboardLayout({
             <span className="text-md font-bold text-gray-800">Methos</span>
           </Link>
           <div className="flex items-center gap-4">
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
             <button onClick={toggleSidebar}>
               <Menu className="h-6 w-6 text-gray-600" />
             </button>

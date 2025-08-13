@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import {
-  Upload,
-  FileText,
-  CheckCircle,
-  Loader2,
-  AlertTriangle,
-  X,
-  Receipt,
-  Building2,
-  CreditCard,
+    AlertTriangle,
+    Building2,
+    CheckCircle,
+    CreditCard,
+    Loader2,
+    Receipt,
+    Upload
 } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
+import React, { useCallback, useState } from 'react';
 import '../styles/fonts.css';
 
 interface BankingDocumentUploadProps {

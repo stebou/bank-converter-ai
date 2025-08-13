@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth, useSignIn, useSignUp, useUser } from '@clerk/nextjs';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  X,
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  ArrowRight,
-  Sparkles,
+    ArrowRight,
+    Eye,
+    EyeOff,
+    Lock,
+    Mail,
+    Sparkles,
+    User,
+    X,
 } from 'lucide-react';
-import { useSignIn, useSignUp, useAuth, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import '../styles/fonts.css';
 
 type AuthModalProps = {

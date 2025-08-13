@@ -1,39 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import {
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  PieChart,
-  Calendar,
-  Building2,
-  CreditCard,
-  RefreshCw,
-  DollarSign,
-  AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Loader2,
-  Bot,
-  Sparkles,
-  Package,
-  Plus,
-} from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
 import { useBankingData } from '@/hooks/useBanking';
+import { useBankingAnalytics } from '@/hooks/useBankingAnalytics';
+import { useCompanyAccountStatus } from '@/hooks/useCompanyAccountStatus';
 import { useGlobalBankingAnalysis } from '@/hooks/useGlobalBankingAnalysis';
-import type { BankAccountType, BankTransactionType } from '@/types';
+import type { BankAccountType } from '@/types';
+import { useUser } from '@clerk/nextjs';
+import { motion } from 'framer-motion';
+import {
+    ArrowDownRight,
+    ArrowUpRight,
+    BarChart3,
+    Bot,
+    Building2,
+    DollarSign,
+    Loader2,
+    Package,
+    Plus,
+    RefreshCw,
+    Sparkles,
+    TrendingDown,
+    TrendingUp
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import '../styles/fonts.css';
+import AgentAnalysisModal from './AgentAnalysisModal';
 import BankingDocumentsBox from './BankingDocumentsBox';
 import BankingDocumentUpload from './BankingDocumentUpload';
+import ConnectCompanyAccount from './ConnectCompanyAccount';
 import DocumentAnalysisModal from './DocumentAnalysisModal';
-import TransactionsModal from './TransactionsModal';
-import SubscriptionBadge from './SubscriptionBadge';
-import AgentAnalysisModal from './AgentAnalysisModal';
 import StockModal from './StockModal';
-import '../styles/fonts.css';
+import SubscriptionBadge from './SubscriptionBadge';
+import TransactionsModal from './TransactionsModal';
 
 // Types pour les données d'abonnement
 type SubscriptionData = {
@@ -69,13 +68,30 @@ const KPICard = ({
   const formatValue = (val: number) => {
     switch (format) {
       case 'currency':
+        // Pour de très gros montants, utiliser une notation plus compacte
+        if (Math.abs(val) >= 1000000) {
+          return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+            notation: 'compact',
+            maximumFractionDigits: 1,
+          }).format(val);
+        }
         return new Intl.NumberFormat('fr-FR', {
           style: 'currency',
           currency: 'EUR',
+          maximumFractionDigits: 2,
         }).format(val);
       case 'percentage':
         return `${val.toFixed(1)}%`;
       default:
+        // Pour les nombres, utiliser aussi la notation compacte si nécessaire
+        if (Math.abs(val) >= 10000) {
+          return new Intl.NumberFormat('fr-FR', {
+            notation: 'compact',
+            maximumFractionDigits: 1,
+          }).format(val);
+        }
         return val.toLocaleString('fr-FR');
     }
   };
@@ -109,16 +125,16 @@ const KPICard = ({
       transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="rounded-2xl border border-[#bdc3c7] bg-[#ecf0f1] p-6 shadow-xl transition-all duration-300 hover:shadow-2xl"
     >
-      <div className="flex min-h-[120px] items-start justify-between">
+      <div className="flex min-h-[140px] items-start justify-between">
         <div className="flex flex-1 items-start gap-4">
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[#2c3e50] shadow-lg">
             <Icon className="h-6 w-6 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-montserrat mb-2 text-sm font-medium text-[#34495e]">
+            <p className="font-montserrat mb-3 text-sm font-medium text-[#34495e] leading-relaxed">
               {title}
             </p>
-            <p className="font-montserrat break-words text-xl font-bold tracking-tight text-[#2c3e50] lg:text-2xl">
+            <p className="font-montserrat break-words text-lg font-bold tracking-tight text-[#2c3e50] lg:text-xl xl:text-2xl leading-tight">
               {formatValue(value)}
             </p>
           </div>
@@ -126,10 +142,10 @@ const KPICard = ({
 
         {change !== undefined && (
           <div
-            className={`flex items-center gap-1 ${getTrendColor()} ml-2 flex-shrink-0`}
+            className={`flex items-center gap-1 ${getTrendColor()} ml-2 flex-shrink-0 mt-1`}
           >
             {getTrendIcon()}
-            <span className="font-open-sans text-sm font-medium">
+            <span className="font-open-sans text-xs sm:text-sm font-medium whitespace-nowrap">
               {change > 0 ? '+' : ''}
               {change.toFixed(1)}%
             </span>
@@ -144,6 +160,8 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
   const router = useRouter();
   const { user } = useUser();
   const { accounts, transactions, loading, error, refreshData } = useBankingData(user?.id);
+  const { hasConnectedAccount, accountsCount, refreshStatus: refreshAccountStatus } = useCompanyAccountStatus();
+  const { analytics, loading: analyticsLoading, refreshAnalytics } = useBankingAnalytics('1y');
   const { 
     report: analysisReport, 
     isLoading: analysisLoading, 
@@ -152,6 +170,13 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
     clearReport 
   } = useGlobalBankingAnalysis();
   
+  // Forcer rafraîchissement analytics quand les comptes sont chargés
+  useEffect(() => {
+    if (accounts?.length > 0 && !analyticsLoading && !analytics) {
+      refreshAnalytics();
+    }
+  }, [accounts, analyticsLoading, analytics, refreshAnalytics]);
+  
   // États pour les modales
   const [selectedAnalysisDocument, setSelectedAnalysisDocument] = useState<string | null>(null);
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
@@ -159,40 +184,81 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
   const [showAgentAnalysisModal, setShowAgentAnalysisModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
 
-  // Calculs des KPIs
+  // Calculs des KPIs avec vraies données et changements
   const calculateKPIs = () => {
-    if (!accounts.length || !transactions.length) {
+    // Si pas de comptes connectés, retourner des valeurs par défaut
+    if (!accounts.length) {
       return {
         totalBalance: 0,
         monthlyRevenue: 0,
         monthlyExpenses: 0,
         transactionCount: 0,
+        revenueChange: 0,
+        expensesChange: 0,
+        transactionsChange: 0,
+        balanceChange: 0,
       };
     }
 
     const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
     
-    // Calculs pour le mois en cours
-    const currentMonth = new Date();
-    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    // Si les analytics ne sont pas encore chargées, utiliser les données de base
+    if (!analytics) {
+      return {
+        totalBalance,
+        monthlyRevenue: 0,
+        monthlyExpenses: 0,
+        transactionCount: transactions.length,
+        revenueChange: 0,
+        expensesChange: 0,
+        transactionsChange: 0,
+        balanceChange: 0,
+      };
+    }
     
-    const monthlyTransactions = transactions.filter(t => 
-      new Date(t.transactionDate) >= monthStart
-    );
+    // Utiliser les données analytics pour les revenus et dépenses du mois
+    const monthlyRevenue = analytics.totalIncome;
+    const monthlyExpenses = analytics.totalExpenses;
+    const transactionCount = analytics.transactionCount;
 
-    const monthlyRevenue = monthlyTransactions
-      .filter(t => t.amount > 0)
-      .reduce((sum, t) => sum + t.amount, 0);
+    // Calculer les changements par rapport au mois précédent
+    const monthlyTrendEntries = Object.entries(analytics.monthlyTrend).sort();
+    let revenueChange = 0;
+    let expensesChange = 0;
+    let transactionsChange = 0;
 
-    const monthlyExpenses = monthlyTransactions
-      .filter(t => t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    if (monthlyTrendEntries.length >= 2) {
+      const currentMonth = monthlyTrendEntries[monthlyTrendEntries.length - 1][1];
+      const previousMonth = monthlyTrendEntries[monthlyTrendEntries.length - 2][1];
+
+      // Calculer le changement en pourcentage
+      if (previousMonth.income > 0) {
+        revenueChange = ((currentMonth.income - previousMonth.income) / previousMonth.income) * 100;
+      }
+      if (previousMonth.expenses > 0) {
+        expensesChange = ((currentMonth.expenses - previousMonth.expenses) / previousMonth.expenses) * 100;
+      }
+
+      // Pour les transactions, on estime basé sur la variation des montants
+      const currentTotal = currentMonth.income + currentMonth.expenses;
+      const previousTotal = previousMonth.income + previousMonth.expenses;
+      if (previousTotal > 0) {
+        transactionsChange = ((currentTotal - previousTotal) / previousTotal) * 100;
+      }
+    }
+
+    // Simuler un changement de balance (on peut l'améliorer avec des données historiques)
+    const balanceChange = (monthlyRevenue - monthlyExpenses) / totalBalance * 100;
 
     return {
       totalBalance,
       monthlyRevenue,
       monthlyExpenses,
-      transactionCount: transactions.length,
+      transactionCount,
+      revenueChange,
+      expensesChange,
+      transactionsChange,
+      balanceChange: isFinite(balanceChange) ? balanceChange : 0,
     };
   };
 
@@ -255,18 +321,31 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
             Créer une campagne
           </motion.button>
           
+          <motion.button
+            onClick={() => router.push('/dashboard/bridge-demo')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-300 font-open-sans"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Building2 className="h-4 w-4" />
+            Comptes Pro (Bridge)
+          </motion.button>
+          
           <SubscriptionBadge 
             currentPlan={subscriptionData.currentPlan}
             subscriptionStatus={subscriptionData.subscriptionStatus}
           />
           <motion.button
-            onClick={() => refreshData()}
+            onClick={() => {
+              refreshData();
+              refreshAnalytics();
+            }}
             className="p-3 bg-[#2c3e50] text-white rounded-xl hover:bg-[#34495e] hover:shadow-lg transition-all duration-300"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            disabled={loading}
+            disabled={loading || analyticsLoading}
           >
-            {loading ? (
+            {loading || analyticsLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <RefreshCw className="h-5 w-5" />
@@ -275,40 +354,70 @@ export default function ProBankingDashboard({ userName, subscriptionData }: ProB
         </div>
       </div>
 
-      {/* KPIs Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard
-          title="Solde Total"
-          value={kpis.totalBalance}
-          icon={DollarSign}
-          trend="up"
-          change={5.2}
-          format="currency"
-        />
-        <KPICard
-          title="Revenus Mensuels"
-          value={kpis.monthlyRevenue}
-          icon={TrendingUp}
-          trend="up"
-          change={12.5}
-          format="currency"
-        />
-        <KPICard
-          title="Dépenses Mensuelles"
-          value={kpis.monthlyExpenses}
-          icon={TrendingDown}
-          trend="down"
-          change={-3.2}
-          format="currency"
-        />
-        <KPICard
-          title="Transactions"
-          value={kpis.transactionCount}
-          icon={BarChart3}
-          trend="neutral"
-          format="number"
-        />
-      </div>
+      {/* KPIs Grid ou invitation à connecter un compte société */}
+      {hasConnectedAccount ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KPICard
+            title="Solde Total"
+            value={kpis.totalBalance}
+            icon={DollarSign}
+            trend={kpis.balanceChange > 0 ? 'up' : kpis.balanceChange < 0 ? 'down' : 'neutral'}
+            change={kpis.balanceChange}
+            format="currency"
+          />
+          <KPICard
+            title="Revenus"
+            value={kpis.monthlyRevenue}
+            icon={TrendingUp}
+            trend={kpis.revenueChange > 0 ? 'up' : kpis.revenueChange < 0 ? 'down' : 'neutral'}
+            change={kpis.revenueChange}
+            format="currency"
+          />
+          <KPICard
+            title="Dépenses"
+            value={kpis.monthlyExpenses}
+            icon={TrendingDown}
+            trend={kpis.expensesChange > 0 ? 'up' : kpis.expensesChange < 0 ? 'down' : 'neutral'}
+            change={kpis.expensesChange}
+            format="currency"
+          />
+          <KPICard
+            title="Transactions"
+            value={kpis.transactionCount}
+            icon={BarChart3}
+            trend={kpis.transactionsChange > 0 ? 'up' : kpis.transactionsChange < 0 ? 'down' : 'neutral'}
+            change={kpis.transactionsChange}
+            format="number"
+          />
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-8 text-center shadow-xl"
+        >
+          <div className="max-w-md mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-blue-600 rounded-full">
+                <Building2 className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-[#2c3e50] mb-3 font-montserrat">
+              Connectez le compte de votre société
+            </h3>
+            <p className="text-[#7f8c8d] mb-6 font-open-sans">
+              Synchronisez automatiquement vos données bancaires professionnelles 
+              pour une gestion financière complète et en temps réel.
+            </p>
+            <ConnectCompanyAccount 
+              onSuccess={() => {
+                refreshAccountStatus();
+                refreshData();
+              }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* Actions rapides */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

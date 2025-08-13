@@ -8,24 +8,26 @@ datasource db {
 }
 
 model User {
-  id                   String         @id @default(cuid())
-  clerkId              String         @unique
-  email                String         @unique
+  id                   String            @id @default(cuid())
+  clerkId              String            @unique
+  email                String            @unique
   name                 String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  currentPlan          String         @default("free")
-  documentsUsed        Int            @default(0)
-  documentsLimit       Int            @default(5)
-  stripeCustomerId     String?        @unique @map("stripe_customer_id")
-  stripeSubscriptionId String?        @unique @map("stripe_subscription_id")
-  subscriptionStatus   String?        @map("subscription_status")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  currentPlan          String            @default("free")
+  documentsUsed        Int               @default(0)
+  documentsLimit       Int               @default(5)
+  stripeCustomerId     String?           @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
+  subscriptionStatus   String?           @map("subscription_status")
+  bankAccounts         BankAccount[]
+  bankTransactions     BankTransaction[]
   chatMessages         ChatMessage[]
+  ownedCompanies       Company[]         @relation("CompanyOwner")
+  companyLists         CompanyList[]
   conversations        Conversation[]
   documents            Document[]
   payments             Payment[]
-  bankAccounts         BankAccount[]
-  bankTransactions     BankTransaction[]
 
   @@map("users")
 }
@@ -107,10 +109,13 @@ model Payment {
   userId          String
   planId          String?
   stripeSessionId String?  @unique @map("stripe_session_id")
+  bridgePaymentId String?  @unique @map("bridge_payment_id")
   amount          Float
   currency        String   @default("eur")
   status          String
   description     String
+  planType        String?  @map("plan_type")
+  paymentUrl      String?  @map("payment_url")
   createdAt       DateTime @default(now())
   plan            Plan?    @relation(fields: [planId], references: [id])
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -148,46 +153,159 @@ model ConversationMessage {
 }
 
 model BankAccount {
-  id               String            @id @default(cuid())
-  userId           String
-  bridgeAccountId  String            @unique @map("bridge_account_id")
-  name             String
-  type             String
-  balance          Float             @default(0)
-  currency         String            @default("EUR")
-  iban             String?
-  bankName         String            @map("bank_name")
-  isActive         Boolean           @default(true) @map("is_active")
-  lastSyncAt       DateTime?         @map("last_sync_at")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions     BankTransaction[]
+  id              String            @id @default(cuid())
+  userId          String
+  bridgeAccountId String            @unique @map("bridge_account_id")
+  name            String
+  type            String
+  balance         Float             @default(0)
+  currency        String            @default("EUR")
+  iban            String?
+  bankName        String            @map("bank_name")
+  isActive        Boolean           @default(true) @map("is_active")
+  lastSyncAt      DateTime?         @map("last_sync_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    BankTransaction[]
 
   @@map("bank_accounts")
 }
 
 model BankTransaction {
-  id                    String      @id @default(cuid())
-  userId                String
-  accountId             String      @map("account_id")
-  bridgeTransactionId   String      @unique @map("bridge_transaction_id")
-  amount                Float
-  description           String
-  transactionDate       DateTime    @map("transaction_date")
-  category              String?
-  subcategory           String?
-  type                  String
-  currency              String      @default("EUR")
-  aiConfidence          Float?      @map("ai_confidence")
-  isRecurring           Boolean     @default(false) @map("is_recurring")
-  tags                  Json?
-  createdAt             DateTime    @default(now()) @map("created_at")
-  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account               BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  id                  String      @id @default(cuid())
+  userId              String
+  accountId           String      @map("account_id")
+  bridgeTransactionId String      @unique @map("bridge_transaction_id")
+  amount              Float
+  description         String
+  transactionDate     DateTime    @map("transaction_date")
+  category            String?
+  subcategory         String?
+  type                String
+  currency            String      @default("EUR")
+  aiConfidence        Float?      @map("ai_confidence")
+  isRecurring         Boolean     @default(false) @map("is_recurring")
+  tags                Json?
+  createdAt           DateTime    @default(now()) @map("created_at")
+  account             BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([accountId])
   @@index([transactionDate])
   @@map("bank_transactions")
+}
+
+model CompanyList {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  color       String?   @default("#3b82f6")
+  isArchived  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  companies   Company[]
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags        Tag[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("company_lists")
+}
+
+model Company {
+  id                        String        @id @default(cuid())
+  siren                     String        @unique
+  siret                     String        @unique
+  denomination              String
+  website                   String?
+  secteur                   String?
+  industrie                 String?
+  emplacement               String?
+  ville                     String?
+  codePostal                String?
+  adresseComplete           String?
+  activitePrincipale        String?
+  activitePrincipaleLibelle String?
+  categorieJuridique        String?
+  trancheEffectifs          String?
+  etatAdministratif         String?
+  siege                     Boolean       @default(false)
+  dateCreation              DateTime?
+  statut                    CompanyStatus @default(NEW)
+  notes                     String?
+  linkedinUrl               String?
+  phoneNumber               String?
+  email                     String?
+  contactPerson             String?
+  addedAt                   DateTime      @default(now())
+  lastUpdatedFromINSEE      DateTime      @default(now())
+  ownerId                   String
+  companyListId             String
+  companyList               CompanyList   @relation(fields: [companyListId], references: [id], onDelete: Cascade)
+  owner                     User          @relation("CompanyOwner", fields: [ownerId], references: [id])
+  tags                      CompanyTag[]
+  dirigeants                Dirigeant[]
+
+  @@index([siren])
+  @@index([siret])
+  @@index([companyListId])
+  @@index([ownerId])
+  @@index([lastUpdatedFromINSEE])
+  @@map("companies")
+}
+
+model Dirigeant {
+  id            String  @id @default(cuid())
+  prenom        String
+  nom           String
+  nomUsage      String?
+  pseudonyme    String?
+  qualite       String?
+  dateNaissance String?
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("dirigeants")
+}
+
+model Tag {
+  id            String       @id @default(cuid())
+  name          String
+  color         String       @default("#6b7280")
+  createdAt     DateTime     @default(now())
+  companyListId String
+  companies     CompanyTag[]
+  companyList   CompanyList  @relation(fields: [companyListId], references: [id], onDelete: Cascade)
+
+  @@unique([name, companyListId])
+  @@index([companyListId])
+  @@map("tags")
+}
+
+model CompanyTag {
+  id        String  @id @default(cuid())
+  companyId String
+  tagId     String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, tagId])
+  @@map("company_tags")
+}
+
+enum CompanyStatus {
+  NEW
+  PROSPECT
+  IMPORTED
+  CONTACTED
+  INTERESTED
+  NEGOTIATING
+  CLOSED_WON
+  CLOSED_LOST
+  NONPROFIT
+  INACTIVE
 }

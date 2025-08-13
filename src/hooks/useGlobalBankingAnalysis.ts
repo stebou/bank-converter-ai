@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { BusinessInsightReport } from '@/lib/agents/banking';
+import { useState } from 'react';
 
 interface UseGlobalBankingAnalysisReturn {
   report: BusinessInsightReport | null;

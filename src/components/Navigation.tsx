@@ -2,11 +2,11 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Brain, Menu, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import AuthModal from './AuthModal';
 
 export const Navigation = () => {
@@ -122,7 +122,7 @@ export const Navigation = () => {
                   Mon Dashboard
                 </button>
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </SignedIn>
           </div>
 
@@ -186,7 +186,7 @@ export const Navigation = () => {
                       Mon Dashboard
                     </button>
                   </Link>
-                  <UserButton afterSignOutUrl="/" />
+                  <UserButton />
                 </SignedIn>
               </div>
             </nav>

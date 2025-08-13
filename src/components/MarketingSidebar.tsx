@@ -1,21 +1,20 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    BarChart3,
+    Bot,
+    Building,
+    CheckSquare,
+    ChevronLeft,
+    Contact,
+    Megaphone,
+    MessageCircle,
+    Phone,
+    Users
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Megaphone, 
-  MessageCircle, 
-  CheckSquare, 
-  Phone, 
-  BarChart3, 
-  Bot,
-  Users,
-  Building,
-  Contact,
-  ChevronLeft,
-  Menu
-} from 'lucide-react';
 
 const marketingNavItems = [
   {

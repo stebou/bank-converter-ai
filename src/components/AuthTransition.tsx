@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Brain, CheckCircle, Shield, BarChart3, Sparkles } from 'lucide-react';
+import { BarChart3, Brain, CheckCircle, Shield, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import '../styles/fonts.css';
 

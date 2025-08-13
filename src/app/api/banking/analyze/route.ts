@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  bankingAnalystAgent,
-  fraudDetectionAgent,
-  cashFlowAnalystAgent,
-  runBankingAgent
+import {
+    bankingAnalystAgent,
+    cashFlowAnalystAgent,
+    fraudDetectionAgent,
+    runBankingAgent
 } from '@/lib/agents/banking/agents';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {

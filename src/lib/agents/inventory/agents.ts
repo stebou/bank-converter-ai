@@ -1,10 +1,10 @@
 import OpenAI from 'openai';
-import { 
+import {
   analyzeStockLevelsTool,
-  optimizeInventoryTool,
-  forecastDemandTool,
   detectSlowMovingItemsTool,
-  generateInventoryReportTool
+  forecastDemandTool,
+  generateInventoryReportTool,
+  optimizeInventoryTool
 } from './tools';
 
 const openai = new OpenAI({

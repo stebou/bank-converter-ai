@@ -1,31 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  X,
-  Settings, 
-  ChevronRight, 
-  Mail, 
-  MessageCircle, 
-  Mic, 
-  Bot, 
-  UserPlus, 
-  Eye,
-  Phone,
-  CheckSquare,
-  Zap,
-  Send,
-  Brain,
+import {
   BookOpen,
-  Globe,
-  Users,
+  Bot,
+  Brain,
+  CheckSquare,
+  ChevronRight,
+  Cpu,
   ExternalLink,
-  Cpu
+  Eye,
+  Mail,
+  MessageCircle,
+  Phone,
+  Send,
+  Settings,
+  X,
+  Zap
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { FaLinkedin } from 'react-icons/fa';
 import { SiOpenai, SiPerplexity } from 'react-icons/si';
-import { useRouter } from 'next/navigation';
 
 // Types
 type CampaignData = {

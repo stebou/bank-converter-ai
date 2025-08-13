@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
-import { 
-  extractTransactionsTool,
-  detectAnomaliesTool,
+import {
   calculateBalanceTool,
   categorizeTransactionsTool,
+  detectAnomaliesTool,
+  extractTransactionsTool,
   generateBankingReportTool
 } from './tools';
 

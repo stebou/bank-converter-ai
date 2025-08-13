@@ -1,26 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  User,
-  Settings,
-  HelpCircle,
-  Brain,
-  LogOut,
-  ChevronLeft,
-  CreditCard,
-  Sparkles,
-  Building2,
-  Package,
-  Clock,
-  Calculator,
-  Megaphone,
-} from 'lucide-react';
 import { SignOutButton, useUser } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Brain,
+  Calculator,
+  Clock,
+  CreditCard,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  Package,
+  Settings,
+  Sparkles,
+  User
+} from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import '../styles/fonts.css';
 import AnalysisHistoryModal from './AnalysisHistoryModal';
 

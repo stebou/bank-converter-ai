@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { companyDataService, type INSEECompany, type EnrichedCompany } from '@/lib/companyDataService';
+import { companyDataService, type EnrichedCompany, type INSEECompany } from '@/lib/companyDataService';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseCompanyDataOptions {
   autoSearch?: boolean;
@@ -108,16 +108,26 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     try {
       const startTime = performance.now();
       
-      const result = await companyDataService.getAllSearchResults({
-        q: params.query,
-        siren: params.siren,
-        siret: params.siret,
-        nom: params.nom,
-        ville: params.ville,
-        departement: params.departement,
-        etatAdministratif: 'A', // Par défaut, chercher les entreprises actives
-        siege: filters.headOfficeOnly || undefined
-      });
+      let result;
+      
+      // Si c'est une recherche par texte libre, utiliser la recherche unifiée
+      if (params.query?.trim()) {
+        logOperation('Utilisation de la recherche unifiée (entreprises + dirigeants)');
+        result = await companyDataService.searchCompaniesUnified(params.query);
+      } else {
+        // Sinon, utiliser la recherche classique
+        logOperation('Utilisation de la recherche classique');
+        result = await companyDataService.getAllSearchResults({
+          q: params.query,
+          siren: params.siren,
+          siret: params.siret,
+          nom: params.nom,
+          ville: params.ville,
+          departement: params.departement,
+          etatAdministratif: 'A',
+          siege: filters.headOfficeOnly || undefined
+        });
+      }
 
       const searchTime = performance.now() - startTime;
       
@@ -410,6 +420,11 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     document.body.removeChild(link);
   }, [filteredCompanies]);
 
+  // Extraction des dirigeants d'une entreprise
+  const extractDirigeants = useCallback((company: INSEECompany) => {
+    return company.dirigeants || [];
+  }, []);
+
   // Statistiques
   const getStats = useCallback(() => {
     const active = filteredCompanies.filter(c => c.etatAdministratif === 'A').length;
@@ -458,6 +473,7 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     
     // Actions
     searchCompanies,
+    extractDirigeants,
     searchInRealTime,
     clearResults,
     testInseeConnection,
@@ -491,4 +507,5 @@ function extractPotentialDomain(companyName: string): string | null {
   return `${cleanName}.fr`;
 }
 
-export type { EnrichedCompany, CompanyFilters, SearchParams };
+export type { CompanyFilters, EnrichedCompany, SearchParams };
+

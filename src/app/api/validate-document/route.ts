@@ -1,11 +1,11 @@
+import { prisma } from '@/lib/prisma';
+import { currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
 // import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
-import { processImageContent, isValidImageType } from '@/lib/image-processing';
+import { isValidImageType, processImageContent } from '@/lib/image-processing';
 import { extractTransactionsFromImage } from '@/lib/image-transaction-extractor';
+import { extractPdfContent } from '@/lib/pdf-processing-hybrid';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

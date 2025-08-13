@@ -1,7 +1,7 @@
-import { Suspense } from 'react';
-import { Calculator, TrendingUp, DollarSign, FileText, BarChart3, PieChart } from 'lucide-react';
 import { currentUser } from '@clerk/nextjs/server';
+import { BarChart3, Calculator, DollarSign, FileText, PieChart, TrendingUp } from 'lucide-react';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 
 function ComptabiliteSkeleton() {
   return (

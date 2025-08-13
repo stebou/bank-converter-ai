@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Search,
-  ChevronDown,
-  FileText,
-  CreditCard,
-  Shield,
-  Settings,
-  Mail,
-  MessageSquare,
-  HelpCircle,
-  BookOpen,
-  Zap,
+    BookOpen,
+    ChevronDown,
+    CreditCard,
+    FileText,
+    HelpCircle,
+    Mail,
+    MessageSquare,
+    Search,
+    Settings,
+    Shield,
+    Zap,
 } from 'lucide-react';
+import React, { useState } from 'react';
 import '../../../styles/fonts.css';
 
 // --- COMPOSANT : HEADER MODERNE ---

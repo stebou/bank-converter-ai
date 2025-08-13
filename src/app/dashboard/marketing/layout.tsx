@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
 import MarketingSidebar from '@/components/MarketingSidebar';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 export default function MarketingLayout({
   children,
@@ -12,11 +12,11 @@ export default function MarketingLayout({
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
-  // Afficher la sidebar marketing sur la page de création de campagne, chat, tasks ET entreprises-data
+  // Afficher la sidebar marketing sur la page de création de campagne, chat, tasks ET entreprises-data (y compris les sous-pages)
   const isCreerCampagnePage = pathname === '/dashboard/marketing/creer-campagne';
   const isChatPage = pathname === '/dashboard/marketing/chat';
   const isTasksPage = pathname === '/dashboard/marketing/tasks';
-  const isEntreprisesDataPage = pathname === '/dashboard/marketing/entreprises-data';
+  const isEntreprisesDataPage = pathname.startsWith('/dashboard/marketing/entreprises-data');
   const shouldShowMarketingSidebar = isCreerCampagnePage || isChatPage || isTasksPage || isEntreprisesDataPage;
 
   const toggleSidebar = () => {

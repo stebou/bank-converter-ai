@@ -1,28 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  X,
-  Brain,
-  TrendingUp,
   AlertTriangle,
   BarChart3,
-  Target,
-  Zap,
-  Clock,
+  Brain,
   CheckCircle,
-  XCircle,
-  Loader2,
   ChevronRight,
-  Package,
-  DollarSign,
+  Clock,
   Database,
-  Globe,
+  DollarSign,
   FileText,
+  Globe,
+  Loader2,
+  Package,
+  Target,
+  TrendingUp,
+  X,
+  XCircle,
+  Zap,
 } from 'lucide-react';
-import '../styles/fonts.css';
+import React, { useEffect, useState } from 'react';
 import { AnalysisStorage } from '../lib/analysis-storage';
+import '../styles/fonts.css';
 
 interface AIAgentsModalProps {
   isOpen: boolean;

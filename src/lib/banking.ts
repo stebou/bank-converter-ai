@@ -355,11 +355,17 @@ export class BankingService {
       });
 
       const totalIncome = transactions
-        .filter(t => t.type === 'credit')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(t => {
+          // Revenus : soit type credit, soit montant positif (pour être sûr)
+          return t.type === 'credit' || (t.type !== 'debit' && t.amount > 0);
+        })
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
       const totalExpenses = transactions
-        .filter(t => t.type === 'debit')
+        .filter(t => {
+          // Dépenses : soit type debit, soit montant négatif (pour être sûr)
+          return t.type === 'debit' || (t.type !== 'credit' && t.amount < 0);
+        })
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
       const categoryBreakdown = this.calculateCategoryBreakdown(transactions);
@@ -421,9 +427,10 @@ export class BankingService {
         trend[monthKey] = { income: 0, expenses: 0 };
       }
 
-      if (transaction.type === 'credit') {
-        trend[monthKey].income += transaction.amount;
-      } else {
+      // Utiliser le montant et le type pour déterminer revenus vs dépenses
+      if (transaction.type === 'credit' || transaction.amount > 0) {
+        trend[monthKey].income += Math.abs(transaction.amount);
+      } else if (transaction.type === 'debit' || transaction.amount < 0) {
         trend[monthKey].expenses += Math.abs(transaction.amount);
       }
     });

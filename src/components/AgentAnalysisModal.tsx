@@ -1,28 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X,
-  Bot,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  Target,
-  Clock,
-  ArrowRight,
-  BarChart3,
-  DollarSign,
-  Activity,
-  Shield,
-  Lightbulb,
-  Users,
-  Sparkles,
-} from 'lucide-react';
 import { BusinessInsightReport } from '@/lib/agents/banking';
 import { AnalysisStorage } from '@/lib/analysis-storage';
-import { useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Bot,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Lightbulb,
+  Shield,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  X
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface AgentAnalysisModalProps {
   isOpen: boolean;

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
-import { 
+import { BusinessInsightReport } from '@/lib/agents/banking';
+import {
   bankingAnalystAgent,
   runBankingAgent
 } from '@/lib/agents/banking/agents';
-import { BusinessInsightReport } from '@/lib/agents/banking';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {

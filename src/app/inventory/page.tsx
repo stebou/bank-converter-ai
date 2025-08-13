@@ -1,40 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import {
+    DEFAULT_TEST_CONFIG,
+    generateInventoryStats,
+    generateMockMovements,
+    generateMockProducts,
+    MockOdooAPI,
+} from '@/lib/inventory-test-data';
+import type {
+    InventoryStats,
+    OdooConfig,
+    Product,
+    StockMode,
+    StockMovement,
+} from '@/types';
+import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import {
-  Package,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  BarChart3,
-  Settings,
-  RefreshCw,
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Upload,
-  Zap,
-  Building2,
-  ArrowLeft,
+    AlertTriangle,
+    ArrowLeft,
+    BarChart3,
+    Building2,
+    Download,
+    Filter,
+    Package,
+    Plus,
+    RefreshCw,
+    Search,
+    TrendingUp,
+    Upload,
+    Zap
 } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import type {
-  Product,
-  StockMovement,
-  InventoryStats,
-  StockMode,
-  OdooConfig,
-} from '@/types';
-import {
-  generateMockProducts,
-  generateMockMovements,
-  generateInventoryStats,
-  MockOdooAPI,
-  DEFAULT_TEST_CONFIG,
-} from '@/lib/inventory-test-data';
+import { useEffect, useState } from 'react';
 import '../../styles/fonts.css';
 
 // Composant KPI pour le dashboard stock

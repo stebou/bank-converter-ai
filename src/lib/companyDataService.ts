@@ -26,6 +26,15 @@ export interface INSEECompany {
   dateDerniereMiseAJour: string;
   siege: boolean;
   trancheEffectifs?: string;
+  // Nouvelles données dirigeants
+  dirigeants?: {
+    nom?: string;
+    prenom?: string;
+    nomUsage?: string;
+    pseudonyme?: string;
+    qualite?: string; // Gérant, Président, etc.
+    dateNaissance?: string;
+  }[];
 }
 
 export interface LinkedInOrganization {
@@ -470,7 +479,9 @@ class CompanyDataService {
         dateCreation: etab.dateCreationEtablissement,
         dateDerniereMiseAJour: etab.dateDernierTraitementEtablissement,
         siege: etab.etablissementSiege === 'true',
-        trancheEffectifs: etab.trancheEffectifsEtablissement
+        trancheEffectifs: etab.trancheEffectifsEtablissement,
+        // Extraction des dirigeants depuis l'unité légale
+        dirigeants: this.extractDirigeants(etab.uniteLegale)
       })) || [];
 
       // Déduplication par SIRET pour éviter les doublons dus aux périodes multiples
@@ -494,6 +505,294 @@ class CompanyDataService {
       console.error('Erreur lors de la recherche INSEE:', error);
       throw error;
     }
+  }
+
+  /**
+   * Extraction des informations dirigeants depuis l'unité légale INSEE
+   */
+  private extractDirigeants(uniteLegale: any): INSEECompany['dirigeants'] {
+    if (!uniteLegale) return [];
+
+    const dirigeants: INSEECompany['dirigeants'] = [];
+
+    // Dirigeant principal (pour les entreprises individuelles)
+    if (uniteLegale.prenom1UniteLegale && uniteLegale.nomUniteLegale) {
+      dirigeants.push({
+        prenom: uniteLegale.prenom1UniteLegale,
+        nom: uniteLegale.nomUniteLegale,
+        nomUsage: uniteLegale.nomUsageUniteLegale,
+        pseudonyme: uniteLegale.pseudonymeUniteLegale,
+        qualite: this.getDirigeantQualite(uniteLegale.categorieJuridiqueUniteLegale),
+        dateNaissance: uniteLegale.dateNaissanceUniteLegale
+      });
+    }
+
+    // Autres dirigeants (si disponibles dans les périodes)
+    if (uniteLegale.periodesUniteLegale && Array.isArray(uniteLegale.periodesUniteLegale)) {
+      uniteLegale.periodesUniteLegale.forEach((periode: any) => {
+        if (periode.nomUniteLegale && periode.prenomUsuelUniteLegale) {
+          const existeDeja = dirigeants.some(d => 
+            d.nom === periode.nomUniteLegale && d.prenom === periode.prenomUsuelUniteLegale
+          );
+          
+          if (!existeDeja) {
+            dirigeants.push({
+              prenom: periode.prenomUsuelUniteLegale,
+              nom: periode.nomUniteLegale,
+              nomUsage: periode.nomUsageUniteLegale,
+              pseudonyme: periode.pseudonymeUniteLegale,
+              qualite: this.getDirigeantQualite(periode.categorieJuridiqueUniteLegale),
+              dateNaissance: periode.dateNaissanceUniteLegale
+            });
+          }
+        }
+      });
+    }
+
+    return dirigeants.filter(d => d.nom && d.prenom);
+  }
+
+  /**
+   * Détermine la qualité du dirigeant selon la catégorie juridique
+   */
+  private getDirigeantQualite(categorieJuridique: string): string {
+    if (!categorieJuridique) return 'Dirigeant';
+
+    const qualites: { [key: string]: string } = {
+      '1000': 'Entrepreneur individuel',
+      '5510': 'Gérant de SARL',
+      '5599': 'Président de SAS',
+      '5710': 'Président de SA',
+      '5720': 'Directeur général de SA',
+      '5785': 'Gérant de société civile',
+      '5499': 'Associé gérant'
+    };
+
+    return qualites[categorieJuridique] || 'Dirigeant';
+  }
+
+  /**
+   * Recherche intelligente unifiée : entreprises + dirigeants
+   */
+  async searchCompaniesUnified(query: string): Promise<{companies: INSEECompany[], total: number}> {
+    console.log('🔍 Recherche unifiée:', query);
+    
+    const words = query.trim().split(/\s+/);
+    const hasPersonName = words.length >= 2;
+    
+    // Préparer les recherches
+    const searchPromises: Promise<{companies: INSEECompany[], total: number}>[] = [];
+    
+    // 1. Recherche classique d'entreprises (toujours)
+    searchPromises.push(this.getAllSearchResults({
+      q: query,
+      etatAdministratif: 'A'
+    }));
+    
+    // 2. Recherche par dirigeant (si ≥2 mots)
+    if (hasPersonName) {
+      searchPromises.push(this.searchCompaniesByDirigeant(query));
+    }
+    
+    try {
+      // Exécuter toutes les recherches en parallèle
+      const results = await Promise.allSettled(searchPromises);
+      
+      // Combiner tous les résultats réussis
+      const allCompanies: INSEECompany[] = [];
+      let totalResults = 0;
+      
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          allCompanies.push(...result.value.companies);
+          totalResults += result.value.total;
+          console.log(`✅ Recherche ${index === 0 ? 'entreprises' : 'dirigeants'}: ${result.value.companies.length} résultats`);
+        } else {
+          console.log(`❌ Recherche ${index === 0 ? 'entreprises' : 'dirigeants'} échouée:`, result.reason);
+        }
+      });
+      
+      // Déduplication par SIRET et tri par pertinence
+      const uniqueCompanies = this.deduplicateAndSortByRelevance(allCompanies, query);
+      
+      console.log(`🎯 Recherche unifiée terminée: ${uniqueCompanies.length} entreprises uniques trouvées`);
+      
+      return {
+        companies: uniqueCompanies,
+        total: uniqueCompanies.length
+      };
+      
+    } catch (error) {
+      console.error('Erreur lors de la recherche unifiée:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fonction de recherche par nom de dirigeant (publique pour compatibilité)
+   */
+  async searchCompaniesByDirigeant(nomDirigeant: string): Promise<{companies: INSEECompany[], total: number}> {
+    const words = nomDirigeant.trim().split(/\s+/);
+    if (words.length < 2) {
+      return { companies: [], total: 0 };
+    }
+
+    const [prenom, ...nomParts] = words;
+    const nom = nomParts.join(' ');
+
+    // Recherche avec prénom et nom
+    const searchParams = new URLSearchParams();
+    const query = `(prenom1UniteLegale:${prenom}* AND nomUniteLegale:${nom}*)`;
+    searchParams.append('q', query);
+    searchParams.append('nombre', '1000');
+
+    try {
+      const finalURL = `${this.INSEE_API_BASE}/siret?${searchParams.toString()}`;
+      
+      const response = await fetch(finalURL, {
+        headers: {
+          'X-INSEE-Api-Key-Integration': this.INSEE_API_KEY!,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        // Essayer dans l'autre sens (nom, prénom)
+        const fallbackQuery = `(prenom1UniteLegale:${nom}* AND nomUniteLegale:${prenom}*)`;
+        const fallbackParams = new URLSearchParams();
+        fallbackParams.append('q', fallbackQuery);
+        fallbackParams.append('nombre', '1000');
+        
+        const fallbackURL = `${this.INSEE_API_BASE}/siret?${fallbackParams.toString()}`;
+        
+        const fallbackResponse = await fetch(fallbackURL, {
+          headers: {
+            'X-INSEE-Api-Key-Integration': this.INSEE_API_KEY!,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!fallbackResponse.ok) {
+          return { companies: [], total: 0 };
+        }
+
+        const fallbackData = await fallbackResponse.json();
+        return this.processSearchResults(fallbackData);
+      }
+
+      const data = await response.json();
+      return this.processSearchResults(data);
+      
+    } catch (error) {
+      console.error('Erreur recherche dirigeant:', error);
+      return { companies: [], total: 0 };
+    }
+  }
+
+  /**
+   * Déduplication et tri par pertinence
+   */
+  private deduplicateAndSortByRelevance(companies: INSEECompany[], query: string): INSEECompany[] {
+    // Déduplication par SIRET
+    const seenSirets = new Set<string>();
+    const uniqueCompanies = companies.filter(company => {
+      if (seenSirets.has(company.siret)) {
+        return false;
+      }
+      seenSirets.add(company.siret);
+      return true;
+    });
+
+    // Calcul de score de pertinence
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower.split(/\s+/);
+
+    return uniqueCompanies.map(company => ({
+      ...company,
+      relevanceScore: this.calculateRelevanceScore(company, queryWords)
+    })).sort((a, b) => (b as any).relevanceScore - (a as any).relevanceScore);
+  }
+
+  /**
+   * Calcul du score de pertinence
+   */
+  private calculateRelevanceScore(company: INSEECompany, queryWords: string[]): number {
+    let score = 0;
+    const denomination = company.denomination.toLowerCase();
+    
+    // Score pour correspondance dans la dénomination
+    queryWords.forEach(word => {
+      if (denomination.includes(word)) {
+        score += denomination === word ? 100 : 50; // Correspondance exacte vs partielle
+      }
+    });
+    
+    // Score pour correspondance dans les dirigeants
+    if (company.dirigeants) {
+      company.dirigeants.forEach(dirigeant => {
+        const fullName = `${dirigeant.prenom} ${dirigeant.nom}`.toLowerCase();
+        queryWords.forEach(word => {
+          if (fullName.includes(word)) {
+            score += 75; // Forte pertinence pour dirigeant
+          }
+        });
+      });
+    }
+    
+    // Bonus pour entrepreneur individuel si recherche ressemble à un nom
+    if (queryWords.length >= 2 && company.dirigeants?.length === 1) {
+      score += 25;
+    }
+    
+    return score;
+  }
+
+  /**
+   * Traitement commun des résultats de recherche
+   */
+  private processSearchResults(data: any): {companies: INSEECompany[], total: number} {
+    const allCompanies: INSEECompany[] = data.etablissements?.map((etab: any) => ({
+      siren: etab.siren,
+      siret: etab.siret,
+      denomination: etab.uniteLegale?.denominationUniteLegale || 
+                   etab.uniteLegale?.prenom1UniteLegale + ' ' + etab.uniteLegale?.nomUniteLegale ||
+                   'Dénomination inconnue',
+      categorieJuridique: etab.uniteLegale?.categorieJuridiqueUniteLegale,
+      activitePrincipale: etab.activitePrincipaleEtablissement,
+      activitePrincipaleLibelle: etab.activitePrincipaleEtablissement ? 
+        this.getNAFLabel(etab.activitePrincipaleEtablissement) : '',
+      adresse: {
+        numeroVoie: etab.adresseEtablissement?.numeroVoieEtablissement,
+        typeVoie: etab.adresseEtablissement?.typeVoieEtablissement,
+        libelleVoie: etab.adresseEtablissement?.libelleVoieEtablissement,
+        codePostal: etab.adresseEtablissement?.codePostalEtablissement,
+        libelleCommuneEtablissement: etab.adresseEtablissement?.libelleCommuneEtablissement,
+        codeCommuneEtablissement: etab.adresseEtablissement?.codeCommuneEtablissement,
+      },
+      etatAdministratif: etab.etatAdministratifEtablissement,
+      dateCreation: etab.dateCreationEtablissement,
+      dateDerniereMiseAJour: etab.dateDernierTraitementEtablissement,
+      siege: etab.etablissementSiege === 'true',
+      trancheEffectifs: etab.trancheEffectifsEtablissement,
+      dirigeants: this.extractDirigeants(etab.uniteLegale)
+    })) || [];
+
+    // Déduplication par SIRET
+    const seenSirets = new Set<string>();
+    const companies = allCompanies.filter(company => {
+      if (seenSirets.has(company.siret)) {
+        return false;
+      }
+      seenSirets.add(company.siret);
+      return true;
+    });
+
+    console.log(`👥 Recherche dirigeant: ${companies.length} entreprises trouvées`);
+
+    return {
+      companies,
+      total: companies.length
+    };
   }
 
   /**
