@@ -3,25 +3,31 @@
 import { useUser } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-    AlertCircle,
-    Calendar,
-    CheckCircle,
-    ChevronDown,
-    ChevronUp,
-    Download,
-    Filter,
-    HelpCircle,
-    MoreHorizontal,
-    Plus,
-    Search,
-    Upload,
-    X
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Filter,
+  HelpCircle,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Upload,
+  X,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 // Types
-type TaskStatus = 'Open' | 'In Progress' | 'Blocked' | 'Review' | 'Resolved' | 'Closed';
+type TaskStatus =
+  | 'Open'
+  | 'In Progress'
+  | 'Blocked'
+  | 'Review'
+  | 'Resolved'
+  | 'Closed';
 type TaskPriority = 'Low' | 'Medium' | 'High' | 'Critical';
 type TaskSource = 'Manual' | 'API' | 'Import' | 'Integration' | 'Automation';
 
@@ -84,7 +90,7 @@ interface KPIData {
 const mockTasks: Task[] = [
   {
     id: 'TSK-1248',
-    title: 'Vérifier l\'import banque',
+    title: "Vérifier l'import banque",
     status: 'In Progress',
     priority: 'High',
     assigneeId: 'u_42',
@@ -96,14 +102,15 @@ const mockTasks: Task[] = [
     sla: {
       targetAt: '2025-08-15T12:00:00Z',
       breach: false,
-      remainingSec: 86400
+      remainingSec: 86400,
     },
     labels: ['banking', 'automation'],
     source: 'API',
     lastActivityAt: '2025-08-10T20:15:00Z',
-    description: 'Vérifier que tous les imports bancaires fonctionnent correctement après la mise à jour.',
+    description:
+      'Vérifier que tous les imports bancaires fonctionnent correctement après la mise à jour.',
     createdAt: '2025-08-08T09:00:00Z',
-    updatedAt: '2025-08-10T20:15:00Z'
+    updatedAt: '2025-08-10T20:15:00Z',
   },
   {
     id: 'TSK-1249',
@@ -119,14 +126,15 @@ const mockTasks: Task[] = [
     sla: {
       targetAt: '2025-08-16T17:00:00Z',
       breach: false,
-      remainingSec: 172800
+      remainingSec: 172800,
     },
     labels: ['marketing', 'linkedin'],
     source: 'Manual',
     lastActivityAt: '2025-08-10T14:30:00Z',
-    description: 'Analyser les performances des campagnes LinkedIn et proposer des optimisations.',
+    description:
+      'Analyser les performances des campagnes LinkedIn et proposer des optimisations.',
     createdAt: '2025-08-10T09:00:00Z',
-    updatedAt: '2025-08-10T14:30:00Z'
+    updatedAt: '2025-08-10T14:30:00Z',
   },
   {
     id: 'TSK-1250',
@@ -142,15 +150,16 @@ const mockTasks: Task[] = [
     sla: {
       targetAt: '2025-08-11T18:00:00Z',
       breach: true,
-      remainingSec: -3600
+      remainingSec: -3600,
     },
     labels: ['bug', 'dashboard', 'urgent'],
     source: 'Integration',
     lastActivityAt: '2025-08-10T16:45:00Z',
-    description: 'Le dashboard analytics ne charge plus les données depuis hier soir.',
+    description:
+      'Le dashboard analytics ne charge plus les données depuis hier soir.',
     createdAt: '2025-08-09T15:00:00Z',
-    updatedAt: '2025-08-10T16:45:00Z'
-  }
+    updatedAt: '2025-08-10T16:45:00Z',
+  },
 ];
 
 const mockKPIs: KPIData = {
@@ -159,7 +168,7 @@ const mockKPIs: KPIData = {
   inProgress: 156,
   resolvedThisWeek: 89,
   slaCompliance: 94.2,
-  medianTimeToResolve: 2.4
+  medianTimeToResolve: 2.4,
 };
 
 function TasksSkeleton() {
@@ -175,7 +184,7 @@ function TasksSkeleton() {
 
 export default function TasksPage() {
   const { user, isLoaded } = useUser();
-  
+
   // États
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(mockTasks);
@@ -187,7 +196,7 @@ export default function TasksPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [activeView, setActiveView] = useState<string | null>(null);
-  
+
   // Filtres
   const [filters, setFilters] = useState<FilterState>({
     status: [],
@@ -197,13 +206,16 @@ export default function TasksPage() {
     dueDate: {},
     labels: [],
     sla: 'all',
-    source: []
+    source: [],
   });
 
   // Options de tri et groupement
-  const [sortBy, setSortBy] = useState<{ field: string; direction: 'asc' | 'desc' }>({
+  const [sortBy, setSortBy] = useState<{
+    field: string;
+    direction: 'asc' | 'desc';
+  }>({
     field: 'lastActivityAt',
-    direction: 'desc'
+    direction: 'desc',
   });
   const [groupBy, setGroupBy] = useState<string>('');
 
@@ -218,7 +230,8 @@ export default function TasksPage() {
 
   // Fonctions utilitaires
   const formatTimeRemaining = (seconds: number): string => {
-    if (seconds < 0) return `En retard de ${Math.abs(Math.floor(seconds / 3600))}h`;
+    if (seconds < 0)
+      return `En retard de ${Math.abs(Math.floor(seconds / 3600))}h`;
     const hours = Math.floor(seconds / 3600);
     const days = Math.floor(hours / 24);
     if (days > 0) return `${days}j restants`;
@@ -227,22 +240,22 @@ export default function TasksPage() {
 
   const getStatusColor = (status: TaskStatus): string => {
     const colors = {
-      'Open': 'bg-[#95a5a6] text-white',
+      Open: 'bg-[#95a5a6] text-white',
       'In Progress': 'bg-[#3498db] text-white',
-      'Blocked': 'bg-[#e74c3c] text-white',
-      'Review': 'bg-[#f39c12] text-white',
-      'Resolved': 'bg-[#2ecc71] text-white',
-      'Closed': 'bg-[#34495e] text-white'
+      Blocked: 'bg-[#e74c3c] text-white',
+      Review: 'bg-[#f39c12] text-white',
+      Resolved: 'bg-[#2ecc71] text-white',
+      Closed: 'bg-[#34495e] text-white',
     };
     return colors[status] || 'bg-[#95a5a6] text-white';
   };
 
   const getPriorityColor = (priority: TaskPriority): string => {
     const colors = {
-      'Low': 'text-[#27ae60]',
-      'Medium': 'text-[#f39c12]',
-      'High': 'text-[#e67e22]',
-      'Critical': 'text-[#e74c3c]'
+      Low: 'text-[#27ae60]',
+      Medium: 'text-[#f39c12]',
+      High: 'text-[#e67e22]',
+      Critical: 'text-[#e74c3c]',
     };
     return colors[priority] || 'text-[#95a5a6]';
   };
@@ -257,9 +270,9 @@ export default function TasksPage() {
   };
 
   const handleBulkStatusChange = (newStatus: TaskStatus) => {
-    setTasks(prev => 
-      prev.map(task => 
-        selectedTasks.includes(task.id) 
+    setTasks(prev =>
+      prev.map(task =>
+        selectedTasks.includes(task.id)
           ? { ...task, status: newStatus, updatedAt: new Date().toISOString() }
           : task
       )
@@ -279,10 +292,11 @@ export default function TasksPage() {
 
     // Recherche textuelle
     if (searchQuery.trim()) {
-      filtered = filtered.filter(task => 
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.id.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        task =>
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.id.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -291,7 +305,9 @@ export default function TasksPage() {
       filtered = filtered.filter(task => filters.status.includes(task.status));
     }
     if (filters.priority.length > 0) {
-      filtered = filtered.filter(task => filters.priority.includes(task.priority));
+      filtered = filtered.filter(task =>
+        filters.priority.includes(task.priority)
+      );
     }
 
     setFilteredTasks(filtered);
@@ -300,12 +316,12 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-[#ecf0f1]">
       <Suspense fallback={<TasksSkeleton />}>
-        <div className="flex flex-col h-screen">
+        <div className="flex h-screen flex-col">
           {/* Header */}
-          <header className="bg-white shadow-sm border-b border-[#bdc3c7] p-4 sticky top-0 z-30">
+          <header className="sticky top-0 z-30 border-b border-[#bdc3c7] bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-[#2c3e50] font-montserrat">
+                <h1 className="font-montserrat text-2xl font-bold text-[#2c3e50]">
                   Tâches · {filteredTasks.length.toLocaleString()}
                 </h1>
               </div>
@@ -313,20 +329,20 @@ export default function TasksPage() {
               <div className="flex items-center gap-4">
                 {/* Recherche globale */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#7f8c8d]" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-[#7f8c8d]" />
                   <input
                     type="text"
                     placeholder="Rechercher dans les tâches..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] w-80"
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-80 rounded-lg border border-[#bdc3c7] py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
                   />
                 </div>
 
                 {/* Actions rapides */}
                 <motion.button
                   onClick={createNewTask}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+                  className="flex items-center gap-2 rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -334,17 +350,17 @@ export default function TasksPage() {
                   Créer une tâche
                 </motion.button>
 
-                <button className="flex items-center gap-2 px-4 py-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
+                <button className="flex items-center gap-2 rounded-lg border border-[#bdc3c7] px-4 py-2 transition-colors hover:bg-[#ecf0f1]">
                   <Upload className="h-4 w-4" />
                   Importer
                 </button>
 
-                <button className="flex items-center gap-2 px-4 py-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
+                <button className="flex items-center gap-2 rounded-lg border border-[#bdc3c7] px-4 py-2 transition-colors hover:bg-[#ecf0f1]">
                   <Download className="h-4 w-4" />
                   Exporter
                 </button>
 
-                <button className="p-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
+                <button className="rounded-lg border border-[#bdc3c7] p-2 transition-colors hover:bg-[#ecf0f1]">
                   <HelpCircle className="h-4 w-4" />
                 </button>
               </div>
@@ -352,24 +368,28 @@ export default function TasksPage() {
           </header>
 
           {/* Filtres et vues */}
-          <div className="bg-white border-b border-[#bdc3c7] p-4">
+          <div className="border-b border-[#bdc3c7] bg-white p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    showFilters ? 'bg-[#3498db] text-white' : 'border border-[#bdc3c7] hover:bg-[#ecf0f1]'
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
+                    showFilters
+                      ? 'bg-[#3498db] text-white'
+                      : 'border border-[#bdc3c7] hover:bg-[#ecf0f1]'
                   }`}
                 >
                   <Filter className="h-4 w-4" />
                   Filtres
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 <select
                   value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value)}
-                  className="px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+                  onChange={e => setGroupBy(e.target.value)}
+                  className="rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
                 >
                   <option value="">Aucun groupement</option>
                   <option value="status">Grouper par statut</option>
@@ -380,14 +400,21 @@ export default function TasksPage() {
 
                 <select
                   value={`${sortBy.field}-${sortBy.direction}`}
-                  onChange={(e) => {
+                  onChange={e => {
                     const [field, direction] = e.target.value.split('-');
-                    setSortBy({ field, direction: direction as 'asc' | 'desc' });
+                    setSortBy({
+                      field,
+                      direction: direction as 'asc' | 'desc',
+                    });
                   }}
-                  className="px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+                  className="rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
                 >
-                  <option value="lastActivityAt-desc">Dernière activité ↓</option>
-                  <option value="lastActivityAt-asc">Dernière activité ↑</option>
+                  <option value="lastActivityAt-desc">
+                    Dernière activité ↓
+                  </option>
+                  <option value="lastActivityAt-asc">
+                    Dernière activité ↑
+                  </option>
                   <option value="dueDate-asc">Échéance ↑</option>
                   <option value="dueDate-desc">Échéance ↓</option>
                   <option value="priority-desc">Priorité ↓</option>
@@ -396,11 +423,13 @@ export default function TasksPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[#7f8c8d]">Vues sauvegardées:</span>
-                <button className="px-3 py-1 text-sm bg-[#e8f4fd] text-[#3498db] rounded-lg hover:bg-[#d4e6f1]">
+                <span className="text-sm text-[#7f8c8d]">
+                  Vues sauvegardées:
+                </span>
+                <button className="rounded-lg bg-[#e8f4fd] px-3 py-1 text-sm text-[#3498db] hover:bg-[#d4e6f1]">
                   Moi · En retard
                 </button>
-                <button className="px-3 py-1 text-sm border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1]">
+                <button className="rounded-lg border border-[#bdc3c7] px-3 py-1 text-sm hover:bg-[#ecf0f1]">
                   Équipe · Cette semaine
                 </button>
                 <button className="p-1 text-[#7f8c8d] hover:text-[#2c3e50]">
@@ -416,12 +445,14 @@ export default function TasksPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4"
+                  className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8"
                 >
                   {/* Filtres par statut */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Statut</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Statut
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Tous les statuts</option>
                       <option>Ouvert</option>
                       <option>En cours</option>
@@ -433,8 +464,10 @@ export default function TasksPage() {
 
                   {/* Filtres par priorité */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Priorité</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Priorité
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Toutes priorités</option>
                       <option>Critique</option>
                       <option>Haute</option>
@@ -445,8 +478,10 @@ export default function TasksPage() {
 
                   {/* Filtres par assigné */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Assigné</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Assigné
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Tous assignés</option>
                       <option>Moi</option>
                       <option>Marie Dupont</option>
@@ -457,8 +492,10 @@ export default function TasksPage() {
 
                   {/* Filtres par projet */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Projet</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Projet
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Tous projets</option>
                       <option>FinOps</option>
                       <option>Marketing</option>
@@ -468,8 +505,10 @@ export default function TasksPage() {
 
                   {/* Filtres par échéance */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Échéance</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Échéance
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Toutes échéances</option>
                       <option>En retard</option>
                       <option>Aujourd'hui</option>
@@ -480,8 +519,10 @@ export default function TasksPage() {
 
                   {/* Filtres par SLA */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">SLA</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      SLA
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Tous SLA</option>
                       <option>Respecté</option>
                       <option>À risque</option>
@@ -491,8 +532,10 @@ export default function TasksPage() {
 
                   {/* Filtres par source */}
                   <div>
-                    <label className="block text-sm font-medium text-[#2c3e50] mb-2">Source</label>
-                    <select className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg text-sm">
+                    <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                      Source
+                    </label>
+                    <select className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm">
                       <option>Toutes sources</option>
                       <option>Manuel</option>
                       <option>API</option>
@@ -503,10 +546,10 @@ export default function TasksPage() {
 
                   {/* Actions filtres */}
                   <div className="flex items-end gap-2">
-                    <button className="px-3 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] text-sm">
+                    <button className="rounded-lg bg-[#3498db] px-3 py-2 text-sm text-white hover:bg-[#2980b9]">
                       Appliquer
                     </button>
-                    <button className="px-3 py-2 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] text-sm">
+                    <button className="rounded-lg border border-[#bdc3c7] px-3 py-2 text-sm hover:bg-[#ecf0f1]">
                       Reset
                     </button>
                   </div>
@@ -522,10 +565,12 @@ export default function TasksPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-white border-b border-[#bdc3c7] p-4"
+                className="border-b border-[#bdc3c7] bg-white p-4"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#2c3e50]">Indicateurs clés</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-[#2c3e50]">
+                    Indicateurs clés
+                  </h3>
                   <button
                     onClick={() => setShowKPIs(false)}
                     className="p-1 text-[#7f8c8d] hover:text-[#2c3e50]"
@@ -534,35 +579,51 @@ export default function TasksPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  <div className="bg-[#e8f4fd] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#3498db]">{mockKPIs.open}</div>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                  <div className="rounded-lg bg-[#e8f4fd] p-4">
+                    <div className="text-2xl font-bold text-[#3498db]">
+                      {mockKPIs.open}
+                    </div>
                     <div className="text-sm text-[#7f8c8d]">Ouvertes</div>
                   </div>
 
-                  <div className="bg-[#fdf2e8] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#e67e22]">{mockKPIs.overdue}</div>
+                  <div className="rounded-lg bg-[#fdf2e8] p-4">
+                    <div className="text-2xl font-bold text-[#e67e22]">
+                      {mockKPIs.overdue}
+                    </div>
                     <div className="text-sm text-[#7f8c8d]">En retard</div>
                   </div>
 
-                  <div className="bg-[#e8f6f3] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#27ae60]">{mockKPIs.inProgress}</div>
+                  <div className="rounded-lg bg-[#e8f6f3] p-4">
+                    <div className="text-2xl font-bold text-[#27ae60]">
+                      {mockKPIs.inProgress}
+                    </div>
                     <div className="text-sm text-[#7f8c8d]">En cours</div>
                   </div>
 
-                  <div className="bg-[#f0f8ff] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#2980b9]">{mockKPIs.resolvedThisWeek}</div>
-                    <div className="text-sm text-[#7f8c8d]">Résolues cette semaine</div>
+                  <div className="rounded-lg bg-[#f0f8ff] p-4">
+                    <div className="text-2xl font-bold text-[#2980b9]">
+                      {mockKPIs.resolvedThisWeek}
+                    </div>
+                    <div className="text-sm text-[#7f8c8d]">
+                      Résolues cette semaine
+                    </div>
                   </div>
 
-                  <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#27ae60]">{mockKPIs.slaCompliance}%</div>
+                  <div className="rounded-lg bg-[#f8f9fa] p-4">
+                    <div className="text-2xl font-bold text-[#27ae60]">
+                      {mockKPIs.slaCompliance}%
+                    </div>
                     <div className="text-sm text-[#7f8c8d]">Respect SLA</div>
                   </div>
 
-                  <div className="bg-[#faf7f0] p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-[#f39c12]">{mockKPIs.medianTimeToResolve}j</div>
-                    <div className="text-sm text-[#7f8c8d]">Temps médian résolution</div>
+                  <div className="rounded-lg bg-[#faf7f0] p-4">
+                    <div className="text-2xl font-bold text-[#f39c12]">
+                      {mockKPIs.medianTimeToResolve}j
+                    </div>
+                    <div className="text-sm text-[#7f8c8d]">
+                      Temps médian résolution
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -570,10 +631,10 @@ export default function TasksPage() {
           </AnimatePresence>
 
           {!showKPIs && (
-            <div className="bg-white border-b border-[#bdc3c7] p-2">
+            <div className="border-b border-[#bdc3c7] bg-white p-2">
               <button
                 onClick={() => setShowKPIs(true)}
-                className="text-sm text-[#3498db] hover:text-[#2980b9] flex items-center gap-1"
+                className="flex items-center gap-1 text-sm text-[#3498db] hover:text-[#2980b9]"
               >
                 <ChevronDown className="h-4 w-4" />
                 Afficher les indicateurs
@@ -582,37 +643,47 @@ export default function TasksPage() {
           )}
 
           {/* Contenu principal */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
             {/* Table des tâches */}
-            <div className={`flex-1 overflow-auto ${showDetailsPanel ? 'mr-96' : ''} transition-all duration-300`}>
+            <div
+              className={`flex-1 overflow-auto ${showDetailsPanel ? 'mr-96' : ''} transition-all duration-300`}
+            >
               <div className="bg-white">
                 {filteredTasks.length === 0 ? (
                   /* État vide */
-                  <div className="text-center py-16">
-                    <div className="mx-auto w-24 h-24 bg-[#ecf0f1] rounded-full flex items-center justify-center mb-6">
+                  <div className="py-16 text-center">
+                    <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#ecf0f1]">
                       <CheckCircle className="h-12 w-12 text-[#95a5a6]" />
                     </div>
-                    <h3 className="text-xl font-semibold text-[#2c3e50] mb-2">
-                      {searchQuery || Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f !== 'all' && f !== '')
+                    <h3 className="mb-2 text-xl font-semibold text-[#2c3e50]">
+                      {searchQuery ||
+                      Object.values(filters).some(f =>
+                        Array.isArray(f)
+                          ? f.length > 0
+                          : f !== 'all' && f !== ''
+                      )
                         ? 'Aucun résultat trouvé'
-                        : 'Aucune tâche'
-                      }
+                        : 'Aucune tâche'}
                     </h3>
-                    <p className="text-[#7f8c8d] mb-6 max-w-md mx-auto">
-                      {searchQuery || Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f !== 'all' && f !== '')
-                        ? 'Essayez d\'ajuster vos critères de recherche ou de supprimer certains filtres.'
-                        : 'Commencez par créer votre première tâche ou importez des tâches existantes.'
-                      }
+                    <p className="mx-auto mb-6 max-w-md text-[#7f8c8d]">
+                      {searchQuery ||
+                      Object.values(filters).some(f =>
+                        Array.isArray(f)
+                          ? f.length > 0
+                          : f !== 'all' && f !== ''
+                      )
+                        ? "Essayez d'ajuster vos critères de recherche ou de supprimer certains filtres."
+                        : 'Commencez par créer votre première tâche ou importez des tâches existantes.'}
                     </p>
                     <div className="flex justify-center gap-4">
                       <button
                         onClick={createNewTask}
-                        className="flex items-center gap-2 px-6 py-3 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+                        className="flex items-center gap-2 rounded-lg bg-[#3498db] px-6 py-3 text-white transition-colors hover:bg-[#2980b9]"
                       >
                         <Plus className="h-5 w-5" />
                         Créer une tâche
                       </button>
-                      <button className="flex items-center gap-2 px-6 py-3 border border-[#bdc3c7] rounded-lg hover:bg-[#ecf0f1] transition-colors">
+                      <button className="flex items-center gap-2 rounded-lg border border-[#bdc3c7] px-6 py-3 transition-colors hover:bg-[#ecf0f1]">
                         <Upload className="h-5 w-5" />
                         Importer des tâches
                       </button>
@@ -622,39 +693,66 @@ export default function TasksPage() {
                   /* Table des tâches */
                   <div className="overflow-x-auto">
                     <table role="grid" className="w-full">
-                      <thead className="bg-[#f8f9fa] border-b border-[#bdc3c7]">
+                      <thead className="border-b border-[#bdc3c7] bg-[#f8f9fa]">
                         <tr>
                           <th className="px-4 py-3 text-left">
                             <input
                               type="checkbox"
-                              onChange={(e) => {
+                              onChange={e => {
                                 if (e.target.checked) {
-                                  setSelectedTasks(filteredTasks.map(t => t.id));
+                                  setSelectedTasks(
+                                    filteredTasks.map(t => t.id)
+                                  );
                                 } else {
                                   setSelectedTasks([]);
                                 }
                               }}
-                              checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
+                              checked={
+                                selectedTasks.length === filteredTasks.length &&
+                                filteredTasks.length > 0
+                              }
                             />
                           </th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">ID</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Titre</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Statut</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Priorité</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Assigné</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Projet</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Échéance</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Progression</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">SLA</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Source</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">Actions</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            ID
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Titre
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Statut
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Priorité
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Assigné
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Projet
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Échéance
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Progression
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            SLA
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Source
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[#2c3e50]">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredTasks.map((task, index) => (
                           <tr
                             key={task.id}
-                            className={`border-b border-[#ecf0f1] hover:bg-[#f8f9fa] cursor-pointer transition-colors ${
+                            className={`cursor-pointer border-b border-[#ecf0f1] transition-colors hover:bg-[#f8f9fa] ${
                               selectedTask?.id === task.id ? 'bg-[#e8f4fd]' : ''
                             }`}
                             onClick={() => handleTaskSelect(task.id)}
@@ -663,24 +761,33 @@ export default function TasksPage() {
                               <input
                                 type="checkbox"
                                 checked={selectedTasks.includes(task.id)}
-                                onChange={(e) => {
+                                onChange={e => {
                                   e.stopPropagation();
                                   if (e.target.checked) {
-                                    setSelectedTasks([...selectedTasks, task.id]);
+                                    setSelectedTasks([
+                                      ...selectedTasks,
+                                      task.id,
+                                    ]);
                                   } else {
-                                    setSelectedTasks(selectedTasks.filter(id => id !== task.id));
+                                    setSelectedTasks(
+                                      selectedTasks.filter(id => id !== task.id)
+                                    );
                                   }
                                 }}
                               />
                             </td>
-                            <td className="px-4 py-3 text-sm font-mono text-[#7f8c8d]">{task.id}</td>
+                            <td className="px-4 py-3 font-mono text-sm text-[#7f8c8d]">
+                              {task.id}
+                            </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-[#2c3e50]">{task.title}</span>
+                                <span className="font-medium text-[#2c3e50]">
+                                  {task.title}
+                                </span>
                                 {task.labels.map(label => (
                                   <span
                                     key={label}
-                                    className="px-2 py-1 text-xs bg-[#ecf0f1] text-[#7f8c8d] rounded-full"
+                                    className="rounded-full bg-[#ecf0f1] px-2 py-1 text-xs text-[#7f8c8d]"
                                   >
                                     {label}
                                   </span>
@@ -688,56 +795,78 @@ export default function TasksPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
+                              <span
+                                className={`rounded-full px-2 py-1 text-xs ${getStatusColor(task.status)}`}
+                              >
                                 {task.status}
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <div className={`flex items-center gap-1 ${getPriorityColor(task.priority)}`}>
-                                {task.priority === 'Critical' && <AlertCircle className="h-4 w-4" />}
-                                {task.priority === 'High' && <ChevronUp className="h-4 w-4" />}
-                                <span className="text-sm font-medium">{task.priority}</span>
+                              <div
+                                className={`flex items-center gap-1 ${getPriorityColor(task.priority)}`}
+                              >
+                                {task.priority === 'Critical' && (
+                                  <AlertCircle className="h-4 w-4" />
+                                )}
+                                {task.priority === 'High' && (
+                                  <ChevronUp className="h-4 w-4" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {task.priority}
+                                </span>
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-[#3498db] rounded-full flex items-center justify-center">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3498db]">
                                   <span className="text-xs font-medium text-white">
                                     {task.assigneeName.charAt(0)}
                                   </span>
                                 </div>
-                                <span className="text-sm text-[#2c3e50]">{task.assigneeName}</span>
+                                <span className="text-sm text-[#2c3e50]">
+                                  {task.assigneeName}
+                                </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-sm text-[#7f8c8d]">{task.projectName}</td>
+                            <td className="px-4 py-3 text-sm text-[#7f8c8d]">
+                              {task.projectName}
+                            </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-1 text-sm text-[#7f8c8d]">
                                 <Calendar className="h-4 w-4" />
-                                {new Date(task.dueDate).toLocaleDateString('fr-FR')}
+                                {new Date(task.dueDate).toLocaleDateString(
+                                  'fr-FR'
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="w-full bg-[#ecf0f1] rounded-full h-2">
+                              <div className="h-2 w-full rounded-full bg-[#ecf0f1]">
                                 <div
-                                  className="bg-[#3498db] h-2 rounded-full"
+                                  className="h-2 rounded-full bg-[#3498db]"
                                   style={{ width: `${task.progress}%` }}
                                 ></div>
                               </div>
-                              <span className="text-xs text-[#7f8c8d] mt-1">{task.progress}%</span>
+                              <span className="mt-1 text-xs text-[#7f8c8d]">
+                                {task.progress}%
+                              </span>
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`text-xs ${task.sla.breach ? 'text-[#e74c3c]' : 'text-[#27ae60]'}`}>
+                              <span
+                                className={`text-xs ${task.sla.breach ? 'text-[#e74c3c]' : 'text-[#27ae60]'}`}
+                              >
                                 {formatTimeRemaining(task.sla.remainingSec)}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-[#7f8c8d]">{task.source}</td>
+                            <td className="px-4 py-3 text-sm text-[#7f8c8d]">
+                              {task.source}
+                            </td>
                             <td className="px-4 py-3">
                               <button
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.stopPropagation();
                                   // Actions menu
                                 }}
-                                className="p-1 hover:bg-[#ecf0f1] rounded"
+                                className="rounded p-1 hover:bg-[#ecf0f1]"
                               >
                                 <MoreHorizontal className="h-4 w-4 text-[#7f8c8d]" />
                               </button>
@@ -759,14 +888,16 @@ export default function TasksPage() {
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'tween', duration: 0.3 }}
-                  className="w-96 bg-white border-l border-[#bdc3c7] overflow-y-auto"
+                  className="w-96 overflow-y-auto border-l border-[#bdc3c7] bg-white"
                 >
                   <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-semibold text-[#2c3e50]">Détails de la tâche</h2>
+                    <div className="mb-6 flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-[#2c3e50]">
+                        Détails de la tâche
+                      </h2>
                       <button
                         onClick={() => setShowDetailsPanel(false)}
-                        className="p-1 hover:bg-[#ecf0f1] rounded"
+                        className="rounded p-1 hover:bg-[#ecf0f1]"
                       >
                         <X className="h-5 w-5 text-[#7f8c8d]" />
                       </button>
@@ -775,76 +906,110 @@ export default function TasksPage() {
                     {/* Propriétés */}
                     <div className="space-y-6">
                       <div>
-                        <h3 className="font-medium text-[#2c3e50] mb-2">{selectedTask.title}</h3>
-                        <p className="text-sm text-[#7f8c8d] mb-4">{selectedTask.id}</p>
+                        <h3 className="mb-2 font-medium text-[#2c3e50]">
+                          {selectedTask.title}
+                        </h3>
+                        <p className="mb-4 text-sm text-[#7f8c8d]">
+                          {selectedTask.id}
+                        </p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Description</label>
-                        <p className="text-sm text-[#7f8c8d]">{selectedTask.description}</p>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Description
+                        </label>
+                        <p className="text-sm text-[#7f8c8d]">
+                          {selectedTask.description}
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-[#2c3e50] mb-2">Statut</label>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedTask.status)}`}>
+                          <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                            Statut
+                          </label>
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs ${getStatusColor(selectedTask.status)}`}
+                          >
                             {selectedTask.status}
                           </span>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-[#2c3e50] mb-2">Priorité</label>
-                          <span className={`text-sm font-medium ${getPriorityColor(selectedTask.priority)}`}>
+                          <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                            Priorité
+                          </label>
+                          <span
+                            className={`text-sm font-medium ${getPriorityColor(selectedTask.priority)}`}
+                          >
                             {selectedTask.priority}
                           </span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Assigné à</label>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Assigné à
+                        </label>
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-[#3498db] rounded-full flex items-center justify-center">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3498db]">
                             <span className="text-sm font-medium text-white">
                               {selectedTask.assigneeName.charAt(0)}
                             </span>
                           </div>
-                          <span className="text-sm text-[#2c3e50]">{selectedTask.assigneeName}</span>
+                          <span className="text-sm text-[#2c3e50]">
+                            {selectedTask.assigneeName}
+                          </span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Progression</label>
-                        <div className="w-full bg-[#ecf0f1] rounded-full h-3 mb-2">
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Progression
+                        </label>
+                        <div className="mb-2 h-3 w-full rounded-full bg-[#ecf0f1]">
                           <div
-                            className="bg-[#3498db] h-3 rounded-full"
+                            className="h-3 rounded-full bg-[#3498db]"
                             style={{ width: `${selectedTask.progress}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-[#7f8c8d]">{selectedTask.progress}% complété</span>
+                        <span className="text-sm text-[#7f8c8d]">
+                          {selectedTask.progress}% complété
+                        </span>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Échéance</label>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Échéance
+                        </label>
                         <div className="flex items-center gap-2 text-sm text-[#7f8c8d]">
                           <Calendar className="h-4 w-4" />
-                          {new Date(selectedTask.dueDate).toLocaleDateString('fr-FR')}
+                          {new Date(selectedTask.dueDate).toLocaleDateString(
+                            'fr-FR'
+                          )}
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">SLA</label>
-                        <span className={`text-sm ${selectedTask.sla.breach ? 'text-[#e74c3c]' : 'text-[#27ae60]'}`}>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          SLA
+                        </label>
+                        <span
+                          className={`text-sm ${selectedTask.sla.breach ? 'text-[#e74c3c]' : 'text-[#27ae60]'}`}
+                        >
                           {formatTimeRemaining(selectedTask.sla.remainingSec)}
                         </span>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Étiquettes</label>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Étiquettes
+                        </label>
                         <div className="flex flex-wrap gap-2">
                           {selectedTask.labels.map(label => (
                             <span
                               key={label}
-                              className="px-2 py-1 text-xs bg-[#ecf0f1] text-[#7f8c8d] rounded-full"
+                              className="rounded-full bg-[#ecf0f1] px-2 py-1 text-xs text-[#7f8c8d]"
                             >
                               {label}
                             </span>
@@ -853,23 +1018,33 @@ export default function TasksPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#2c3e50] mb-2">Activité récente</label>
+                        <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
+                          Activité récente
+                        </label>
                         <div className="space-y-3">
                           <div className="flex items-start gap-3">
-                            <div className="w-2 h-2 bg-[#3498db] rounded-full mt-2"></div>
+                            <div className="mt-2 h-2 w-2 rounded-full bg-[#3498db]"></div>
                             <div>
-                              <p className="text-sm text-[#2c3e50]">Tâche mise à jour</p>
+                              <p className="text-sm text-[#2c3e50]">
+                                Tâche mise à jour
+                              </p>
                               <p className="text-xs text-[#7f8c8d]">
-                                {new Date(selectedTask.lastActivityAt).toLocaleString('fr-FR')}
+                                {new Date(
+                                  selectedTask.lastActivityAt
+                                ).toLocaleString('fr-FR')}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
-                            <div className="w-2 h-2 bg-[#2ecc71] rounded-full mt-2"></div>
+                            <div className="mt-2 h-2 w-2 rounded-full bg-[#2ecc71]"></div>
                             <div>
-                              <p className="text-sm text-[#2c3e50]">Tâche créée</p>
+                              <p className="text-sm text-[#2c3e50]">
+                                Tâche créée
+                              </p>
                               <p className="text-xs text-[#7f8c8d]">
-                                {new Date(selectedTask.createdAt).toLocaleString('fr-FR')}
+                                {new Date(
+                                  selectedTask.createdAt
+                                ).toLocaleString('fr-FR')}
                               </p>
                             </div>
                           </div>
@@ -889,21 +1064,27 @@ export default function TasksPage() {
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
-                className="bg-[#2c3e50] text-white p-4 flex items-center justify-between"
+                className="flex items-center justify-between bg-[#2c3e50] p-4 text-white"
               >
                 <div className="flex items-center gap-4">
                   <span className="text-sm">
-                    {selectedTasks.length} tâche{selectedTasks.length > 1 ? 's' : ''} sélectionnée{selectedTasks.length > 1 ? 's' : ''}
+                    {selectedTasks.length} tâche
+                    {selectedTasks.length > 1 ? 's' : ''} sélectionnée
+                    {selectedTasks.length > 1 ? 's' : ''}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <select
-                    onChange={(e) => handleBulkStatusChange(e.target.value as TaskStatus)}
-                    className="px-3 py-1 bg-[#34495e] text-white rounded text-sm"
+                    onChange={e =>
+                      handleBulkStatusChange(e.target.value as TaskStatus)
+                    }
+                    className="rounded bg-[#34495e] px-3 py-1 text-sm text-white"
                     defaultValue=""
                   >
-                    <option value="" disabled>Changer le statut</option>
+                    <option value="" disabled>
+                      Changer le statut
+                    </option>
                     <option value="Open">Ouvert</option>
                     <option value="In Progress">En cours</option>
                     <option value="Blocked">Bloqué</option>
@@ -912,17 +1093,17 @@ export default function TasksPage() {
                     <option value="Closed">Fermé</option>
                   </select>
 
-                  <button className="px-3 py-1 bg-[#34495e] hover:bg-[#4a5d70] rounded text-sm transition-colors">
+                  <button className="rounded bg-[#34495e] px-3 py-1 text-sm transition-colors hover:bg-[#4a5d70]">
                     Assigner
                   </button>
 
-                  <button className="px-3 py-1 bg-[#e74c3c] hover:bg-[#c0392b] rounded text-sm transition-colors">
+                  <button className="rounded bg-[#e74c3c] px-3 py-1 text-sm transition-colors hover:bg-[#c0392b]">
                     Archiver
                   </button>
 
                   <button
                     onClick={() => setSelectedTasks([])}
-                    className="p-1 hover:bg-[#34495e] rounded"
+                    className="rounded p-1 hover:bg-[#34495e]"
                   >
                     <X className="h-4 w-4" />
                   </button>

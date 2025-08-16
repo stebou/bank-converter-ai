@@ -22,7 +22,7 @@ import {
   Trash2,
   Upload,
   Users,
-  X
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -35,7 +35,11 @@ interface CreateListModalProps {
   onListCreated?: (listId: string) => void;
 }
 
-function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProps) {
+function CreateListModal({
+  isOpen,
+  onClose,
+  onListCreated,
+}: CreateListModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('');
@@ -49,13 +53,13 @@ function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProp
       const newList = await createList({
         name: name.trim(),
         description: description.trim() || undefined,
-        color: color || undefined
+        color: color || undefined,
       });
       setName('');
       setDescription('');
       setColor('');
       onClose();
-      
+
       // Proposer d'ajouter des entreprises avec popup personnalisée
       if (onListCreated && newList?.id) {
         setTimeout(() => {
@@ -70,60 +74,76 @@ function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-lg p-6 w-full max-w-md"
+        className="w-full max-w-md rounded-lg bg-white p-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-[#2c3e50]">Créer une nouvelle liste</h2>
-          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">
+            Créer une nouvelle liste
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-[#7f8c8d] hover:text-[#2c3e50]"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Nom de la liste *
             </label>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               placeholder="Ex: Prospects Fintech Paris"
-              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Description (optionnel)
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Description de la liste et critères de ciblage"
               rows={3}
-              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Couleur (optionnel)
             </label>
-            <div className="flex gap-2 flex-wrap">
-              {['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'].map((colorOption) => (
+            <div className="flex flex-wrap gap-2">
+              {[
+                '#3498db',
+                '#e74c3c',
+                '#2ecc71',
+                '#f39c12',
+                '#9b59b6',
+                '#1abc9c',
+                '#e67e22',
+                '#34495e',
+              ].map(colorOption => (
                 <button
                   key={colorOption}
                   type="button"
                   onClick={() => setColor(colorOption)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    color === colorOption ? 'border-gray-400 scale-110' : 'border-gray-200 hover:border-gray-300'
+                  className={`h-8 w-8 rounded-full border-2 transition-all ${
+                    color === colorOption
+                      ? 'scale-110 border-gray-400'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
                   style={{ backgroundColor: colorOption }}
                 />
@@ -131,8 +151,10 @@ function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProp
               <button
                 type="button"
                 onClick={() => setColor('')}
-                className={`w-8 h-8 rounded-full border-2 bg-gray-100 flex items-center justify-center transition-all ${
-                  color === '' ? 'border-gray-400 scale-110' : 'border-gray-200 hover:border-gray-300'
+                className={`flex h-8 w-8 items-center justify-center rounded-full border-2 bg-gray-100 transition-all ${
+                  color === ''
+                    ? 'scale-110 border-gray-400'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <X className="h-4 w-4 text-gray-400" />
@@ -144,13 +166,13 @@ function CreateListModal({ isOpen, onClose, onListCreated }: CreateListModalProp
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+              className="px-4 py-2 text-[#7f8c8d] transition-colors hover:text-[#2c3e50]"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+              className="rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]"
             >
               Créer la liste
             </button>
@@ -169,7 +191,12 @@ interface EditListModalProps {
   onListUpdated?: () => void;
 }
 
-function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalProps) {
+function EditListModal({
+  isOpen,
+  onClose,
+  list,
+  onListUpdated,
+}: EditListModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('');
@@ -193,10 +220,10 @@ function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalPr
         id: list.id,
         name: name.trim(),
         description: description.trim() || undefined,
-        color: color || undefined
+        color: color || undefined,
       });
       onClose();
-      
+
       if (onListUpdated) {
         onListUpdated();
       }
@@ -208,60 +235,76 @@ function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalPr
   if (!isOpen || !list) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-lg p-6 w-full max-w-md"
+        className="w-full max-w-md rounded-lg bg-white p-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-[#2c3e50]">Modifier la liste</h2>
-          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">
+            Modifier la liste
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-[#7f8c8d] hover:text-[#2c3e50]"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Nom de la liste *
             </label>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               placeholder="Ex: Prospects Fintech Paris"
-              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Description (optionnel)
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Description de la liste et critères de ciblage"
               rows={3}
-              className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db]"
+              className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+            <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
               Couleur (optionnel)
             </label>
-            <div className="flex gap-2 flex-wrap">
-              {['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'].map((colorOption) => (
+            <div className="flex flex-wrap gap-2">
+              {[
+                '#3498db',
+                '#e74c3c',
+                '#2ecc71',
+                '#f39c12',
+                '#9b59b6',
+                '#1abc9c',
+                '#e67e22',
+                '#34495e',
+              ].map(colorOption => (
                 <button
                   key={colorOption}
                   type="button"
                   onClick={() => setColor(colorOption)}
-                  className={`w-8 h-8 rounded-full border-2 ${
-                    color === colorOption ? 'border-gray-400' : 'border-gray-200'
+                  className={`h-8 w-8 rounded-full border-2 ${
+                    color === colorOption
+                      ? 'border-gray-400'
+                      : 'border-gray-200'
                   }`}
                   style={{ backgroundColor: colorOption }}
                 />
@@ -269,11 +312,11 @@ function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalPr
               <button
                 type="button"
                 onClick={() => setColor('')}
-                className={`w-8 h-8 rounded-full border-2 bg-gray-100 ${
+                className={`h-8 w-8 rounded-full border-2 bg-gray-100 ${
                   color === '' ? 'border-gray-400' : 'border-gray-200'
                 }`}
               >
-                <X className="h-4 w-4 text-gray-400 mx-auto" />
+                <X className="mx-auto h-4 w-4 text-gray-400" />
               </button>
             </div>
           </div>
@@ -282,13 +325,13 @@ function EditListModal({ isOpen, onClose, list, onListUpdated }: EditListModalPr
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+              className="px-4 py-2 text-[#7f8c8d] transition-colors hover:text-[#2c3e50]"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+              className="rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]"
             >
               Mettre à jour
             </button>
@@ -306,7 +349,9 @@ interface ImportModalProps {
 }
 
 function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
-  const [importType, setImportType] = useState<'search' | 'csv' | 'siren' | 'linkedin'>('search');
+  const [importType, setImportType] = useState<
+    'search' | 'csv' | 'siren' | 'linkedin'
+  >('search');
   const [sirenList, setSirenList] = useState('');
   const [searchResults, setSearchResults] = useState<CompanySearchResult[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
@@ -317,21 +362,28 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
   const [totalResults, setTotalResults] = useState(0);
   const { importCompanies } = useCompanyListsStore();
 
-  const handleAdvancedSearch = async (criteria: SearchCriteria, page: number = 1) => {
+  const handleAdvancedSearch = async (
+    criteria: SearchCriteria,
+    page: number = 1
+  ) => {
     setIsSearching(true);
     setSearchCriteria(criteria);
     setCurrentPage(page);
-    
+
     try {
       const searchParams = new URLSearchParams();
-      
+
       // Ajouter les critères aux paramètres de recherche
       Object.entries(criteria).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           if (typeof value === 'object') {
             // Pour les objets comme dateCreation, chiffreAffaires, etc.
             Object.entries(value).forEach(([subKey, subValue]) => {
-              if (subValue !== undefined && subValue !== null && subValue !== '') {
+              if (
+                subValue !== undefined &&
+                subValue !== null &&
+                subValue !== ''
+              ) {
                 searchParams.append(`${key}.${subKey}`, String(subValue));
               }
             });
@@ -340,11 +392,13 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
           }
         }
       });
-      
+
       searchParams.append('page', page.toString());
       searchParams.append('limit', '20');
 
-      const response = await fetch(`/api/company-search?${searchParams.toString()}`);
+      const response = await fetch(
+        `/api/company-search?${searchParams.toString()}`
+      );
       if (response.ok) {
         const data = await response.json();
         console.log('🔍 Réponse API reçue:', data);
@@ -365,8 +419,8 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
   };
 
   const toggleCompanySelection = (companyId: string) => {
-    setSelectedCompanies(prev => 
-      prev.includes(companyId) 
+    setSelectedCompanies(prev =>
+      prev.includes(companyId)
         ? prev.filter(id => id !== companyId)
         : [...prev, companyId]
     );
@@ -389,28 +443,36 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
         // Import des entreprises sélectionnées depuis la base de données
         await importCompanies(listId, { companyIds: selectedCompanies });
       } else if (importType === 'siren' && sirenList.trim()) {
-        const sirens = sirenList.split('\n').map(s => s.trim()).filter(s => s);
+        const sirens = sirenList
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s);
         await importCompanies(listId, { sirens });
       }
       onClose();
     } catch (error) {
-      console.error('Erreur lors de l\'importation:', error);
+      console.error("Erreur lors de l'importation:", error);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-lg p-6 w-full max-w-2xl"
+        className="w-full max-w-2xl rounded-lg bg-white p-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-[#2c3e50]">Importer des entreprises</h2>
-          <button onClick={onClose} className="text-[#7f8c8d] hover:text-[#2c3e50]">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#2c3e50]">
+            Importer des entreprises
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-[#7f8c8d] hover:text-[#2c3e50]"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -418,58 +480,68 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
         <div className="space-y-6">
           {/* Choix du type d'import */}
           <div>
-            <label className="block text-sm font-medium text-[#2c3e50] mb-3">Type d'importation</label>
+            <label className="mb-3 block text-sm font-medium text-[#2c3e50]">
+              Type d'importation
+            </label>
             <div className="grid grid-cols-4 gap-3">
               <button
                 onClick={() => setImportType('search')}
-                className={`p-3 border rounded-lg text-left transition-colors ${
-                  importType === 'search' 
-                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  importType === 'search'
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]'
                     : 'border-[#bdc3c7] hover:border-[#95a5a6]'
                 }`}
               >
-                <Search className="h-5 w-5 mb-2" />
+                <Search className="mb-2 h-5 w-5" />
                 <div className="font-medium">Recherche</div>
-                <div className="text-xs text-[#7f8c8d]">Chercher dans la base</div>
+                <div className="text-xs text-[#7f8c8d]">
+                  Chercher dans la base
+                </div>
               </button>
 
               <button
                 onClick={() => setImportType('csv')}
-                className={`p-3 border rounded-lg text-left transition-colors ${
-                  importType === 'csv' 
-                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  importType === 'csv'
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]'
                     : 'border-[#bdc3c7] hover:border-[#95a5a6]'
                 }`}
               >
-                <Upload className="h-5 w-5 mb-2" />
+                <Upload className="mb-2 h-5 w-5" />
                 <div className="font-medium">Fichier CSV</div>
-                <div className="text-xs text-[#7f8c8d]">Importer depuis un fichier</div>
+                <div className="text-xs text-[#7f8c8d]">
+                  Importer depuis un fichier
+                </div>
               </button>
 
               <button
                 onClick={() => setImportType('siren')}
-                className={`p-3 border rounded-lg text-left transition-colors ${
-                  importType === 'siren' 
-                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  importType === 'siren'
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]'
                     : 'border-[#bdc3c7] hover:border-[#95a5a6]'
                 }`}
               >
-                <Building2 className="h-5 w-5 mb-2" />
+                <Building2 className="mb-2 h-5 w-5" />
                 <div className="font-medium">Liste SIREN</div>
-                <div className="text-xs text-[#7f8c8d]">Coller une liste de SIREN</div>
+                <div className="text-xs text-[#7f8c8d]">
+                  Coller une liste de SIREN
+                </div>
               </button>
 
               <button
                 onClick={() => setImportType('linkedin')}
-                className={`p-3 border rounded-lg text-left transition-colors ${
-                  importType === 'linkedin' 
-                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]' 
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  importType === 'linkedin'
+                    ? 'border-[#3498db] bg-[#e8f4fd] text-[#3498db]'
                     : 'border-[#bdc3c7] hover:border-[#95a5a6]'
                 }`}
               >
-                <Globe className="h-5 w-5 mb-2" />
+                <Globe className="mb-2 h-5 w-5" />
                 <div className="font-medium">LinkedIn Sales</div>
-                <div className="text-xs text-[#7f8c8d]">Importer depuis LinkedIn</div>
+                <div className="text-xs text-[#7f8c8d]">
+                  Importer depuis LinkedIn
+                </div>
               </button>
             </div>
           </div>
@@ -477,8 +549,9 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
           {/* Contenu selon le type */}
           {importType === 'search' && (
             <div className="space-y-6">
-              <div className="p-4 bg-[#ecf0f1] rounded-lg text-center text-[#7f8c8d]">
-                Utilisez le bouton "Ajouter des entreprises" (icône +) sur les cartes de liste pour ouvrir la recherche avancée.
+              <div className="rounded-lg bg-[#ecf0f1] p-4 text-center text-[#7f8c8d]">
+                Utilisez le bouton "Ajouter des entreprises" (icône +) sur les
+                cartes de liste pour ouvrir la recherche avancée.
               </div>
               {/* TODO: Réintégrer AdvancedSearch et CompanySearchResults si nécessaire */}
               {/* 
@@ -505,50 +578,52 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
 
           {importType === 'siren' && (
             <div>
-              <label className="block text-sm font-medium text-[#2c3e50] mb-2">
+              <label className="mb-2 block text-sm font-medium text-[#2c3e50]">
                 Liste des SIREN/SIRET (un par ligne)
               </label>
               <textarea
                 value={sirenList}
-                onChange={(e) => setSirenList(e.target.value)}
+                onChange={e => setSirenList(e.target.value)}
                 placeholder="123456789&#10;987654321&#10;..."
                 rows={8}
-                className="w-full px-3 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] font-mono text-sm"
+                className="w-full rounded-lg border border-[#bdc3c7] px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#3498db]"
               />
-              <div className="text-xs text-[#7f8c8d] mt-1">
-                {sirenList.split('\n').filter(s => s.trim()).length} identifiants détectés
+              <div className="mt-1 text-xs text-[#7f8c8d]">
+                {sirenList.split('\n').filter(s => s.trim()).length}{' '}
+                identifiants détectés
               </div>
             </div>
           )}
 
           {importType === 'csv' && (
             <div>
-              <div className="border-2 border-dashed border-[#bdc3c7] rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 text-[#7f8c8d] mx-auto mb-4" />
-                <div className="text-lg font-medium text-[#2c3e50] mb-2">
+              <div className="rounded-lg border-2 border-dashed border-[#bdc3c7] p-8 text-center">
+                <Upload className="mx-auto mb-4 h-12 w-12 text-[#7f8c8d]" />
+                <div className="mb-2 text-lg font-medium text-[#2c3e50]">
                   Glissez votre fichier CSV ici
                 </div>
-                <div className="text-sm text-[#7f8c8d] mb-4">
+                <div className="mb-4 text-sm text-[#7f8c8d]">
                   ou cliquez pour sélectionner un fichier
                 </div>
-                <button className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors">
+                <button className="rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]">
                   Choisir un fichier
                 </button>
               </div>
-              <div className="text-xs text-[#7f8c8d] mt-2">
+              <div className="mt-2 text-xs text-[#7f8c8d]">
                 Formats acceptés: CSV avec colonnes SIREN, nom, adresse, etc.
               </div>
             </div>
           )}
 
           {importType === 'linkedin' && (
-            <div className="bg-[#f8f9fa] p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-[#7f8c8d] mb-2">
+            <div className="rounded-lg bg-[#f8f9fa] p-4">
+              <div className="mb-2 flex items-center gap-2 text-[#7f8c8d]">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">Fonctionnalité en développement</span>
               </div>
               <div className="text-sm text-[#7f8c8d]">
-                L'import depuis LinkedIn Sales Navigator sera bientôt disponible.
+                L'import depuis LinkedIn Sales Navigator sera bientôt
+                disponible.
               </div>
             </div>
           )}
@@ -556,23 +631,22 @@ function ImportModal({ isOpen, onClose, listId }: ImportModalProps) {
           <div className="flex items-center justify-end gap-3 pt-4">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+              className="px-4 py-2 text-[#7f8c8d] transition-colors hover:text-[#2c3e50]"
             >
               Annuler
             </button>
             <button
               onClick={handleImport}
               disabled={
-                importType === 'linkedin' || 
+                importType === 'linkedin' ||
                 (importType === 'siren' && !sirenList.trim()) ||
                 (importType === 'search' && selectedCompanies.length === 0)
               }
-              className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {importType === 'search' && selectedCompanies.length > 0 
+              {importType === 'search' && selectedCompanies.length > 0
                 ? `Importer ${selectedCompanies.length} entreprise${selectedCompanies.length > 1 ? 's' : ''}`
-                : 'Importer'
-              }
+                : 'Importer'}
             </button>
           </div>
         </div>
@@ -591,57 +665,64 @@ interface ListCardProps {
   onAddCompanies: (listId: string) => void;
 }
 
-function ListCard({ list, onSelect, onEdit, onDelete, onImport, onAddCompanies }: ListCardProps) {
+function ListCard({
+  list,
+  onSelect,
+  onEdit,
+  onDelete,
+  onImport,
+  onAddCompanies,
+}: ListCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
-      className={`bg-white border border-[#bdc3c7] rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow relative ${
+      className={`relative cursor-pointer rounded-lg border border-[#bdc3c7] bg-white p-4 transition-shadow hover:shadow-md ${
         list.color ? 'border-l-4' : ''
       }`}
       style={list.color ? { borderLeftColor: list.color } : {}}
       onClick={() => onSelect(list)}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2">
           <FolderOpen className="h-5 w-5 text-[#3498db]" />
           <h3 className="font-medium text-[#2c3e50]">{list.name}</h3>
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onAddCompanies(list.id);
             }}
-            className="p-1 text-[#7f8c8d] hover:text-[#27ae60] transition-colors"
+            className="p-1 text-[#7f8c8d] transition-colors hover:text-[#27ae60]"
             title="Ajouter des entreprises"
           >
             <Plus className="h-4 w-4" />
           </button>
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onImport(list.id);
             }}
-            className="p-1 text-[#7f8c8d] hover:text-[#3498db] transition-colors"
+            className="p-1 text-[#7f8c8d] transition-colors hover:text-[#3498db]"
             title="Importer des entreprises"
           >
             <Download className="h-4 w-4" />
           </button>
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onEdit(list);
             }}
-            className="p-1 text-[#7f8c8d] hover:text-[#2c3e50] transition-colors"
+            className="p-1 text-[#7f8c8d] transition-colors hover:text-[#2c3e50]"
           >
             <Edit3 className="h-4 w-4" />
           </button>
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onDelete(list.id);
             }}
-            className="p-1 text-[#7f8c8d] hover:text-[#e74c3c] transition-colors"
+            className="p-1 text-[#7f8c8d] transition-colors hover:text-[#e74c3c]"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -649,21 +730,26 @@ function ListCard({ list, onSelect, onEdit, onDelete, onImport, onAddCompanies }
       </div>
 
       {list.description && (
-        <p className="text-sm text-[#7f8c8d] mb-3 line-clamp-2">{list.description}</p>
+        <p className="mb-3 line-clamp-2 text-sm text-[#7f8c8d]">
+          {list.description}
+        </p>
       )}
 
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[#7f8c8d]">
             <Building2 className="h-4 w-4" />
-            <span>{list._count?.companies || list.companies?.length || 0} entreprises</span>
+            <span>
+              {list._count?.companies || list.companies?.length || 0}{' '}
+              entreprises
+            </span>
           </div>
           <div className="flex items-center gap-1 text-[#7f8c8d]">
             <Calendar className="h-4 w-4" />
             <span>{new Date(list.createdAt).toLocaleDateString('fr-FR')}</span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {list.isShared && (
             <div className="flex items-center gap-1 text-[#27ae60]">
@@ -672,8 +758,8 @@ function ListCard({ list, onSelect, onEdit, onDelete, onImport, onAddCompanies }
             </div>
           )}
           {list.color && (
-            <div 
-              className="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0"
+            <div
+              className="h-3 w-3 flex-shrink-0 rounded-full border border-white shadow-sm"
               style={{ backgroundColor: list.color }}
               title="Couleur de la liste"
             />
@@ -696,10 +782,12 @@ export default function CompanyListsPage() {
     deleteList,
     createList,
     importCompanies,
-    addCompaniesToList
+    addCompaniesToList,
   } = useCompanyListsStore();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'shared' | 'archived'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'shared' | 'archived'>(
+    'all'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -707,12 +795,15 @@ export default function CompanyListsPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCompanySearchPopup, setShowCompanySearchPopup] = useState(false);
   const [selectedList, setSelectedList] = useState<CompanyList | null>(null);
-  
+
   // États pour les popups personnalisées
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [listToDelete, setListToDelete] = useState<string | null>(null);
   const [showAddCompaniesDialog, setShowAddCompaniesDialog] = useState(false);
-  const [newlyCreatedList, setNewlyCreatedList] = useState<{ id: string; name: string } | null>(null);
+  const [newlyCreatedList, setNewlyCreatedList] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -721,9 +812,11 @@ export default function CompanyListsPage() {
   }, [isLoaded, user, fetchLists]);
 
   const filteredLists = lists.filter(list => {
-    const matchesSearch = list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (list.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    
+    const matchesSearch =
+      list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (list.description?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+        false);
+
     switch (activeTab) {
       case 'shared':
         return matchesSearch && list.isShared;
@@ -797,26 +890,26 @@ export default function CompanyListsPage() {
         .map(company => ({
           siren: company.siren,
           siret: company.siret!,
-          statut: CompanyStatus.NEW
+          statut: CompanyStatus.NEW,
         }));
 
       await addCompaniesToList({
         listId: selectedList.id,
-        companies: companiesData
+        companies: companiesData,
       });
       setShowCompanySearchPopup(false);
       // Rediriger vers la liste
       selectList(selectedList.id);
       router.push(`/dashboard/marketing/entreprises-data/${selectedList.id}`);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout des entreprises:', error);
+      console.error("Erreur lors de l'ajout des entreprises:", error);
     }
   };
 
   if (!isLoaded || !user) {
     return (
-      <div className="min-h-screen bg-[#ecf0f1] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3498db]"></div>
+      <div className="flex min-h-screen items-center justify-center bg-[#ecf0f1]">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#3498db]"></div>
       </div>
     );
   }
@@ -824,30 +917,32 @@ export default function CompanyListsPage() {
   return (
     <div className="min-h-screen bg-[#ecf0f1]">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-[#bdc3c7] p-6">
+      <header className="border-b border-[#bdc3c7] bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#2c3e50] font-montserrat">Listes d'entreprises</h1>
-            <p className="text-[#7f8c8d] mt-1">
+            <h1 className="font-montserrat text-2xl font-bold text-[#2c3e50]">
+              Listes d'entreprises
+            </h1>
+            <p className="mt-1 text-[#7f8c8d]">
               Gérez vos listes d'entreprises pour vos campagnes marketing
             </p>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#7f8c8d]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-[#7f8c8d]" />
               <input
                 type="text"
                 placeholder="Rechercher une liste..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-[#bdc3c7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3498db] w-80"
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-80 rounded-lg border border-[#bdc3c7] py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3498db]"
               />
             </div>
 
             <Link
               href="/dashboard/marketing/entreprises-data/recherche"
-              className="flex items-center gap-2 px-4 py-2 border border-[#3498db] text-[#3498db] rounded-lg hover:bg-[#3498db] hover:text-white transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-[#3498db] px-4 py-2 text-[#3498db] transition-colors hover:bg-[#3498db] hover:text-white"
             >
               <Filter className="h-4 w-4" />
               Rechercher des entreprises
@@ -855,7 +950,7 @@ export default function CompanyListsPage() {
 
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]"
             >
               <Plus className="h-4 w-4" />
               Créer une liste
@@ -865,11 +960,11 @@ export default function CompanyListsPage() {
       </header>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-[#bdc3c7] px-6">
+      <div className="border-b border-[#bdc3c7] bg-white px-6">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('all')}
-            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+            className={`border-b-2 px-2 py-4 text-sm font-medium transition-colors ${
               activeTab === 'all'
                 ? 'border-[#3498db] text-[#3498db]'
                 : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
@@ -879,7 +974,7 @@ export default function CompanyListsPage() {
           </button>
           <button
             onClick={() => setActiveTab('shared')}
-            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+            className={`border-b-2 px-2 py-4 text-sm font-medium transition-colors ${
               activeTab === 'shared'
                 ? 'border-[#3498db] text-[#3498db]'
                 : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
@@ -889,7 +984,7 @@ export default function CompanyListsPage() {
           </button>
           <button
             onClick={() => setActiveTab('archived')}
-            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+            className={`border-b-2 px-2 py-4 text-sm font-medium transition-colors ${
               activeTab === 'archived'
                 ? 'border-[#3498db] text-[#3498db]'
                 : 'border-transparent text-[#7f8c8d] hover:text-[#2c3e50]'
@@ -904,33 +999,32 @@ export default function CompanyListsPage() {
       <main className="p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3498db]"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#3498db]"></div>
           </div>
         ) : filteredLists.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="mx-auto w-24 h-24 bg-[#ecf0f1] rounded-full flex items-center justify-center mb-6">
+          <div className="py-12 text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#ecf0f1]">
               <FolderOpen className="h-12 w-12 text-[#95a5a6]" />
             </div>
-            <h3 className="text-xl font-semibold text-[#2c3e50] mb-2">
+            <h3 className="mb-2 text-xl font-semibold text-[#2c3e50]">
               {searchQuery ? 'Aucune liste trouvée' : 'Aucune liste créée'}
             </h3>
-            <p className="text-[#7f8c8d] mb-6 max-w-md mx-auto">
-              {searchQuery 
-                ? 'Essayez d\'ajuster votre recherche ou créez une nouvelle liste.'
-                : 'Commencez par créer votre première liste d\'entreprises pour organiser vos campagnes marketing.'
-              }
+            <p className="mx-auto mb-6 max-w-md text-[#7f8c8d]">
+              {searchQuery
+                ? "Essayez d'ajuster votre recherche ou créez une nouvelle liste."
+                : "Commencez par créer votre première liste d'entreprises pour organiser vos campagnes marketing."}
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] transition-colors mx-auto"
+              className="mx-auto flex items-center gap-2 rounded-lg bg-[#3498db] px-6 py-3 text-white transition-colors hover:bg-[#2980b9]"
             >
               <Plus className="h-5 w-5" />
               Créer ma première liste
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredLists.map((list) => (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredLists.map(list => (
               <ListCard
                 key={list.id}
                 list={list}

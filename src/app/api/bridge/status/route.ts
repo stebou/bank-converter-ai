@@ -11,30 +11,33 @@ export async function GET(request: NextRequest) {
 
     // Récupérer l'utilisateur depuis la base de données
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+      where: { clerkId: userId },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
     }
 
     // Compter les comptes bancaires actifs
     const accountsCount = await prisma.bankAccount.count({
       where: {
         userId: user.id,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
 
     // Récupérer la date de dernière synchronisation
     const lastAccount = await prisma.bankAccount.findFirst({
       where: {
         userId: user.id,
-        isActive: true
+        isActive: true,
       },
       orderBy: {
-        lastSyncAt: 'desc'
-      }
+        lastSyncAt: 'desc',
+      },
     });
 
     return NextResponse.json({
@@ -43,11 +46,13 @@ export async function GET(request: NextRequest) {
         hasConnectedAccount: accountsCount > 0,
         accountsCount,
         lastSyncAt: lastAccount?.lastSyncAt?.toISOString() || null,
-      }
+      },
     });
-
   } catch (error) {
-    console.error('[BRIDGE_STATUS] Erreur lors de la vérification du statut:', error);
+    console.error(
+      '[BRIDGE_STATUS] Erreur lors de la vérification du statut:',
+      error
+    );
     return NextResponse.json(
       { error: 'Erreur lors de la vérification du statut' },
       { status: 500 }

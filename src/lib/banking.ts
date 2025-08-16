@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 
 export interface BridgeAccountData {
   id: string;
+  item_id: string; // L'ID de l'ITEM Bridge (connexion)
   name: string;
   balance: number;
   currency: string;
@@ -73,6 +74,8 @@ export class BankingService {
 
   async getUserBankAccounts(clerkUserId: string): Promise<any[]> {
     try {
+      console.log(`[BANKING_SERVICE] Récupération comptes pour Clerk ID: ${clerkUserId}`);
+      
       // Récupérer l'ID utilisateur interne depuis Clerk ID
       const user = await prisma.user.findUnique({
         where: { clerkId: clerkUserId },
@@ -80,10 +83,28 @@ export class BankingService {
 
       if (!user) {
         console.log(
-          `[BANKING_SERVICE] No user found for Clerk ID: ${clerkUserId}`
+          `[BANKING_SERVICE] ⚠️  Aucun utilisateur trouvé pour Clerk ID: ${clerkUserId}`
         );
-        return [];
+        console.log(`[BANKING_SERVICE] 🔄 Création automatique de l'utilisateur...`);
+        
+        // Créer l'utilisateur automatiquement
+        try {
+          const newUser = await prisma.user.create({
+            data: {
+              clerkId: clerkUserId,
+              email: `user-${clerkUserId}@temp.com`, // Email temporaire
+              name: `User ${clerkUserId.slice(-6)}`, // Nom temporaire
+            }
+          });
+          console.log(`[BANKING_SERVICE] ✅ Utilisateur créé: ${newUser.id}`);
+          return []; // Pas encore de comptes pour ce nouvel utilisateur
+        } catch (createError) {
+          console.error(`[BANKING_SERVICE] ❌ Erreur création utilisateur:`, createError);
+          return [];
+        }
       }
+
+      console.log(`[BANKING_SERVICE] ✅ Utilisateur trouvé: ${user.id}, recherche comptes...`);
 
       const accounts = await prisma.bankAccount.findMany({
         where: { userId: user.id, isActive: true },
@@ -91,11 +112,17 @@ export class BankingService {
       });
 
       console.log(
-        `[BANKING_SERVICE] Found ${accounts.length} accounts for user ${user.id} (Clerk: ${clerkUserId})`
+        `[BANKING_SERVICE] Trouvé ${accounts.length} comptes pour utilisateur ${user.id} (Clerk: ${clerkUserId})`
       );
+      
+      // Log détaillé des comptes trouvés
+      accounts.forEach((account, index) => {
+        console.log(`[BANKING_SERVICE] Compte ${index + 1}: ${account.name} (${account.balance} ${account.currency})`);
+      });
+
       return accounts;
     } catch (error) {
-      console.error('[BANKING_SERVICE] Get accounts error:', error);
+      console.error('[BANKING_SERVICE] Erreur récupération comptes:', error);
       throw new Error('Failed to fetch bank accounts');
     }
   }
@@ -106,6 +133,8 @@ export class BankingService {
     limit: number = 50
   ): Promise<any[]> {
     try {
+      console.log(`[BANKING_SERVICE] Récupération transactions pour Clerk ID: ${clerkUserId}, accountId: ${accountId}, limit: ${limit}`);
+      
       // Récupérer l'ID utilisateur interne depuis Clerk ID
       const user = await prisma.user.findUnique({
         where: { clerkId: clerkUserId },
@@ -113,7 +142,7 @@ export class BankingService {
 
       if (!user) {
         console.log(
-          `[BANKING_SERVICE] No user found for Clerk ID: ${clerkUserId}`
+          `[BANKING_SERVICE] Aucun utilisateur trouvé pour Clerk ID: ${clerkUserId}`
         );
         return [];
       }
@@ -121,6 +150,7 @@ export class BankingService {
       const where: any = { userId: user.id };
       if (accountId) {
         where.accountId = accountId;
+        console.log(`[BANKING_SERVICE] Filtrage par compte: ${accountId}`);
       }
 
       const transactions = await prisma.bankTransaction.findMany({
@@ -138,11 +168,17 @@ export class BankingService {
       });
 
       console.log(
-        `[BANKING_SERVICE] Found ${transactions.length} transactions for user ${user.id} (Clerk: ${clerkUserId})`
+        `[BANKING_SERVICE] Trouvé ${transactions.length} transactions pour utilisateur ${user.id} (Clerk: ${clerkUserId})`
       );
+      
+      // Log des premières transactions pour debug
+      transactions.slice(0, 3).forEach((tx, index) => {
+        console.log(`[BANKING_SERVICE] Transaction ${index + 1}: ${tx.description} (${tx.amount} ${tx.currency})`);
+      });
+
       return transactions;
     } catch (error) {
-      console.error('[BANKING_SERVICE] Get transactions error:', error);
+      console.error('[BANKING_SERVICE] Erreur récupération transactions:', error);
       throw new Error('Failed to fetch bank transactions');
     }
   }
@@ -212,6 +248,7 @@ export class BankingService {
         create: {
           userId,
           bridgeAccountId: bridgeAccount.id,
+          bridgeItemId: bridgeAccount.item_id, // Ajout du bridgeItemId
           name: bridgeAccount.name,
           balance: bridgeAccount.balance,
           currency: bridgeAccount.currency,

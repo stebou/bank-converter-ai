@@ -4,6 +4,7 @@ import type {
   BankTransactionType,
   FinancialAnalyticsType,
 } from '@/types';
+import { useBankingRefresh } from './useBankingRefresh';
 
 export function useBankingData(userId?: string) {
   const [accounts, setAccounts] = useState<BankAccountType[]>([]);
@@ -17,14 +18,39 @@ export function useBankingData(userId?: string) {
 
   const fetchAccounts = async () => {
     try {
+      console.log('[useBankingData] 🔄 Début récupération des comptes...');
+      console.log('[useBankingData] 👤 UserID:', userId);
+      
       const response = await fetch('/api/banking/accounts');
+      console.log('[useBankingData] 📡 Réponse API comptes:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch accounts');
+        const errorText = await response.text();
+        console.error('[useBankingData] ❌ Erreur API:', errorText);
+        throw new Error(`Failed to fetch accounts: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('[useBankingData] ✅ Données comptes reçues:', {
+        success: data.success,
+        accountsCount: data.accounts?.length || 0,
+        accounts: data.accounts?.map((acc: any) => ({
+          id: acc.id,
+          name: acc.name,
+          balance: acc.balance,
+          bankName: acc.bankName
+        }))
+      });
+      
       setAccounts(data.accounts || []);
+      
+      if (data.accounts?.length > 0) {
+        console.log('[useBankingData] 🎉 Comptes chargés avec succès!');
+      } else {
+        console.log('[useBankingData] ⚠️ Aucun compte trouvé');
+      }
     } catch (err) {
-      console.error('Error fetching accounts:', err);
+      console.error('[useBankingData] ❌ Erreur récupération comptes:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch accounts');
     }
   };
@@ -101,17 +127,20 @@ export function useBankingData(userId?: string) {
   };
 
   const refreshData = async () => {
+    console.log('[useBankingData] 🔄 REFRESH DATA démarré');
     setLoading(true);
     setError(null);
 
     try {
+      console.log('[useBankingData] 📦 Exécution refresh en parallèle...');
       await Promise.all([
         fetchAccounts(),
         fetchTransactions(),
         fetchAnalytics(),
       ]);
+      console.log('[useBankingData] ✅ REFRESH DATA terminé avec succès');
     } catch (err) {
-      console.error('Error refreshing data:', err);
+      console.error('[useBankingData] ❌ Erreur refresh data:', err);
     } finally {
       setLoading(false);
     }
@@ -124,6 +153,11 @@ export function useBankingData(userId?: string) {
       setLoading(false);
     }
   }, [userId]);
+
+  // Utiliser le système de refresh centralisé
+  useBankingRefresh('refreshAccounts', fetchAccounts);
+  useBankingRefresh('refreshTransactions', () => fetchTransactions());
+  useBankingRefresh('refreshAnalytics', () => fetchAnalytics());
 
   return {
     accounts,

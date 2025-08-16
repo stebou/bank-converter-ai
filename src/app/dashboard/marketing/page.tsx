@@ -2,20 +2,20 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-    BarChart3,
-    Bot,
-    Cake,
-    ChevronDown,
-    Diamond,
-    Info,
-    Laptop,
-    Mail,
-    Megaphone,
-    MoreHorizontal,
-    Plus,
-    Search,
-    Star,
-    X
+  BarChart3,
+  Bot,
+  Cake,
+  ChevronDown,
+  Diamond,
+  Info,
+  Laptop,
+  Mail,
+  Megaphone,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Star,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,7 +25,13 @@ import { useState } from 'react';
 interface Campaign {
   id: string;
   name: string;
-  status: 'draft' | 'in_progress' | 'completed' | 'paused' | 'error' | 'archived';
+  status:
+    | 'draft'
+    | 'in_progress'
+    | 'completed'
+    | 'paused'
+    | 'error'
+    | 'archived';
   isActive: boolean;
   prospectsSent: number;
   prospectsTotal: number;
@@ -57,23 +63,25 @@ const TrialExpirationBanner = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+    <div className="mb-6 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4">
       <div className="flex items-center gap-3">
         <Info className="h-5 w-5 text-amber-600" />
         <div>
-          <p className="text-amber-800 text-sm">
-            La période d'essai pour lemlist a expiré. Les campagnes ne peuvent pas être lancées en version d'essai gratuite, veuillez passer à un plan supérieur pour lancer vos campagnes.
+          <p className="text-sm text-amber-800">
+            La période d'essai pour lemlist a expiré. Les campagnes ne peuvent
+            pas être lancées en version d'essai gratuite, veuillez passer à un
+            plan supérieur pour lancer vos campagnes.
           </p>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Link 
-          href="/pricing" 
-          className="text-amber-700 hover:text-amber-800 text-sm font-medium underline"
+        <Link
+          href="/pricing"
+          className="text-sm font-medium text-amber-700 underline hover:text-amber-800"
         >
           Mettre à niveau le plan
         </Link>
-        <button 
+        <button
           onClick={() => setIsVisible(false)}
           className="text-amber-600 hover:text-amber-700"
         >
@@ -90,23 +98,24 @@ const AIStatusMessage = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+    <div className="mb-6 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4">
       <div className="flex items-center gap-3">
         <Bot className="h-5 w-5 text-blue-600" />
         <div>
-          <h4 className="text-blue-900 font-medium text-sm">
+          <h4 className="text-sm font-medium text-blue-900">
             Vous n'avez pas terminé la création de votre campagne avec l'IA.
           </h4>
-          <p className="text-blue-700 text-sm">
-            Nous avons mis en pause la création de votre campagne. Vous pouvez la reprendre en un clic.
+          <p className="text-sm text-blue-700">
+            Nous avons mis en pause la création de votre campagne. Vous pouvez
+            la reprendre en un clic.
           </p>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button className="text-blue-700 hover:text-blue-800 text-sm font-medium underline">
+        <button className="text-sm font-medium text-blue-700 underline hover:text-blue-800">
           Poursuivre ma campagne avec l'IA.
         </button>
-        <button 
+        <button
           onClick={() => setIsVisible(false)}
           className="text-blue-600 hover:text-blue-700"
         >
@@ -117,12 +126,12 @@ const AIStatusMessage = () => {
   );
 };
 
-const FilterDropdown = ({ 
-  label, 
-  options, 
-  value, 
-  onChange, 
-  searchable = false 
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = false,
 }: {
   label: string;
   options: FilterOption[];
@@ -133,8 +142,8 @@ const FilterDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredOptions = searchable 
-    ? options.filter(option => 
+  const filteredOptions = searchable
+    ? options.filter(option =>
         option.label.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : options;
@@ -145,7 +154,7 @@ const FilterDropdown = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+        className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
       >
         <span className="text-gray-600">{label}</span>
         <span className="font-medium">{selectedOption?.label || 'Tout'}</span>
@@ -158,21 +167,21 @@ const FilterDropdown = ({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+            className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg"
           >
             {searchable && (
-              <div className="p-2 border-b border-gray-100">
+              <div className="border-b border-gray-100 p-2">
                 <input
                   type="text"
                   placeholder="Rechercher..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             )}
             <div className="max-h-48 overflow-y-auto p-1">
-              {filteredOptions.map((option) => (
+              {filteredOptions.map(option => (
                 <button
                   key={option.value}
                   onClick={() => {
@@ -180,14 +189,16 @@ const FilterDropdown = ({
                     setIsOpen(false);
                     setSearchQuery('');
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 rounded"
+                  className="flex w-full items-center justify-between rounded px-3 py-2 text-sm hover:bg-gray-50"
                 >
                   <div className="flex items-center gap-2">
                     {option.icon && <span>{option.icon}</span>}
                     <span>{option.label}</span>
                   </div>
                   {option.count !== undefined && (
-                    <span className="text-gray-400 text-xs">{option.count}</span>
+                    <span className="text-xs text-gray-400">
+                      {option.count}
+                    </span>
                   )}
                 </button>
               ))}
@@ -205,15 +216,15 @@ const CampaignIcon = ({ type, variant }: { type: string; variant: number }) => {
     star: Star,
     laptop: Laptop,
     diamond: Diamond,
-    envelope: Mail
+    envelope: Mail,
   };
 
   const Icon = icons[type as keyof typeof icons] || Mail;
-  
+
   return (
     <div className="flex items-center gap-2">
       <Icon className="h-4 w-4 text-blue-600" />
-      <span className="text-gray-400 text-sm">({variant})</span>
+      <span className="text-sm text-gray-400">({variant})</span>
     </div>
   );
 };
@@ -238,7 +249,7 @@ const CampaignRow = ({ campaign }: { campaign: Campaign }) => {
   };
 
   return (
-    <tr className="hover:bg-gray-50 transition-colors">
+    <tr className="transition-colors hover:bg-gray-50">
       <td className="px-4 py-3">
         <div className="flex items-center">
           <button
@@ -256,8 +267,10 @@ const CampaignRow = ({ campaign }: { campaign: Campaign }) => {
       </td>
       <td className="px-4 py-3">
         <button
-          onClick={() => router.push(`/dashboard/marketing/campagnes/${campaign.id}`)}
-          className="flex items-center gap-2 text-left hover:text-blue-600 transition-colors"
+          onClick={() =>
+            router.push(`/dashboard/marketing/campagnes/${campaign.id}`)
+          }
+          className="flex items-center gap-2 text-left transition-colors hover:text-blue-600"
         >
           <CampaignIcon type={campaign.icon} variant={campaign.variant} />
           <span className="font-medium">{campaign.name}</span>
@@ -266,19 +279,17 @@ const CampaignRow = ({ campaign }: { campaign: Campaign }) => {
       <td className="px-4 py-3 text-gray-600">
         {campaign.prospectsSent}/{campaign.prospectsTotal}
       </td>
-      <td className="px-4 py-3 text-gray-600">
-        {campaign.sender.name || '-'}
-      </td>
+      <td className="px-4 py-3 text-gray-600">{campaign.sender.name || '-'}</td>
       <td className="px-4 py-3">
         {campaign.tags.length > 0 ? (
           <div className="flex gap-1">
-            {campaign.tags.map((tag) => (
+            {campaign.tags.map(tag => (
               <span
                 key={tag.id}
-                className="px-2 py-1 text-xs rounded-full"
-                style={{ 
-                  backgroundColor: tag.color + '20', 
-                  color: tag.color 
+                className="rounded-full px-2 py-1 text-xs"
+                style={{
+                  backgroundColor: tag.color + '20',
+                  color: tag.color,
                 }}
               >
                 {tag.name}
@@ -289,15 +300,15 @@ const CampaignRow = ({ campaign }: { campaign: Campaign }) => {
           <span className="text-gray-400">-</span>
         )}
       </td>
-      <td className="px-4 py-3 text-gray-600 text-sm">
+      <td className="px-4 py-3 text-sm text-gray-600">
         {getRelativeTime(campaign.createdAt)}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
-          <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+          <button className="p-1 text-gray-400 transition-colors hover:text-blue-600">
             <BarChart3 className="h-4 w-4" />
           </button>
-          <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+          <button className="p-1 text-gray-400 transition-colors hover:text-gray-600">
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -327,8 +338,8 @@ export default function CampaignsPage() {
       tags: [],
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       icon: 'cake',
-      variant: 5
-    }
+      variant: 5,
+    },
   ];
 
   const statusOptions: FilterOption[] = [
@@ -338,27 +349,27 @@ export default function CampaignsPage() {
     { value: 'completed', label: 'Termine', count: 0, icon: '✅' },
     { value: 'paused', label: 'En pause', count: 0, icon: '⏸' },
     { value: 'error', label: 'En erreur', count: 0, icon: '⚠' },
-    { value: 'archived', label: 'Archives', count: 0, icon: '📁' }
+    { value: 'archived', label: 'Archives', count: 0, icon: '📁' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="mx-auto max-w-7xl px-6 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Campagnes</h1>
-          
+          <h1 className="mb-4 text-2xl font-bold text-gray-900">Campagnes</h1>
+
           {/* Trial Banner */}
           <TrialExpirationBanner />
-          
+
           {/* AI Status Message */}
           <AIStatusMessage />
         </div>
 
         {/* Controls */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4">
           {/* Filters Row */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="mb-4 flex items-center gap-4">
             <FilterDropdown
               label="Statut:"
               options={statusOptions}
@@ -390,19 +401,19 @@ export default function CampaignsPage() {
 
           {/* Search Bar and Create Button */}
           <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="text"
                 placeholder="Rechercher une campagne..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <Link
               href="/dashboard/marketing/creer-campagne"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
             >
               <Plus className="h-4 w-4" />
               Créer une nouvelle campagne
@@ -411,51 +422,52 @@ export default function CampaignsPage() {
         </div>
 
         {/* Campaigns Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="w-16 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Statut
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Nom de la campagne
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className="w-40 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Prospects terminés
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="w-32 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Expéditeur
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Tag
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="w-32 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Créé à
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 bg-white">
                 {campaigns.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Megaphone className="h-12 w-12 text-gray-300" />
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-1">
+                          <h3 className="mb-1 text-lg font-medium text-gray-900">
                             Aucune campagne créée
                           </h3>
                           <p className="text-gray-500">
-                            Commencez par créer votre première campagne marketing
+                            Commencez par créer votre première campagne
+                            marketing
                           </p>
                         </div>
                         <Link
                           href="/dashboard/marketing/creer-campagne"
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
                         >
                           <Plus className="h-4 w-4" />
                           Créer une nouvelle campagne
@@ -464,7 +476,7 @@ export default function CampaignsPage() {
                     </td>
                   </tr>
                 ) : (
-                  campaigns.map((campaign) => (
+                  campaigns.map(campaign => (
                     <CampaignRow key={campaign.id} campaign={campaign} />
                   ))
                 )}

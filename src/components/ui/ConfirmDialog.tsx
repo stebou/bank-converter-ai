@@ -24,7 +24,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Confirmer',
   cancelText = 'Annuler',
   type = 'info',
-  icon
+  icon,
 }) => {
   if (!isOpen) return null;
 
@@ -40,21 +40,21 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           iconBg: 'bg-red-100',
           iconColor: 'text-red-600',
           confirmButton: 'bg-red-600 hover:bg-red-700 text-white',
-          defaultIcon: <AlertTriangle className="h-6 w-6" />
+          defaultIcon: <AlertTriangle className="h-6 w-6" />,
         };
       case 'success':
         return {
           iconBg: 'bg-green-100',
           iconColor: 'text-green-600',
           confirmButton: 'bg-green-600 hover:bg-green-700 text-white',
-          defaultIcon: <Check className="h-6 w-6" />
+          defaultIcon: <Check className="h-6 w-6" />,
         };
       default:
         return {
           iconBg: 'bg-blue-100',
           iconColor: 'text-blue-600',
           confirmButton: 'bg-blue-600 hover:bg-blue-700 text-white',
-          defaultIcon: <AlertTriangle className="h-6 w-6" />
+          defaultIcon: <AlertTriangle className="h-6 w-6" />,
         };
     }
   };
@@ -65,7 +65,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
         {/* Backdrop */}
-        <div 
+        <div
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
           onClick={onClose}
         />
@@ -74,7 +74,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
           <div className="sm:flex sm:items-start">
             {/* Icon */}
-            <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${styles.iconBg} sm:mx-0 sm:h-10 sm:w-10`}>
+            <div
+              className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${styles.iconBg} sm:mx-0 sm:h-10 sm:w-10`}
+            >
               <div className={styles.iconColor}>
                 {icon || styles.defaultIcon}
               </div>
@@ -86,9 +88,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 {title}
               </h3>
               <div className="mt-2">
-                <p className="text-sm text-gray-500">
-                  {message}
-                </p>
+                <p className="text-sm text-gray-500">{message}</p>
               </div>
             </div>
           </div>

@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id                   String            @id @default(cuid())
-  clerkId              String            @unique
-  email                String            @unique
-  name                 String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  currentPlan          String            @default("free")
-  documentsUsed        Int               @default(0)
-  documentsLimit       Int               @default(5)
-  stripeCustomerId     String?           @unique @map("stripe_customer_id")
-  stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
-  subscriptionStatus   String?           @map("subscription_status")
-  bankAccounts         BankAccount[]
-  bankTransactions     BankTransaction[]
-  chatMessages         ChatMessage[]
-  ownedCompanies       Company[]         @relation("CompanyOwner")
-  companyLists         CompanyList[]
-  conversations        Conversation[]
-  documents            Document[]
-  payments             Payment[]
+  id                     String            @id @default(cuid())
+  clerkId                String            @unique
+  email                  String            @unique
+  name                   String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime
+  currentPlan            String            @default("free")
+  documentsUsed          Int               @default(0)
+  documentsLimit         Int               @default(5)
+  stripeCustomerId       String?           @unique @map("stripe_customer_id")
+  stripe_subscription_id String?           @unique
+  subscription_status    String?
+  bankAccounts           BankAccount[]
+  bankTransactions       BankTransaction[]
+  bridgeSessions         BridgeSession[]
+  chatMessages           ChatMessage[]
+  ownedCompanies         Company[]         @relation("CompanyOwner")
+  companyLists           CompanyList[]
+  conversations          Conversation[]
+  documents              Document[]
+  payments               Payment[]
 
   @@map("users")
 }
@@ -109,14 +110,14 @@ model Payment {
   userId          String
   planId          String?
   stripeSessionId String?  @unique @map("stripe_session_id")
-  bridgePaymentId String?  @unique @map("bridge_payment_id")
   amount          Float
   currency        String   @default("eur")
   status          String
   description     String
-  planType        String?  @map("plan_type")
-  paymentUrl      String?  @map("payment_url")
   createdAt       DateTime @default(now())
+  bridgePaymentId String?  @unique @map("bridge_payment_id")
+  paymentUrl      String?  @map("payment_url")
+  planType        String?  @map("plan_type")
   plan            Plan?    @relation(fields: [planId], references: [id])
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -166,6 +167,8 @@ model BankAccount {
   lastSyncAt      DateTime?         @map("last_sync_at")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
+  bridgeItemId    String            @map("bridge_item_id")
+  disconnectedAt  DateTime?         @map("disconnected_at")
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    BankTransaction[]
 
@@ -308,4 +311,24 @@ enum CompanyStatus {
   CLOSED_LOST
   NONPROFIT
   INACTIVE
+}
+
+model BridgeSession {
+  id           String    @id @default(cuid())
+  sessionId    String    @unique
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String    @default("pending") // pending, completed, failed, abandoned
+  connectUrl   String
+  itemId       String?   // ID de la connexion créée
+  errorCode    String?
+  errorMessage String?
+  expiresAt    DateTime
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@map("bridge_sessions")
 }

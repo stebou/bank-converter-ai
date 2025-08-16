@@ -1,6 +1,10 @@
 'use client';
 
-import { companyDataService, type EnrichedCompany, type INSEECompany } from '@/lib/companyDataService';
+import {
+    companyDataService,
+    type EnrichedCompany,
+    type INSEECompany,
+} from '@/lib/companyDataService';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseCompanyDataOptions {
@@ -35,24 +39,25 @@ interface SearchParams {
 
 export function useCompanyData(options: UseCompanyDataOptions = {}) {
   const [companies, setCompanies] = useState<EnrichedCompany[]>([]);
-  const [filteredCompanies, setFilteredCompanies] = useState<EnrichedCompany[]>([]);
+  const [filteredCompanies, setFilteredCompanies] = useState<EnrichedCompany[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<CompanyFilters>(options.defaultFilters || {});
+  const [filters, setFilters] = useState<CompanyFilters>(
+    options.defaultFilters || {}
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [lastSearchTime, setLastSearchTime] = useState<Date | null>(null);
-  
+
   // Références pour le debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
+
   // Options configurables
-  const {
-    enableRealTimeSearch = true,
-    searchDebounceMs = 500
-  } = options;
+  const { enableRealTimeSearch = true, searchDebounceMs = 500 } = options;
 
   // Logger pour suivre les opérations
   const logOperation = useCallback((operation: string, data?: any) => {
@@ -72,7 +77,8 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
       }
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors du test de connexion';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Erreur lors du test de connexion';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -81,130 +87,146 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
   }, []);
 
   // Recherche d'entreprises via l'API INSEE avec logs
-  const searchCompanies = useCallback(async (params: SearchParams) => {
-    // Annuler la recherche précédente si elle existe
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      logOperation('Recherche précédente annulée');
-    }
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    setIsLoading(true);
-    setError(null);
-    setLastSearchTime(new Date());
-
-    logOperation('Début de recherche', {
-      query: params.query,
-      siren: params.siren,
-      siret: params.siret,
-      nom: params.nom,
-      ville: params.ville,
-      page: params.page || 1,
-      limit: params.limit || 20
-    });
-
-    try {
-      const startTime = performance.now();
-      
-      let result;
-      
-      // Si c'est une recherche par texte libre, utiliser la recherche unifiée
-      if (params.query?.trim()) {
-        logOperation('Utilisation de la recherche unifiée (entreprises + dirigeants)');
-        result = await companyDataService.searchCompaniesUnified(params.query);
-      } else {
-        // Sinon, utiliser la recherche classique
-        logOperation('Utilisation de la recherche classique');
-        result = await companyDataService.getAllSearchResults({
-          q: params.query,
-          siren: params.siren,
-          siret: params.siret,
-          nom: params.nom,
-          ville: params.ville,
-          departement: params.departement,
-          etatAdministratif: 'A',
-          siege: filters.headOfficeOnly || undefined
-        });
+  const searchCompanies = useCallback(
+    async (params: SearchParams) => {
+      // Annuler la recherche précédente si elle existe
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        logOperation('Recherche précédente annulée');
       }
 
-      const searchTime = performance.now() - startTime;
-      
-      logOperation('Résultats de recherche INSEE', {
-        total: result.total,
-        companiesCount: result.companies.length,
-        searchTimeMs: Math.round(searchTime)
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      setIsLoading(true);
+      setError(null);
+      setLastSearchTime(new Date());
+
+      logOperation('Début de recherche', {
+        query: params.query,
+        siren: params.siren,
+        siret: params.siret,
+        nom: params.nom,
+        ville: params.ville,
+        page: params.page || 1,
+        limit: params.limit || 20,
       });
 
-      // Enrichissement des données
-      const enrichedCompanies: EnrichedCompany[] = await Promise.all(
-        result.companies.map(async (company) => {
-          const score = companyDataService.calculateTargetingScore(company);
-          const tags = companyDataService.generateTags(company);
-          
-          logOperation('Enrichissement entreprise', {
-            siren: company.siren,
-            nom: company.denomination,
-            score: score,
-            tags: tags.length
+      try {
+        const startTime = performance.now();
+
+        let result;
+
+        // Si c'est une recherche par texte libre, utiliser la recherche unifiée
+        if (params.query?.trim()) {
+          logOperation(
+            'Utilisation de la recherche unifiée (entreprises + dirigeants)'
+          );
+          result = await companyDataService.searchCompaniesUnified({
+            ...params,
+            getAllResults: false,
+            enrichWithLinkedIn: false
           });
-          
-          // Tentative d'enrichissement LinkedIn (optionnel)
-          let linkedin: undefined = undefined;
-          if (company.denomination) {
-            const domain = extractPotentialDomain(company.denomination);
-            if (domain) {
-              try {
-                const linkedinResult = await companyDataService.enrichWithLinkedIn(domain);
-                if (linkedinResult) {
-                  linkedin = linkedinResult as any;
-                  logOperation('LinkedIn trouvé', { domain, siren: company.siren });
+        } else {
+          // Sinon, utiliser la recherche classique
+          logOperation('Utilisation de la recherche classique');
+          result = await companyDataService.getAllSearchResults({
+            q: params.query,
+            siren: params.siren,
+            siret: params.siret,
+            nom: params.nom,
+            ville: params.ville,
+            departement: params.departement,
+            etatAdministratif: 'A',
+            siege: filters.headOfficeOnly || undefined,
+          });
+        }
+
+        const searchTime = performance.now() - startTime;
+
+        logOperation('Résultats de recherche INSEE', {
+          total: result.total,
+          companiesCount: result.companies.length,
+          searchTimeMs: Math.round(searchTime),
+        });
+
+        // Enrichissement des données
+        const enrichedCompanies: EnrichedCompany[] = await Promise.all(
+          result.companies.map(async company => {
+            const score = companyDataService.calculateTargetingScore(company);
+            const tags = companyDataService.generateTags(company);
+
+            logOperation('Enrichissement entreprise', {
+              siren: company.siren,
+              nom: company.denomination,
+              score: score,
+              tags: tags.length,
+            });
+
+            // Tentative d'enrichissement LinkedIn (optionnel)
+            let linkedin: undefined = undefined;
+            if (company.denomination) {
+              const domain = extractPotentialDomain(company.denomination);
+              if (domain) {
+                try {
+                  const linkedinResult =
+                    await companyDataService.enrichWithLinkedIn(domain);
+                  if (linkedinResult) {
+                    linkedin = linkedinResult as any;
+                    logOperation('LinkedIn trouvé', {
+                      domain,
+                      siren: company.siren,
+                    });
+                  }
+                } catch (error) {
+                  logOperation('Échec LinkedIn', {
+                    domain,
+                    error: error instanceof Error ? error.message : 'Unknown',
+                  });
                 }
-              } catch (error) {
-                logOperation('Échec LinkedIn', { domain, error: error instanceof Error ? error.message : 'Unknown' });
               }
             }
-          }
 
-          return {
-            ...company,
-            score,
-            tags,
-            linkedin,
-            domain: extractPotentialDomain(company.denomination),
-            website: undefined,
-            phone: undefined,
-            email: undefined
-          } as EnrichedCompany;
-        })
-      );
+            return {
+              ...company,
+              score,
+              tags,
+              linkedin,
+              domain: extractPotentialDomain(company.denomination),
+              website: undefined,
+              phone: undefined,
+              email: undefined,
+            } as EnrichedCompany;
+          })
+        );
 
-      setCompanies(enrichedCompanies);
-      setTotal(result.total);
-      setCurrentPage(params.page || 1);
-      
-      logOperation('Recherche terminée avec succès', {
-        total: result.total,
-        enrichedCount: enrichedCompanies.length,
-        currentPage: params.page || 1
-      });
-      
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        logOperation('Recherche annulée par l\'utilisateur');
-        return;
+        setCompanies(enrichedCompanies);
+        setTotal(result.total);
+        setCurrentPage(params.page || 1);
+
+        logOperation('Recherche terminée avec succès', {
+          total: result.total,
+          enrichedCount: enrichedCompanies.length,
+          currentPage: params.page || 1,
+        });
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          logOperation("Recherche annulée par l'utilisateur");
+          return;
+        }
+
+        const errorMessage =
+          err instanceof Error ? err.message : 'Erreur lors de la recherche';
+        setError(errorMessage);
+        logOperation('Erreur de recherche', { error: errorMessage });
+        console.error('Erreur recherche entreprises:', err);
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
       }
-      
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la recherche';
-      setError(errorMessage);
-      logOperation('Erreur de recherche', { error: errorMessage });
-      console.error('Erreur recherche entreprises:', err);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
-    }
-  }, [filters.headOfficeOnly, logOperation]);
+    },
+    [filters.headOfficeOnly, logOperation]
+  );
 
   // Validation SIREN/SIRET
   const validateIdentifier = useCallback((identifier: string): boolean => {
@@ -217,51 +239,56 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
   }, []);
 
   // Recherche en temps réel avec debouncing
-  const searchInRealTime = useCallback((query: string) => {
-    setSearchQuery(query);
-    
-    // Annuler le timeout précédent
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+  const searchInRealTime = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
 
-    // Si la query est vide, effacer les résultats
-    if (!query.trim()) {
-      logOperation('Query vide - effacement des résultats');
-      setCompanies([]);
-      setTotal(0);
-      return;
-    }
-
-    // Si la query est trop courte, ne pas chercher
-    if (query.trim().length < 2) {
-      logOperation('Query trop courte', { length: query.trim().length });
-      return;
-    }
-
-    logOperation('Recherche en temps réel programmée', { 
-      query: query.trim(), 
-      debounceMs: searchDebounceMs 
-    });
-
-    // Programmer la recherche après le délai de debounce
-    searchTimeoutRef.current = setTimeout(() => {
-      logOperation('Déclenchement recherche automatique', { query: query.trim() });
-      
-      // Déterminer le type de recherche
-      const cleanQuery = query.replace(/\s/g, '');
-      if (validateIdentifier(cleanQuery)) {
-        if (cleanQuery.length === 9) {
-          searchCompanies({ siren: cleanQuery });
-        } else if (cleanQuery.length === 14) {
-          searchCompanies({ siret: cleanQuery });
-        }
-      } else {
-        // Recherche par nom d'entreprise
-        searchCompanies({ nom: query.trim() });
+      // Annuler le timeout précédent
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    }, searchDebounceMs);
-  }, [searchDebounceMs, searchCompanies, validateIdentifier, logOperation]);
+
+      // Si la query est vide, effacer les résultats
+      if (!query.trim()) {
+        logOperation('Query vide - effacement des résultats');
+        setCompanies([]);
+        setTotal(0);
+        return;
+      }
+
+      // Si la query est trop courte, ne pas chercher
+      if (query.trim().length < 2) {
+        logOperation('Query trop courte', { length: query.trim().length });
+        return;
+      }
+
+      logOperation('Recherche en temps réel programmée', {
+        query: query.trim(),
+        debounceMs: searchDebounceMs,
+      });
+
+      // Programmer la recherche après le délai de debounce
+      searchTimeoutRef.current = setTimeout(() => {
+        logOperation('Déclenchement recherche automatique', {
+          query: query.trim(),
+        });
+
+        // Déterminer le type de recherche
+        const cleanQuery = query.replace(/\s/g, '');
+        if (validateIdentifier(cleanQuery)) {
+          if (cleanQuery.length === 9) {
+            searchCompanies({ siren: cleanQuery });
+          } else if (cleanQuery.length === 14) {
+            searchCompanies({ siret: cleanQuery });
+          }
+        } else {
+          // Recherche par nom d'entreprise
+          searchCompanies({ nom: query.trim() });
+        }
+      }, searchDebounceMs);
+    },
+    [searchDebounceMs, searchCompanies, validateIdentifier, logOperation]
+  );
 
   // Fonction pour effacer les résultats
   const clearResults = useCallback(() => {
@@ -270,7 +297,7 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     setTotal(0);
     setError(null);
     setSearchQuery('');
-    
+
     // Annuler toute recherche en cours
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -286,29 +313,33 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
 
     // Filtre par statut
     if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(company => 
+      filtered = filtered.filter(company =>
         filters.status!.includes(company.etatAdministratif)
       );
     }
 
     // Filtre par effectifs
     if (filters.effectifs && filters.effectifs.length > 0) {
-      filtered = filtered.filter(company => 
-        company.trancheEffectifs && filters.effectifs!.includes(company.trancheEffectifs)
+      filtered = filtered.filter(
+        company =>
+          company.trancheEffectifs &&
+          filters.effectifs!.includes(company.trancheEffectifs)
       );
     }
 
     // Filtre par codes NAF
     if (filters.nafCodes && filters.nafCodes.length > 0) {
-      filtered = filtered.filter(company => 
-        filters.nafCodes!.some(naf => company.activitePrincipale?.startsWith(naf))
+      filtered = filtered.filter(company =>
+        filters.nafCodes!.some(naf =>
+          company.activitePrincipale?.startsWith(naf)
+        )
       );
     }
 
     // Filtre par département
     if (filters.departments && filters.departments.length > 0) {
-      filtered = filtered.filter(company => 
-        filters.departments!.some(dept => 
+      filtered = filtered.filter(company =>
+        filters.departments!.some(dept =>
           company.adresse.codeCommuneEtablissement?.startsWith(dept)
         )
       );
@@ -331,94 +362,111 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
 
     // Filtre par score
     if (filters.scoreRange?.min !== undefined) {
-      filtered = filtered.filter(company => company.score >= filters.scoreRange!.min!);
+      filtered = filtered.filter(
+        company => (company.score ?? 0) >= filters.scoreRange!.min!
+      );
     }
     if (filters.scoreRange?.max !== undefined) {
-      filtered = filtered.filter(company => company.score <= filters.scoreRange!.max!);
+      filtered = filtered.filter(
+        company => (company.score ?? 0) <= filters.scoreRange!.max!
+      );
     }
 
     setFilteredCompanies(filtered);
   }, [companies, filters]);
 
   // Enrichissement LinkedIn d'une entreprise spécifique
-  const enrichCompanyWithLinkedIn = useCallback(async (companyIndex: number, domain: string) => {
-    try {
-      const linkedin = await companyDataService.enrichWithLinkedIn(domain);
-      if (linkedin) {
-        setCompanies(prev => {
-          const updated = [...prev];
-          updated[companyIndex] = {
-            ...updated[companyIndex],
-            linkedin,
-            domain
-          };
-          return updated;
-        });
+  const enrichCompanyWithLinkedIn = useCallback(
+    async (companyIndex: number, domain: string) => {
+      try {
+        const linkedin = await companyDataService.enrichWithLinkedIn(domain);
+        if (linkedin) {
+          setCompanies(prev => {
+            const updated = [...prev];
+            updated[companyIndex] = {
+              ...updated[companyIndex],
+              linkedin,
+              domain,
+            };
+            return updated;
+          });
+        }
+      } catch (error) {
+        console.error('Erreur enrichissement LinkedIn:', error);
       }
-    } catch (error) {
-      console.error('Erreur enrichissement LinkedIn:', error);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Export des données
-  const exportToCSV = useCallback((companiesToExport: EnrichedCompany[] = filteredCompanies) => {
-    const headers = [
-      'SIREN',
-      'SIRET',
-      'Dénomination',
-      'NAF',
-      'Activité',
-      'Effectifs',
-      'Statut',
-      'Siège',
-      'Adresse',
-      'Ville',
-      'Code Postal',
-      'Département',
-      'Date Création',
-      'Score',
-      'LinkedIn',
-      'Site Web',
-      'Tags'
-    ];
+  const exportToCSV = useCallback(
+    (companiesToExport: EnrichedCompany[] = filteredCompanies) => {
+      const headers = [
+        'SIREN',
+        'SIRET',
+        'Dénomination',
+        'NAF',
+        'Activité',
+        'Effectifs',
+        'Statut',
+        'Siège',
+        'Adresse',
+        'Ville',
+        'Code Postal',
+        'Département',
+        'Date Création',
+        'Score',
+        'LinkedIn',
+        'Site Web',
+        'Tags',
+      ];
 
-    const csvContent = [
-      headers.join(','),
-      ...companiesToExport.map(company => [
-        company.siren,
-        company.siret,
-        `"${company.denomination}"`,
-        company.activitePrincipale || '',
-        `"${company.activitePrincipaleLibelle}"`,
-        company.trancheEffectifs || '',
-        company.etatAdministratif === 'A' ? 'Actif' : 'Fermé',
-        company.siege ? 'Oui' : 'Non',
-        `"${[
-          company.adresse.numeroVoie,
-          company.adresse.typeVoie,
-          company.adresse.libelleVoie
-        ].filter(Boolean).join(' ')}"`,
-        `"${company.adresse.libelleCommuneEtablissement}"`,
-        company.adresse.codePostal,
-        company.adresse.codeCommuneEtablissement?.substring(0, 2) || '',
-        company.dateCreation,
-        company.score,
-        company.linkedin?.organizationUrn ? 'Oui' : 'Non',
-        company.website || company.domain || '',
-        `"${company.tags.join(', ')}"`
-      ].join(','))
-    ].join('\n');
+      const csvContent = [
+        headers.join(','),
+        ...companiesToExport.map(company =>
+          [
+            company.siren,
+            company.siret,
+            `"${company.denomination}"`,
+            company.activitePrincipale || '',
+            `"${company.activitePrincipaleLibelle}"`,
+            company.trancheEffectifs || '',
+            company.etatAdministratif === 'A' ? 'Actif' : 'Fermé',
+            company.siege ? 'Oui' : 'Non',
+            `"${[
+              company.adresse.numeroVoie,
+              company.adresse.typeVoie,
+              company.adresse.libelleVoie,
+            ]
+              .filter(Boolean)
+              .join(' ')}"`,
+            `"${company.adresse.libelleCommuneEtablissement}"`,
+            company.adresse.codePostal,
+            company.adresse.codeCommuneEtablissement?.substring(0, 2) || '',
+            company.dateCreation,
+            company.score,
+            company.linkedin?.organizationUrn ? 'Oui' : 'Non',
+            company.website || company.domain || '',
+            `"${(company.tags || []).join(', ')}"`,
+          ].join(',')
+        ),
+      ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `entreprises_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [filteredCompanies]);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute(
+        'download',
+        `entreprises_${new Date().toISOString().split('T')[0]}.csv`
+      );
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [filteredCompanies]
+  );
 
   // Extraction des dirigeants d'une entreprise
   const extractDirigeants = useCallback((company: INSEECompany) => {
@@ -427,17 +475,23 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
 
   // Statistiques
   const getStats = useCallback(() => {
-    const active = filteredCompanies.filter(c => c.etatAdministratif === 'A').length;
-    const withLinkedin = filteredCompanies.filter(c => c.linkedin?.organizationUrn).length;
-    const averageScore = filteredCompanies.length > 0 
-      ? filteredCompanies.reduce((sum, c) => sum + c.score, 0) / filteredCompanies.length 
-      : 0;
+    const active = filteredCompanies.filter(
+      c => c.etatAdministratif === 'A'
+    ).length;
+    const withLinkedin = filteredCompanies.filter(
+      c => c.linkedin?.organizationUrn
+    ).length;
+    const averageScore =
+      filteredCompanies.length > 0
+        ? filteredCompanies.reduce((sum, c) => sum + (c.score ?? 0), 0) /
+          filteredCompanies.length
+        : 0;
 
     return {
       total: filteredCompanies.length,
       active,
       withLinkedin,
-      averageScore: Math.round(averageScore * 10) / 10
+      averageScore: Math.round(averageScore * 10) / 10,
     };
   }, [filteredCompanies]);
 
@@ -459,18 +513,18 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     allCompanies: companies,
     total,
     currentPage,
-    
+
     // État
     isLoading,
     error,
     searchQuery,
     lastSearchTime,
-    
+
     // Filtres
     filters,
     setFilters,
     applyFilters,
-    
+
     // Actions
     searchCompanies,
     extractDirigeants,
@@ -480,21 +534,21 @@ export function useCompanyData(options: UseCompanyDataOptions = {}) {
     enrichCompanyWithLinkedIn,
     validateIdentifier,
     exportToCSV,
-    
+
     // Pagination
     setCurrentPage,
-    
+
     // Statistiques
-    stats: getStats()
+    stats: getStats(),
   };
 }
 
 // Fonction utilitaire pour extraire un domaine potentiel d'un nom d'entreprise
 function extractPotentialDomain(companyName: string): string | null {
   if (!companyName) return null;
-  
+
   // Nettoyer le nom de l'entreprise
-  let cleanName = companyName
+  const cleanName = companyName
     .toLowerCase()
     .replace(/\s+(sa|sas|sarl|eurl|sasu|sci|scp|snc|scs|gie|association)$/i, '')
     .replace(/[^a-z0-9\s]/g, '')
@@ -503,9 +557,8 @@ function extractPotentialDomain(companyName: string): string | null {
 
   // Vérifier si ça ressemble à un domaine valide
   if (cleanName.length < 3 || cleanName.length > 50) return null;
-  
+
   return `${cleanName}.fr`;
 }
 
 export type { CompanyFilters, EnrichedCompany, SearchParams };
-

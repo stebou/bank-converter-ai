@@ -2,17 +2,17 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-    BookOpen,
-    ChevronDown,
-    CreditCard,
-    FileText,
-    HelpCircle,
-    Mail,
-    MessageSquare,
-    Search,
-    Settings,
-    Shield,
-    Zap,
+  BookOpen,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  HelpCircle,
+  Mail,
+  MessageSquare,
+  Search,
+  Settings,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import '../../../styles/fonts.css';

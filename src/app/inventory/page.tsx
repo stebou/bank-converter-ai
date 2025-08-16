@@ -1,35 +1,35 @@
 'use client';
 
 import {
-    DEFAULT_TEST_CONFIG,
-    generateInventoryStats,
-    generateMockMovements,
-    generateMockProducts,
-    MockOdooAPI,
+  DEFAULT_TEST_CONFIG,
+  generateInventoryStats,
+  generateMockMovements,
+  generateMockProducts,
+  MockOdooAPI,
 } from '@/lib/inventory-test-data';
 import type {
-    InventoryStats,
-    OdooConfig,
-    Product,
-    StockMode,
-    StockMovement,
+  InventoryStats,
+  OdooConfig,
+  Product,
+  StockMode,
+  StockMovement,
 } from '@/types';
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import {
-    AlertTriangle,
-    ArrowLeft,
-    BarChart3,
-    Building2,
-    Download,
-    Filter,
-    Package,
-    Plus,
-    RefreshCw,
-    Search,
-    TrendingUp,
-    Upload,
-    Zap
+  AlertTriangle,
+  ArrowLeft,
+  BarChart3,
+  Building2,
+  Download,
+  Filter,
+  Package,
+  Plus,
+  RefreshCw,
+  Search,
+  TrendingUp,
+  Upload,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -296,9 +296,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [odooConfig, setOdooConfig] = useState<OdooConfig>(
-    DEFAULT_TEST_CONFIG
-  );
+  const [odooConfig, setOdooConfig] = useState<OdooConfig>(DEFAULT_TEST_CONFIG);
 
   // Charger les données initiales
   useEffect(() => {
@@ -323,25 +321,23 @@ export default function InventoryPage() {
           if (isConnected) {
             const odooProducts = await odooAPI.getProducts(50);
             // Convertir les produits Odoo en format interne
-            const convertedProducts: Product[] = odooProducts.map(
-              (p: any) => ({
-                id: `odoo_${p.id}`,
-                name: p.name,
-                sku: p.default_code,
-                currentStock: p.qty_available,
-                minStock: Math.floor(p.qty_available * 0.2),
-                maxStock: Math.floor(p.qty_available * 2),
-                price: p.list_price,
-                category: Array.isArray(p.categ_id) ? p.categ_id[1] : 'Autre',
-                lastUpdated: new Date(p.write_date),
-                status:
-                  p.qty_available === 0
-                    ? 'OUT_OF_STOCK'
-                    : p.qty_available < Math.floor(p.qty_available * 0.2)
-                      ? 'LOW_STOCK'
-                      : 'IN_STOCK',
-              })
-            );
+            const convertedProducts: Product[] = odooProducts.map((p: any) => ({
+              id: `odoo_${p.id}`,
+              name: p.name,
+              sku: p.default_code,
+              currentStock: p.qty_available,
+              minStock: Math.floor(p.qty_available * 0.2),
+              maxStock: Math.floor(p.qty_available * 2),
+              price: p.list_price,
+              category: Array.isArray(p.categ_id) ? p.categ_id[1] : 'Autre',
+              lastUpdated: new Date(p.write_date),
+              status:
+                p.qty_available === 0
+                  ? 'OUT_OF_STOCK'
+                  : p.qty_available < Math.floor(p.qty_available * 0.2)
+                    ? 'LOW_STOCK'
+                    : 'IN_STOCK',
+            }));
 
             setProducts(convertedProducts);
             const mockMovements = generateMockMovements(30);

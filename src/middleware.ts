@@ -12,14 +12,17 @@ const isPublicRoute = createRouteMatcher([
   '/api/test-sirene(.*)', // Endpoint de test public
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  // Protéger toutes les routes sauf les routes publiques
-  if (!isPublicRoute(req)) {
-    auth.protect();
+export default clerkMiddleware(
+  (auth, req) => {
+    // Protéger toutes les routes sauf les routes publiques
+    if (!isPublicRoute(req)) {
+      auth.protect();
+    }
+  },
+  {
+    debug: false, // Désactiver les logs de debug en production
   }
-}, {
-  debug: false // Désactiver les logs de debug en production
-});
+);
 
 export const config = {
   matcher: [

@@ -1,14 +1,14 @@
-import { prisma } from "@/lib/prisma";
-import { getCompanyBySiren } from '@/lib/sirene';
+import { prisma } from '@/lib/prisma';
+import { sireneService } from '@/lib/sirene/service';
 import type { AddCompaniesToListData } from '@/types/company-lists';
-import { auth } from "@clerk/nextjs/server";
-import { CompanyStatus } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from '@clerk/nextjs/server';
+import { CompanyStatus } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
       where: {
         id: listId,
         user: {
-          clerkId: userId
-        }
-      }
+          clerkId: userId,
+        },
+      },
     });
 
     if (!list) {
@@ -32,36 +32,44 @@ export async function POST(request: NextRequest) {
 
     // Récupérer l'utilisateur interne pour les nouvelles entreprises
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+      where: { clerkId: userId },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
     }
 
     // Traiter chaque entreprise
     const companiesToCreate = [];
-    
+
     for (const company of companies) {
       // Vérifier si l'entreprise existe déjà dans cette liste
       const existingCompany = await prisma.company.findFirst({
         where: {
           siren: company.siren,
-          companyListId: listId
-        }
+          companyListId: listId,
+        },
       });
 
       if (!existingCompany) {
         // Récupérer les informations complètes depuis l'API INSEE
-        console.log(`🔍 Enrichissement des données pour SIREN: ${company.siren}`);
-        const inseeData = await getCompanyBySiren(company.siren);
-        
+        console.log(
+          `🔍 Enrichissement des données pour SIREN: ${company.siren}`
+        );
+        const inseeData = await sireneService.getCompanyBySiren(company.siren);
+
         let companyData;
-        
+
         if (inseeData) {
           // Utiliser les données enrichies de l'INSEE
-          console.log(`✅ Données INSEE trouvées pour ${company.siren}:`, inseeData.denomination);
-          
+          console.log(
+            `✅ Données INSEE trouvées pour ${company.siren}:`,
+            inseeData.denomination
+          );
+
           companyData = {
             siren: company.siren,
             siret: company.siret || inseeData.siret,
@@ -71,35 +79,45 @@ export async function POST(request: NextRequest) {
             ownerId: user.id,
             addedAt: new Date(),
             lastUpdatedFromINSEE: new Date(),
-            
+
             // Données enrichies depuis l'API INSEE
-            denomination: inseeData.denomination || `Entreprise ${company.siren}`,
+            denomination:
+              inseeData.denomination || `Entreprise ${company.siren}`,
             etatAdministratif: inseeData.etatAdministratif || 'A',
             siege: true, // Toujours true pour le siège
-            dateCreation: inseeData.dateCreation ? new Date(inseeData.dateCreation) : new Date(),
+            dateCreation: inseeData.dateCreation
+              ? new Date(inseeData.dateCreation)
+              : new Date(),
             activitePrincipale: inseeData.activitePrincipale || '',
-            activitePrincipaleLibelle: inseeData.activitePrincipaleLibelle || '',
+            activitePrincipaleLibelle:
+              inseeData.activitePrincipaleLibelle || '',
             categorieJuridique: inseeData.categorieJuridique || '',
             trancheEffectifs: inseeData.trancheEffectifs || '',
-            
+
             // Adresse
             ville: inseeData.adresse?.commune || '',
             codePostal: inseeData.adresse?.codePostal || '',
-            adresseComplete: [
-              inseeData.adresse?.numeroVoie,
-              inseeData.adresse?.typeVoie,
-              inseeData.adresse?.libelleVoie
-            ].filter(Boolean).join(' ') || '',
-            
+            adresseComplete:
+              [
+                inseeData.adresse?.numeroVoie,
+                inseeData.adresse?.typeVoie,
+                inseeData.adresse?.libelleVoie,
+              ]
+                .filter(Boolean)
+                .join(' ') || '',
+
             // Champs calculés
             secteur: inseeData.activitePrincipaleLibelle || '',
             industrie: inseeData.activitePrincipaleLibelle || '',
-            emplacement: `${inseeData.adresse?.commune || ''} ${inseeData.adresse?.codePostal || ''}`.trim()
+            emplacement:
+              `${inseeData.adresse?.commune || ''} ${inseeData.adresse?.codePostal || ''}`.trim(),
           };
         } else {
           // Fallback si l'API INSEE ne retourne pas de données
-          console.log(`⚠️ Aucune donnée INSEE trouvée pour ${company.siren}, utilisation des données minimales`);
-          
+          console.log(
+            `⚠️ Aucune donnée INSEE trouvée pour ${company.siren}, utilisation des données minimales`
+          );
+
           companyData = {
             siren: company.siren,
             siret: company.siret,
@@ -108,7 +126,7 @@ export async function POST(request: NextRequest) {
             companyListId: listId,
             ownerId: user.id,
             addedAt: new Date(),
-            
+
             // Valeurs par défaut
             denomination: `Entreprise ${company.siren}`,
             etatAdministratif: 'A',
@@ -123,10 +141,10 @@ export async function POST(request: NextRequest) {
             adresseComplete: '',
             secteur: '',
             industrie: '',
-            emplacement: ''
+            emplacement: '',
           };
         }
-        
+
         companiesToCreate.push(companyData);
       }
     }
@@ -134,20 +152,19 @@ export async function POST(request: NextRequest) {
     // Créer les nouvelles entreprises en batch
     if (companiesToCreate.length > 0) {
       await prisma.company.createMany({
-        data: companiesToCreate
+        data: companiesToCreate,
       });
     }
 
     // Retourner le nombre d'entreprises ajoutées
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       added: companiesToCreate.length,
       total: companies.length,
-      message: `${companiesToCreate.length} entreprise(s) ajoutée(s) avec succès sur ${companies.length}` 
+      message: `${companiesToCreate.length} entreprise(s) ajoutée(s) avec succès sur ${companies.length}`,
     });
-
   } catch (error) {
-    console.error('Erreur lors de l\'ajout des entreprises:', error);
+    console.error("Erreur lors de l'ajout des entreprises:", error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

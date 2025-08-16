@@ -1,4 +1,4 @@
-import { searchBySiren, searchCompanies, searchCompaniesWithFilters } from '@/lib/sirene';
+import { sireneService } from '@/lib/sirene/service';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || '';
     const siren = searchParams.get('siren');
     const limit = parseInt(searchParams.get('limit') || '20');
-    
+
     // Filtres géographiques et autres
     const codePostal = searchParams.get('codePostal');
     const commune = searchParams.get('commune');
@@ -26,59 +26,55 @@ export async function GET(request: NextRequest) {
     const dateCreationFin = searchParams.get('dateCreationFin');
     const siretParam = searchParams.get('siret');
 
-    console.log('🔍 Recherche d\'entreprises:', { 
-      query, 
-      siren, 
-      limit, 
-      codePostal, 
-      commune, 
-      activitePrincipale, 
-      trancheEffectifs, 
+    console.log("🔍 Recherche d'entreprises:", {
+      query,
+      siren,
+      limit,
+      codePostal,
+      commune,
+      activitePrincipale,
+      trancheEffectifs,
       etatAdministratif,
       categorieJuridique,
       departement,
       dateCreationDebut,
       dateCreationFin,
-      siret: siretParam
+      siret: siretParam,
     });
 
     let results;
-    
-    if (siren) {
-      results = await searchBySiren(siren);
-    } else {
-      // Construire les filtres
-      const filters: Record<string, string> = {};
-      if (codePostal) filters.codePostalEtablissement = codePostal;
-      if (commune) filters.libelleCommuneEtablissement = commune;
-      if (activitePrincipale) filters.activitePrincipaleUniteLegale = activitePrincipale;
-      if (trancheEffectifs) filters.trancheEffectifsUniteLegale = trancheEffectifs;
-      if (etatAdministratif) filters.etatAdministratifEtablissement = etatAdministratif;
-      if (categorieJuridique) filters.categorieJuridiqueUniteLegale = categorieJuridique;
-      if (departement) filters.departement = departement;
-      if (dateCreationDebut) filters.dateCreationUniteLegaleDebut = dateCreationDebut;
-      if (dateCreationFin) filters.dateCreationUniteLegaleFin = dateCreationFin;
-      if (siretParam) filters.siret = siretParam;
 
-      // Si on a des filtres ou pas de query text, utiliser la recherche multicritères
-      if (Object.keys(filters).length > 0 || !query) {
-        results = await searchCompaniesWithFilters(query, filters, limit);
-      } else {
-        // Recherche simple par nom
-        results = await searchCompanies(query, limit);
-      }
+    if (siren) {
+      const response = await sireneService.searchBySiren(siren);
+      results = response.companies;
+    } else {
+      // Construire les critères pour le nouveau service
+      const criteria: any = {};
+      if (codePostal) criteria.codePostal = codePostal;
+      if (commune) criteria.ville = commune;
+      if (activitePrincipale) criteria.activitePrincipale = activitePrincipale;
+      if (trancheEffectifs) criteria.trancheEffectifs = trancheEffectifs;
+      if (etatAdministratif) criteria.etatAdministratif = etatAdministratif;
+      if (categorieJuridique) criteria.categorieJuridique = categorieJuridique;
+      if (departement) criteria.departement = departement;
+      if (dateCreationDebut) criteria.dateCreationDebut = dateCreationDebut;
+      if (dateCreationFin) criteria.dateCreationFin = dateCreationFin;
+      if (siretParam) criteria.siret = siretParam;
+
+      // Utiliser le service unifié
+      const response = await sireneService.searchCompanies(query, criteria, 1, limit);
+      results = response.companies;
     }
 
     return NextResponse.json({
       results,
       total: results.length,
-      source: 'sirene-simplifie'
+      source: 'sirene-simplifie',
     });
-
   } catch (error) {
     console.error('❌ Erreur lors de la recherche:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la recherche d\'entreprises' },
+      { error: "Erreur lors de la recherche d'entreprises" },
       { status: 500 }
     );
   }

@@ -10,14 +10,14 @@ import {
   Trash2,
   Download,
   Settings,
-} from 'lucide-react';    
+} from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import '../../../styles/fonts.css';
 
 // Données simulées pour l'exemple
 const userSettings = {
   plan: 'Smart',
-  billingDate: '15 de chaque mois', 
+  billingDate: '15 de chaque mois',
   paymentMethod: {
     type: 'Visa',
     last4: '4242',

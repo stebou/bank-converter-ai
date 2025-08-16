@@ -1,22 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  CreditCard,
-  ExternalLink,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Download,
-  Calendar,
-  DollarSign,
-  Crown,
-  Settings,
-  User,
-  Building2,
-} from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
+import {
+    AlertCircle,
+    Building2,
+    Calendar,
+    CheckCircle,
+    CreditCard,
+    Crown,
+    DollarSign,
+    Download,
+    Loader2,
+    Settings,
+    User
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import '../../../styles/fonts.css';
 
 interface SubscriptionData {
@@ -248,7 +247,13 @@ const CurrentPlanCard = ({
 
 // --- COMPOSANT : HISTORIQUE DES PAIEMENTS ---
 const PaymentHistoryCard = () => {
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState<Array<{
+    id: string;
+    date: string;
+    amount: number;
+    plan: string;
+    status: string;
+  }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

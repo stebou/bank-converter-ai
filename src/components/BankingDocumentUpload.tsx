@@ -3,16 +3,18 @@
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import {
-    AlertTriangle,
-    Building2,
-    CheckCircle,
-    CreditCard,
-    Loader2,
-    Receipt,
-    Upload
+  AlertTriangle,
+  Building2,
+  CheckCircle,
+  CreditCard,
+  Loader2,
+  Receipt,
+  Upload,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import '../styles/fonts.css';
+import { DocumentRejectionModal } from './DocumentRejectionModal';
+import { useDocumentRejection } from '@/hooks/useDocumentRejection';
 
 interface BankingDocumentUploadProps {
   onDocumentUploaded?: (document: any) => void;
@@ -29,6 +31,9 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<any | null>(null);
+  
+  // Utiliser le hook de gestion des rejets
+  const [rejectionState, rejectionActions] = useDocumentRejection();
 
   const documentTypes = [
     {
@@ -79,6 +84,15 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
           // onDocumentUploaded?.(result);
         } else {
           const errorData = await response.json();
+          
+          // Gestion spéciale pour les documents rejetés avec le hook
+          if (rejectionActions.handleApiError(errorData)) {
+            setProcessing(false);
+            setProcessingStep('');
+            setFile(null); // Reset le fichier
+            return; // Ne pas afficher d'erreur générique
+          }
+          
           setError(errorData.error || "Erreur lors de l'upload");
         }
       } catch (err) {
@@ -95,11 +109,14 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files?.[0];
-      if (selectedFile && (selectedFile.type === 'application/pdf' || 
-          selectedFile.type === 'image/jpeg' || 
-          selectedFile.type === 'image/jpg' || 
-          selectedFile.type === 'image/png' || 
-          selectedFile.type === 'image/webp')) {
+      if (
+        selectedFile &&
+        (selectedFile.type === 'application/pdf' ||
+          selectedFile.type === 'image/jpeg' ||
+          selectedFile.type === 'image/jpg' ||
+          selectedFile.type === 'image/png' ||
+          selectedFile.type === 'image/webp')
+      ) {
         setFile(selectedFile);
         setError(null);
         setUploadSuccess(false);
@@ -129,18 +146,23 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
       setDragActive(false);
 
       const droppedFile = e.dataTransfer.files?.[0];
-      if (droppedFile && (droppedFile.type === 'application/pdf' || 
-          droppedFile.type === 'image/jpeg' || 
-          droppedFile.type === 'image/jpg' || 
-          droppedFile.type === 'image/png' || 
-          droppedFile.type === 'image/webp')) {
+      if (
+        droppedFile &&
+        (droppedFile.type === 'application/pdf' ||
+          droppedFile.type === 'image/jpeg' ||
+          droppedFile.type === 'image/jpg' ||
+          droppedFile.type === 'image/png' ||
+          droppedFile.type === 'image/webp')
+      ) {
         setFile(droppedFile);
         setError(null);
         setUploadSuccess(false);
         // Déclencher automatiquement le traitement
         await processDocumentWithFile(droppedFile);
       } else {
-        setError('Veuillez déposer un fichier PDF ou image valide (JPEG, PNG, WebP)');
+        setError(
+          'Veuillez déposer un fichier PDF ou image valide (JPEG, PNG, WebP)'
+        );
       }
     },
     [processDocumentWithFile]
@@ -292,6 +314,19 @@ const BankingDocumentUpload: React.FC<BankingDocumentUploadProps> = ({
           <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-500" />
           <p className="font-open-sans text-xs text-red-700">{error}</p>
         </div>
+      )}
+
+      {/* Modal de rejet de document */}
+      {rejectionState.showRejectionModal && rejectionState.rejectionDetails && (
+        <DocumentRejectionModal
+          isOpen={rejectionState.showRejectionModal}
+          onClose={() => {
+            rejectionActions.closeRejection();
+            setError(null);
+          }}
+          message={rejectionState.rejectionDetails.message}
+          documentType={rejectionState.rejectionDetails.documentType}
+        />
       )}
     </motion.div>
   );

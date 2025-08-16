@@ -9,9 +9,14 @@ interface ConnectCompanyAccountProps {
   className?: string;
 }
 
-export default function ConnectCompanyAccount({ onSuccess, className = '' }: ConnectCompanyAccountProps) {
+export default function ConnectCompanyAccount({
+  onSuccess,
+  className = '',
+}: ConnectCompanyAccountProps) {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<
+    'idle' | 'connecting' | 'success' | 'error'
+  >('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleConnect = async () => {
@@ -20,26 +25,26 @@ export default function ConnectCompanyAccount({ onSuccess, className = '' }: Con
     setErrorMessage(null);
 
     try {
-      // Au lieu de rediriger vers Bridge Connect, 
+      // Au lieu de rediriger vers Bridge Connect,
       // on peut directement synchroniser les données de test
       const syncResponse = await fetch('/api/bridge/sync', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       if (syncResponse.ok) {
         const syncData = await syncResponse.json();
         console.log('[CONNECT_COMPANY] Données synchronisées:', syncData);
-        
+
         setStatus('success');
-        
+
         // Appeler le callback si fourni
         if (onSuccess) {
           onSuccess();
         }
-        
+
         // Rediriger vers le dashboard
         setTimeout(() => {
           window.location.href = '/dashboard?connected=true';
@@ -47,11 +52,12 @@ export default function ConnectCompanyAccount({ onSuccess, className = '' }: Con
       } else {
         throw new Error('Erreur lors de la synchronisation');
       }
-
     } catch (err) {
       console.error('[CONNECT_COMPANY] Erreur:', err);
       setStatus('error');
-      setErrorMessage('Erreur lors de la connexion du compte. Veuillez réessayer.');
+      setErrorMessage(
+        'Erreur lors de la connexion du compte. Veuillez réessayer.'
+      );
     } finally {
       setIsConnecting(false);
     }
@@ -106,7 +112,7 @@ export default function ConnectCompanyAccount({ onSuccess, className = '' }: Con
       <motion.button
         onClick={handleConnect}
         disabled={isConnecting}
-        className={`flex items-center gap-3 px-6 py-4 text-white rounded-xl font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${getButtonStyle()}`}
+        className={`flex items-center gap-3 rounded-xl px-6 py-4 font-medium text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${getButtonStyle()}`}
         whileHover={{ scale: status !== 'connecting' ? 1.02 : 1 }}
         whileTap={{ scale: status !== 'connecting' ? 0.98 : 1 }}
       >
@@ -117,10 +123,10 @@ export default function ConnectCompanyAccount({ onSuccess, className = '' }: Con
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-3 bg-red-50 border border-red-200 rounded-lg"
+          className="rounded-lg border border-red-200 bg-red-50 p-3"
         >
           <p className="text-sm text-red-600">{errorMessage}</p>
-          <p className="text-xs text-red-500 mt-1">
+          <p className="mt-1 text-xs text-red-500">
             En mode démo, cette fonctionnalité simule la connexion d'un compte.
           </p>
         </motion.div>

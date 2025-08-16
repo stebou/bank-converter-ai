@@ -37,7 +37,7 @@ export interface Company {
   etatAdministratif?: string;
   siege: boolean;
   dateCreation?: Date;
-  
+
   // Champs spécifiques au système de listes
   statut: CompanyStatus;
   notes?: string;
@@ -45,11 +45,11 @@ export interface Company {
   phoneNumber?: string;
   email?: string;
   contactPerson?: string;
-  
+
   // Timestamps et propriétaire
   addedAt: Date;
   lastUpdatedFromINSEE: Date;
-  
+
   // Relations
   ownerId: string;
   companyListId: string;
@@ -92,7 +92,7 @@ export enum CompanyStatus {
   CLOSED_WON = 'CLOSED_WON',
   CLOSED_LOST = 'CLOSED_LOST',
   NONPROFIT = 'NONPROFIT',
-  INACTIVE = 'INACTIVE'
+  INACTIVE = 'INACTIVE',
 }
 
 export const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
@@ -103,7 +103,7 @@ export const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   [CompanyStatus.CLOSED_WON]: 'Fermé gagné',
   [CompanyStatus.CLOSED_LOST]: 'Fermé perdu',
   [CompanyStatus.NONPROFIT]: 'Nonprofit',
-  [CompanyStatus.INACTIVE]: 'Inactif'
+  [CompanyStatus.INACTIVE]: 'Inactif',
 };
 
 export const COMPANY_STATUS_COLORS: Record<CompanyStatus, string> = {
@@ -114,17 +114,17 @@ export const COMPANY_STATUS_COLORS: Record<CompanyStatus, string> = {
   [CompanyStatus.CLOSED_WON]: '#059669',
   [CompanyStatus.CLOSED_LOST]: '#dc2626',
   [CompanyStatus.NONPROFIT]: '#6b7280',
-  [CompanyStatus.INACTIVE]: '#9ca3af'
+  [CompanyStatus.INACTIVE]: '#9ca3af',
 };
 
 // Types pour les filtres d'import
 export interface ImportFilters {
   // Liste de SIREN/SIRET pour import direct
   sirens?: string[];
-  
+
   // Liste d'IDs d'entreprises existantes dans notre base
   companyIds?: string[];
-  
+
   // Informations sur l'entreprise
   tailleEntreprise?: string[];
   secteurActivite?: string[];
@@ -133,13 +133,13 @@ export interface ImportFilters {
   nomEntreprise?: string;
   anneFondation?: { min?: number; max?: number };
   paysEntreprise?: string[];
-  
+
   // Signaux & Intentions
   croissanceTaille?: { min?: number; max?: number };
   dateDernierFinancement?: { min?: Date; max?: Date };
   revenuEntreprise?: { min?: number; max?: number };
   motCleEntreprise?: string;
-  
+
   // Contacts (pour future implémentation)
   contactsLimites?: { min?: number; max?: number };
 }

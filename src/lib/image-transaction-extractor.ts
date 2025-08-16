@@ -23,8 +23,14 @@ export async function extractTransactionsFromImage(
   imageBase64: string,
   mimeType: string
 ): Promise<TransactionData[]> {
-  console.log('[IMAGE_TRANSACTION_EXTRACTOR] Starting transaction extraction from image...');
-  console.log('[IMAGE_TRANSACTION_EXTRACTOR] Image size:', imageBase64.length, 'characters');
+  console.log(
+    '[IMAGE_TRANSACTION_EXTRACTOR] Starting transaction extraction from image...'
+  );
+  console.log(
+    '[IMAGE_TRANSACTION_EXTRACTOR] Image size:',
+    imageBase64.length,
+    'characters'
+  );
 
   try {
     const extractionPrompt = `Tu es un expert comptable spécialisé dans l'analyse de documents financiers par image.
@@ -143,17 +149,24 @@ Analyse maintenant l'image et extrais TOUTES les transactions visibles :`;
     // Nettoyer la réponse JSON
     let cleanResponse = aiResponse.trim();
     if (cleanResponse.startsWith('```json')) {
-      cleanResponse = cleanResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
+      cleanResponse = cleanResponse
+        .replace(/```json\s*/, '')
+        .replace(/```\s*$/, '');
     }
     if (cleanResponse.startsWith('```')) {
-      cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
+      cleanResponse = cleanResponse
+        .replace(/```\s*/, '')
+        .replace(/```\s*$/, '');
     }
 
     const aiResult = JSON.parse(cleanResponse);
     const extractedTransactions = aiResult.transactions || [];
     const summary = aiResult.summary || {};
 
-    console.log('[IMAGE_TRANSACTION_EXTRACTOR] Extracted transactions:', extractedTransactions.length);
+    console.log(
+      '[IMAGE_TRANSACTION_EXTRACTOR] Extracted transactions:',
+      extractedTransactions.length
+    );
     console.log('[IMAGE_TRANSACTION_EXTRACTOR] Summary:', summary);
 
     // Convertir au format attendu par l'application avec enrichissement intelligent
@@ -175,8 +188,14 @@ Analyse maintenant l'image et extrais TOUTES les transactions visibles :`;
         return {
           id: index + 1,
           date: formatTransactionDate(transaction.date),
-          description: (transaction.description || 'TRANSACTION').substring(0, 50),
-          originalDesc: transaction.originalDesc || transaction.description || 'TRANSACTION EXTRAITE IMAGE',
+          description: (transaction.description || 'TRANSACTION').substring(
+            0,
+            50
+          ),
+          originalDesc:
+            transaction.originalDesc ||
+            transaction.description ||
+            'TRANSACTION EXTRAITE IMAGE',
           amount: parseFloat(transaction.amount) || 0,
           category: category,
           subcategory: subcategory,
@@ -186,8 +205,11 @@ Analyse maintenant l'image et extrais TOUTES les transactions visibles :`;
       }
     );
 
-    console.log('[IMAGE_TRANSACTION_EXTRACTOR] Formatted transactions:', formattedTransactions.length);
-    
+    console.log(
+      '[IMAGE_TRANSACTION_EXTRACTOR] Formatted transactions:',
+      formattedTransactions.length
+    );
+
     // Log détaillé des transactions pour debug
     formattedTransactions.forEach((tx: TransactionData, i: number) => {
       console.log(`[IMAGE_TRANSACTION_EXTRACTOR] Transaction ${i + 1}:`, {
@@ -195,22 +217,22 @@ Analyse maintenant l'image et extrais TOUTES les transactions visibles :`;
         description: tx.description,
         amount: tx.amount,
         category: tx.category,
-        confidence: tx.confidence
+        confidence: tx.confidence,
       });
     });
 
     return formattedTransactions;
-
   } catch (error) {
     console.error('[IMAGE_TRANSACTION_EXTRACTOR] Error:', error);
-    
+
     // Fallback en cas d'erreur - générer une transaction de base
     return [
       {
         id: 1,
         date: new Date().toISOString().split('T')[0],
         description: 'DOCUMENT IMAGE ANALYSÉ',
-        originalDesc: 'Transaction extraite depuis image - analyse manuelle requise',
+        originalDesc:
+          'Transaction extraite depuis image - analyse manuelle requise',
         amount: 0,
         category: 'Autres',
         subcategory: 'Document image',
@@ -231,7 +253,12 @@ function determineTransactionCategory(
   const cat = aiCategory.toLowerCase();
 
   // Virements
-  if (cat === 'virement' || desc.includes('vir') || desc.includes('sepa') || desc.includes('salaire')) {
+  if (
+    cat === 'virement' ||
+    desc.includes('vir') ||
+    desc.includes('sepa') ||
+    desc.includes('salaire')
+  ) {
     return {
       category: amount > 0 ? 'Revenus' : 'Virements',
       subcategory: amount > 0 ? 'Virement reçu' : 'Virement émis',
@@ -239,7 +266,12 @@ function determineTransactionCategory(
   }
 
   // Cartes bancaires
-  if (cat === 'carte' || desc.includes('cb') || desc.includes('carte') || desc.includes('paiement')) {
+  if (
+    cat === 'carte' ||
+    desc.includes('cb') ||
+    desc.includes('carte') ||
+    desc.includes('paiement')
+  ) {
     return {
       category: 'Dépenses',
       subcategory: 'Carte bancaire',
@@ -247,7 +279,11 @@ function determineTransactionCategory(
   }
 
   // Prélèvements
-  if (cat === 'prélèvement' || desc.includes('prel') || desc.includes('prelevement')) {
+  if (
+    cat === 'prélèvement' ||
+    desc.includes('prel') ||
+    desc.includes('prelevement')
+  ) {
     return {
       category: 'Prélèvements',
       subcategory: 'Prélèvement automatique',
@@ -255,7 +291,12 @@ function determineTransactionCategory(
   }
 
   // Retraits
-  if (cat === 'retrait' || desc.includes('retrait') || desc.includes('dab') || desc.includes('espèces')) {
+  if (
+    cat === 'retrait' ||
+    desc.includes('retrait') ||
+    desc.includes('dab') ||
+    desc.includes('espèces')
+  ) {
     return {
       category: 'Retraits',
       subcategory: 'Espèces',
@@ -263,7 +304,12 @@ function determineTransactionCategory(
   }
 
   // Frais bancaires
-  if (cat === 'frais' || desc.includes('frais') || desc.includes('commission') || desc.includes('cotisation')) {
+  if (
+    cat === 'frais' ||
+    desc.includes('frais') ||
+    desc.includes('commission') ||
+    desc.includes('cotisation')
+  ) {
     return {
       category: 'Frais bancaires',
       subcategory: 'Commission',

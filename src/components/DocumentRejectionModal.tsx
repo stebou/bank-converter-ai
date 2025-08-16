@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, FileText, CreditCard, Receipt } from 'lucide-react';
 
 type DocumentRejectionModalProps = {
@@ -19,13 +20,13 @@ export const DocumentRejectionModal = ({
 }: DocumentRejectionModalProps) => {
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md scale-95 transform animate-fade-in-scale rounded-2xl bg-white opacity-0 shadow-2xl transition-all duration-300 ease-out"
+        className="w-full max-w-md transform rounded-2xl bg-white shadow-2xl transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95"
         onClick={e => e.stopPropagation()}
       >
         <div className="relative p-8">
@@ -90,4 +91,6 @@ export const DocumentRejectionModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };

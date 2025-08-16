@@ -18,12 +18,12 @@ export default function CreerCampagneLayout({
   return (
     <div className="min-h-screen bg-[#ecf0f1]">
       {/* Header avec bouton retour */}
-      <header className="bg-white border-b border-[#bdc3c7] shadow-sm sticky top-0 z-50">
+      <header className="sticky top-0 z-50 border-b border-[#bdc3c7] bg-white shadow-sm">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <motion.button
               onClick={handleReturnToDashboard}
-              className="flex items-center gap-2 px-4 py-2 bg-[#2c3e50] text-white rounded-lg hover:bg-[#34495e] transition-all duration-200 text-sm font-medium shadow-md"
+              className="flex items-center gap-2 rounded-lg bg-[#2c3e50] px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-[#34495e]"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -35,7 +35,9 @@ export default function CreerCampagneLayout({
 
             <div className="flex items-center gap-2">
               <Home className="h-5 w-5 text-[#2c3e50]" />
-              <span className="text-lg font-semibold text-[#2c3e50]">Methos</span>
+              <span className="text-lg font-semibold text-[#2c3e50]">
+                Methos
+              </span>
             </div>
           </div>
 
@@ -46,9 +48,7 @@ export default function CreerCampagneLayout({
       </header>
 
       {/* Contenu principal sans sidebar */}
-      <main className="w-full">
-        {children}
-      </main>
+      <main className="w-full">{children}</main>
     </div>
   );
 }

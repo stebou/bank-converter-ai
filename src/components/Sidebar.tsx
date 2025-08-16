@@ -14,7 +14,7 @@ import {
   Package,
   Settings,
   Sparkles,
-  User
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -87,7 +87,11 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/ia-chat', icon: Sparkles, label: 'IA Chat' },
     { href: '/inventory', icon: Package, label: 'Stocks' },
-    { href: '/dashboard/comptabilite', icon: Calculator, label: 'Ma comptabilité' },
+    {
+      href: '/dashboard/comptabilite',
+      icon: Calculator,
+      label: 'Ma comptabilité',
+    },
     { href: '/dashboard/marketing', icon: Megaphone, label: 'Marketing' },
   ];
 

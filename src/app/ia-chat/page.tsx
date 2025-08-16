@@ -1,29 +1,28 @@
 'use client';
 
-import '../../styles/fonts.css';
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '@clerk/nextjs';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Send,
-  Bot,
-  User,
-  FileText,
-  Sparkles,
-  Loader2,
-  Plus,
-  Star,
-  StarOff,
-  Edit2,
-  Trash2,
-  Search,
-  MessageSquare,
-  X,
-  Upload,
-  ArrowLeft,
-  Brain,
+    ArrowLeft,
+    Bot,
+    Brain,
+    Edit2,
+    FileText,
+    Loader2,
+    MessageSquare,
+    Plus,
+    Search,
+    Send,
+    Star,
+    StarOff,
+    Trash2,
+    Upload,
+    User,
+    X
 } from 'lucide-react';
 import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
+import { useEffect, useRef, useState } from 'react';
+import '../../styles/fonts.css';
 
 interface ChatMessage {
   id: string;
@@ -1110,7 +1109,7 @@ export default function IAChatPage() {
                                         {transaction.amount.toFixed(2)}€
                                       </p>
                                       <p className="font-ibm-plex-mono text-xs tracking-wider text-[#34495e]">
-                                        {transaction.aiConfidence}% confiance
+                                        {(transaction as any).aiConfidence || 95}% confiance
                                       </p>
                                     </div>
                                   </div>

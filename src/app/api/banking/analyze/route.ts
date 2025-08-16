@@ -1,8 +1,8 @@
 import {
-    bankingAnalystAgent,
-    cashFlowAnalystAgent,
-    fraudDetectionAgent,
-    runBankingAgent
+  bankingAnalystAgent,
+  cashFlowAnalystAgent,
+  fraudDetectionAgent,
+  runBankingAgent,
 } from '@/lib/agents/banking/agents';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
         agent = fraudDetectionAgent;
         prompt = `Analyze this banking document for potential fraud and suspicious activities: ${JSON.stringify(data)}`;
         break;
-      
+
       case 'cashflow':
         agent = cashFlowAnalystAgent;
         prompt = `Perform cash flow analysis on this banking data: ${JSON.stringify(data)}`;
         break;
-      
+
       case 'comprehensive':
       default:
         agent = bankingAnalystAgent;
@@ -44,16 +44,15 @@ export async function POST(request: NextRequest) {
       success: true,
       analysisType: type || 'comprehensive',
       result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Banking analysis error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Analysis failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -66,9 +65,9 @@ export async function GET() {
     version: '1.0.0',
     availableTypes: [
       'comprehensive', // Default: Full banking analysis
-      'fraud',         // Fraud detection focused
-      'cashflow'       // Cash flow analysis focused
+      'fraud', // Fraud detection focused
+      'cashflow', // Cash flow analysis focused
     ],
-    status: 'operational'
+    status: 'operational',
   });
 }

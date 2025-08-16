@@ -11,12 +11,9 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const { listId } = await params;
@@ -26,16 +23,13 @@ export async function DELETE(
       where: {
         id: listId,
         user: {
-          clerkId: userId
-        }
+          clerkId: userId,
+        },
       },
     });
 
     if (!existingList) {
-      return NextResponse.json(
-        { error: 'Liste non trouvée' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Liste non trouvée' }, { status: 404 });
     }
 
     // Supprimer toutes les entreprises de la liste en premier
@@ -63,7 +57,6 @@ export async function DELETE(
       { message: 'Liste supprimée avec succès' },
       { status: 200 }
     );
-
   } catch (error) {
     console.error('Erreur lors de la suppression de la liste:', error);
     return NextResponse.json(
@@ -82,12 +75,9 @@ export async function PUT(
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const { listId } = await params;
@@ -99,16 +89,13 @@ export async function PUT(
       where: {
         id: listId,
         user: {
-          clerkId: userId
-        }
+          clerkId: userId,
+        },
       },
     });
 
     if (!existingList) {
-      return NextResponse.json(
-        { error: 'Liste non trouvée' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Liste non trouvée' }, { status: 404 });
     }
 
     // Mettre à jour la liste
@@ -124,7 +111,6 @@ export async function PUT(
     });
 
     return NextResponse.json(updatedList, { status: 200 });
-
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la liste:', error);
     return NextResponse.json(
@@ -143,12 +129,9 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const { listId } = await params;
@@ -158,8 +141,8 @@ export async function GET(
       where: {
         id: listId,
         user: {
-          clerkId: userId
-        }
+          clerkId: userId,
+        },
       },
       include: {
         companies: {
@@ -181,14 +164,10 @@ export async function GET(
     });
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'Liste non trouvée' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Liste non trouvée' }, { status: 404 });
     }
 
     return NextResponse.json(list, { status: 200 });
-
   } catch (error) {
     console.error('Erreur lors de la récupération de la liste:', error);
     return NextResponse.json(

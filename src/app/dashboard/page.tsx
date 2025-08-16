@@ -4,6 +4,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-8 p-8">

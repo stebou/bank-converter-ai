@@ -1,0 +1,55 @@
+Bridge pour production 
+
+🏗️ Architecture pour Connexion Granulaire des Comptes Bancaires
+
+  Basé sur ma recherche approfondie de Bridge API v2025-01-15, voici l'architecture complète pour implémenter la gestion granulaire des comptes individuels :
+
+  📋 Plan d'Implémentation
+
+  1. Modifications Base de Données
+  - Ajouter champ dataAccess (enabled/disabled) au modèle BankAccount
+  - Ajouter champ lastRefreshStatus pour tracking des synchronisations
+  - Conserver bridgeItemId pour grouper les comptes par connexion bancaire
+
+  2. Vraie Intégration Bridge Connect
+  - Remplacer l'actuel système demo par la vraie API Bridge
+  - Configurer account_types: "all" pour permettre sélection granulaire
+  - Implémenter création de sessions Connect avec URL de retour
+
+  3. Gestion des Comptes Individuels
+  - API routes pour activer/désactiver des comptes spécifiques
+  - Filtrage automatique des comptes selon data_access status
+  - Webhooks pour synchronisation temps réel des changements
+
+  4. Interface Utilisateur Granulaire
+  - Toggles individuels par compte pour activation/désactivation
+  - Indicateurs visuels du statut de chaque compte
+  - Gestion séparée vs. groupée des connexions
+
+  🔧 Avantages de cette Architecture
+
+  ✅ Contrôle Utilisateur Maximal :
+  - Sélection des comptes pendant la connexion Bridge
+  - Activation/désactivation post-connexion de comptes individuels
+  - Respect des préférences utilisateur via data_access field
+
+  ✅ Sécurité et Conformité :
+  - Aucun accès aux données des comptes désactivés
+  - Conformité PSD2 native
+  - Gestion automatique des permissions
+
+  ✅ Architecture Flexible :
+  - Support des deux modes : connexion groupée ET gestion individuelle
+  - Migration progressive depuis l'existant
+  - Compatibilité avec Bridge API v2025-01-15
+
+  🎯 Prochaines Étapes Concrètes
+
+  Voulez-vous que je procède à l'implémentation ? Je propose de commencer par :
+
+  1. Modifier le schéma Prisma pour ajouter les champs dataAccess et lastRefreshStatus
+  2. Créer une vraie intégration Bridge Connect avec sélection granulaire
+  3. Implémenter les API routes pour gestion individuelle des comptes
+  4. Adapter l'interface utilisateur pour les toggles individuels
+
+  Cette architecture permettra une gestion fine des comptes bancaires tout en conservant la simplicité d'utilisation actuelle.

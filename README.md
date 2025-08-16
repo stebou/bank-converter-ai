@@ -99,4 +99,3 @@ Si la recherche est un SIREN pur (9 chiffres), une interrogation unitaire `/sire
 - Pagination incrémentale avec préchargement.
 - Enrichissement (libellés codes NAF / catégories juridiques étendus).
 - Gestion des erreurs plus granulaire (codes spécifiques INSEE).
-

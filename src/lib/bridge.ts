@@ -47,13 +47,12 @@ export interface BridgeConnectSession {
 
 // Configuration Bridge API
 export const BRIDGE_CONFIG = {
-  API_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://api.bridgeapi.io' 
-    : 'https://api.bridgeapi.io', // Même URL pour sandbox
+  API_URL: 'https://api.bridgeapi.io',
   API_VERSION: 'v3',
   CLIENT_ID: process.env.BRIDGE_CLIENT_ID,
   CLIENT_SECRET: process.env.BRIDGE_CLIENT_SECRET,
   ENVIRONMENT: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox',
+  API_VERSION_DATE: '2025-01-15',
 };
 
 /**
@@ -63,7 +62,6 @@ export class BridgeAPIClient {
   private baseURL: string;
   private clientId: string;
   private clientSecret: string;
-  private accessToken: string | null = null;
 
   constructor() {
     this.baseURL = `${BRIDGE_CONFIG.API_URL}/${BRIDGE_CONFIG.API_VERSION}`;
@@ -72,94 +70,134 @@ export class BridgeAPIClient {
   }
 
   /**
-   * Authentification OAuth2
+   * Verify credentials are available - Bridge API 2025 uses direct header auth
    */
-  async authenticate(): Promise<string> {
-    try {
-      const response = await fetch(`${this.baseURL}/oauth2/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Authentication failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      this.accessToken = data.access_token;
-      return this.accessToken!;
-    } catch (error) {
-      console.error('Bridge API authentication error:', error);
-      throw error;
+  private ensureCredentials(): void {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('Bridge API credentials not configured. Set BRIDGE_CLIENT_ID and BRIDGE_CLIENT_SECRET environment variables.');
     }
   }
 
   /**
-   * Requête authentifiée vers l'API Bridge
+   * Requête vers l'API Bridge v3 - 2025 auth avec headers directs
    */
-  private async authenticatedRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    if (!this.accessToken) {
-      await this.authenticate();
-    }
+  private async apiRequest(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<any> {
+    this.ensureCredentials();
 
+    console.log(`[BRIDGE_API] Making request to: ${this.baseURL}${endpoint}`);
+    
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Client-Id': this.clientId,
+        'Client-Secret': this.clientSecret,
+        'Bridge-Version': BRIDGE_CONFIG.API_VERSION_DATE,
         'Content-Type': 'application/json',
         ...options.headers,
       },
     });
 
+    console.log(`[BRIDGE_API] Response status: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
-      throw new Error(`Bridge API error: ${response.statusText}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[BRIDGE_API] Error response: ${errorText}`);
+      throw new Error(`Bridge API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     return response.json();
   }
 
   /**
-   * Créer une session Connect pour lier un compte bancaire
+   * Créer une session Connect pour lier un compte bancaire - API v3
    */
-  async createConnectSession(userId: string, redirectUri: string): Promise<BridgeConnectSession> {
-    return this.authenticatedRequest('/connect/sessions', {
+  async createConnectSession(
+    userId: string,
+    redirectUri: string,
+    providerId?: number
+  ): Promise<BridgeConnectSession> {
+    const payload: any = {
+      redirect_url: redirectUri,
+      account_types: 'all',
+    };
+
+    if (providerId) {
+      payload.provider_id = providerId;
+    }
+
+    if (userId) {
+      payload.user_email = userId; // v3 uses email instead of uuid
+    }
+
+    return this.apiRequest('/aggregation/connect-sessions', {
       method: 'POST',
-      body: JSON.stringify({
-        user_uuid: userId,
-        redirect_uri: redirectUri,
-        context: {
-          env: BRIDGE_CONFIG.ENVIRONMENT,
-        },
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
   /**
-   * Récupérer les comptes bancaires d'un utilisateur
+   * Récupérer les comptes bancaires d'un utilisateur - API v3
    */
   async getAccounts(userId: string): Promise<BridgeAccount[]> {
-    const data = await this.authenticatedRequest(`/users/${userId}/accounts`);
+    const data = await this.apiRequest(`/aggregation/accounts?user_uuid=${userId}`);
     return data.resources || [];
   }
 
   /**
-   * Récupérer les transactions d'un compte
+   * Récupérer les providers (banques) disponibles - API v3
    */
-  async getTransactions(accountId: string, limit = 50): Promise<BridgeTransaction[]> {
-    const data = await this.authenticatedRequest(`/accounts/${accountId}/transactions?limit=${limit}`);
+  async getProviders(): Promise<any[]> {
+    const data = await this.apiRequest('/aggregation/providers');
     return data.resources || [];
+  }
+
+  /**
+   * Récupérer les transactions d'un compte - API v3
+   */
+  async getTransactions(
+    accountId: string,
+    limit = 50,
+    since?: string
+  ): Promise<BridgeTransaction[]> {
+    let url = `/aggregation/transactions?account_id=${accountId}&limit=${limit}`;
+    if (since) {
+      url += `&since=${since}`;
+    }
+    const data = await this.apiRequest(url);
+    return data.resources || [];
+  }
+
+  /**
+   * Récupérer toutes les transactions pour plusieurs comptes
+   */
+  async getAllTransactions(
+    accountIds: string[],
+    limit = 200,
+    since?: string
+  ): Promise<BridgeTransaction[]> {
+    const allTransactions: BridgeTransaction[] = [];
+    
+    for (const accountId of accountIds) {
+      try {
+        const transactions = await this.getTransactions(accountId, limit, since);
+        allTransactions.push(...transactions);
+      } catch (error) {
+        console.error(`Error fetching transactions for account ${accountId}:`, error);
+      }
+    }
+    
+    return allTransactions;
   }
 
   /**
    * Synchroniser les comptes bancaires d'un utilisateur
    */
-  async syncUserAccounts(userId: string): Promise<{accounts: BridgeAccount[], transactions: BridgeTransaction[]}> {
+  async syncUserAccounts(
+    userId: string
+  ): Promise<{ accounts: BridgeAccount[]; transactions: BridgeTransaction[] }> {
     try {
       const accounts = await this.getAccounts(userId);
       const allTransactions: BridgeTransaction[] = [];
@@ -172,6 +210,45 @@ export class BridgeAPIClient {
       return { accounts, transactions: allTransactions };
     } catch (error) {
       console.error('Error syncing user accounts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Créer un lien de paiement Bridge
+   */
+  async createPaymentLink(options: {
+    amount: number;
+    currency: string;
+    description: string;
+    redirectUri: string;
+    expiresAt: string;
+  }): Promise<any> {
+    try {
+      return await this.apiRequest('/payment-links', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: options.amount,
+          currency: options.currency,
+          description: options.description,
+          redirect_uri: options.redirectUri,
+          expires_at: options.expiresAt,
+        }),
+      });
+    } catch (error) {
+      console.error('Error creating payment link:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer un lien de paiement Bridge
+   */
+  async getPaymentLink(paymentId: string): Promise<any> {
+    try {
+      return await this.apiRequest(`/payment-links/${paymentId}`);
+    } catch (error) {
+      console.error('Error getting payment link:', error);
       throw error;
     }
   }
@@ -197,7 +274,7 @@ export const DEMO_ACCOUNTS: BridgeAccount[] = [
   {
     id: 'demo_acc_2',
     name: 'Livret A',
-    balance: 15230.50,
+    balance: 15230.5,
     currency: 'EUR',
     type: 'savings',
     status: 'active',
@@ -232,7 +309,7 @@ export const DEMO_TRANSACTIONS: BridgeTransaction[] = [
   {
     id: 'demo_tx_2',
     account_id: 'demo_acc_1',
-    amount: 1200.00,
+    amount: 1200.0,
     currency: 'EUR',
     description: 'Salaire - Entreprise XYZ',
     category: 'Revenus',
@@ -240,7 +317,7 @@ export const DEMO_TRANSACTIONS: BridgeTransaction[] = [
     status: 'completed',
     type: 'credit',
     raw_description: 'VIR ENTREPRISE XYZ SALAIRE',
-    balance: 2593.50,
+    balance: 2593.5,
   },
   {
     id: 'demo_tx_3',
@@ -253,12 +330,12 @@ export const DEMO_TRANSACTIONS: BridgeTransaction[] = [
     status: 'completed',
     type: 'debit',
     raw_description: 'PRELEVEMENT NETFLIX',
-    balance: 1393.50,
+    balance: 1393.5,
   },
   {
     id: 'demo_tx_4',
     account_id: 'demo_acc_2',
-    amount: 500.00,
+    amount: 500.0,
     currency: 'EUR',
     description: 'Virement depuis compte courant',
     category: 'Épargne',
@@ -266,7 +343,7 @@ export const DEMO_TRANSACTIONS: BridgeTransaction[] = [
     status: 'completed',
     type: 'credit',
     raw_description: 'VIR COMPTE COURANT EPARGNE',
-    balance: 15230.50,
+    balance: 15230.5,
   },
 ];
 

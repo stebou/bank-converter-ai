@@ -1,7 +1,7 @@
 // API pour récupérer les données d'abonnement de l'utilisateur
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -20,11 +20,11 @@ export async function GET() {
         email: true,
         name: true,
         currentPlan: true,
-        subscriptionStatus: true,
+        subscription_status: true,
         documentsLimit: true,
         documentsUsed: true,
         stripeCustomerId: true,
-        stripeSubscriptionId: true,
+        stripe_subscription_id: true,
         createdAt: true,
         updatedAt: true,
       },

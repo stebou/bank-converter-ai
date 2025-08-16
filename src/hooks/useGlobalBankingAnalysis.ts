@@ -18,36 +18,39 @@ export function useGlobalBankingAnalysis(): UseGlobalBankingAnalysisReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       console.log('[HOOK] Starting global banking analysis...');
-      
+
       const response = await fetch('/api/banking/global-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          analysisType: 'comprehensive'
-        })
+          analysisType: 'comprehensive',
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.needsDocuments) {
-          throw new Error('Aucun document trouvé. Veuillez d\'abord uploader des relevés bancaires dans la section Documents.');
+          throw new Error(
+            "Aucun document trouvé. Veuillez d'abord uploader des relevés bancaires dans la section Documents."
+          );
         }
-        throw new Error(errorData.message || 'Erreur lors de l\'analyse bancaire');
+        throw new Error(
+          errorData.message || "Erreur lors de l'analyse bancaire"
+        );
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.report) {
         setReport(result.report);
         console.log('[HOOK] Analysis completed successfully:', result.metadata);
       } else {
         throw new Error('Réponse invalide du serveur');
       }
-      
     } catch (err) {
       console.error('[HOOK] Analysis failed:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -66,6 +69,6 @@ export function useGlobalBankingAnalysis(): UseGlobalBankingAnalysisReturn {
     isLoading,
     error,
     startAnalysis,
-    clearReport
+    clearReport,
   };
 }

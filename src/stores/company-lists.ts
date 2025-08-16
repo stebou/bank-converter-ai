@@ -1,12 +1,12 @@
 import type {
-    AddCompaniesToListData,
-    BulkActionData,
-    Company,
-    CompanyList,
-    CompanyStatus,
-    CreateCompanyListData,
-    ImportFilters,
-    UpdateCompanyListData
+  AddCompaniesToListData,
+  BulkActionData,
+  Company,
+  CompanyList,
+  CompanyStatus,
+  CreateCompanyListData,
+  ImportFilters,
+  UpdateCompanyListData,
 } from '@/types/company-lists';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
@@ -19,13 +19,13 @@ interface CompanyListsState {
   selectedCompanies: string[];
   isLoading: boolean;
   error: string | null;
-  
+
   // État de l'interface
   showImportModal: boolean;
   importFilters: ImportFilters;
   searchResults: Company[];
   searchLoading: boolean;
-  
+
   // Actions pour les listes
   setLists: (lists: CompanyList[]) => void;
   fetchLists: () => Promise<void>;
@@ -35,36 +35,41 @@ interface CompanyListsState {
   updateList: (data: UpdateCompanyListData) => Promise<void>;
   deleteList: (listId: string) => Promise<void>;
   archiveList: (listId: string) => Promise<void>;
-  
+
   // Actions pour les entreprises
   addCompaniesToList: (data: AddCompaniesToListData) => Promise<void>;
   removeCompanyFromList: (listId: string, companyId: string) => Promise<void>;
   importCompanies: (listId: string, filters: ImportFilters) => Promise<void>;
-  updateCompanyStatus: (companyId: string, status: CompanyStatus) => Promise<void>;
+  updateCompanyStatus: (
+    companyId: string,
+    status: CompanyStatus
+  ) => Promise<void>;
   updateCompanyNotes: (companyId: string, notes: string) => Promise<void>;
   bulkAction: (data: BulkActionData) => Promise<void>;
-  
+
   // Actions pour la sélection
   selectCompany: (companyId: string) => void;
   selectAllCompanies: (companyIds: string[]) => void;
   clearSelection: () => void;
   toggleCompanySelection: (companyId: string) => void;
-  
+
   // Actions pour l'import
   setShowImportModal: (show: boolean) => void;
   setImportFilters: (filters: ImportFilters) => void;
   searchCompaniesForImport: (filters: ImportFilters) => Promise<Company[]>;
-  
+
   // Actions utilitaires
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
-  
+
   // Getters calculés
   getActiveList: () => CompanyList | null;
   getListById: (listId: string) => CompanyList | null;
   getSelectedCompaniesCount: () => number;
-  checkForDuplicates: (siren: string) => { listName: string; companyName: string }[];
+  checkForDuplicates: (
+    siren: string
+  ) => { listName: string; companyName: string }[];
 }
 
 export const useCompanyListsStore = create<CompanyListsState>()(
@@ -84,8 +89,8 @@ export const useCompanyListsStore = create<CompanyListsState>()(
         searchLoading: false,
 
         // Actions pour les listes
-        setLists: (lists) => set({ lists }),
-        
+        setLists: lists => set({ lists }),
+
         fetchLists: async () => {
           set({ isLoading: true, error: null });
           try {
@@ -96,23 +101,24 @@ export const useCompanyListsStore = create<CompanyListsState>()(
             const lists = await response.json();
             set({ lists, isLoading: false });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
           }
         },
-        
-        setActiveList: (listId) => set({ activeListId: listId }),
-        
-        selectList: (listId) => {
+
+        setActiveList: listId => set({ activeListId: listId }),
+
+        selectList: listId => {
           const { lists } = get();
           const list = lists.find(l => l.id === listId);
-          set({ 
+          set({
             activeListId: listId,
-            currentList: list || null
+            currentList: list || null,
           });
         },
-        
-        createList: async (data) => {
+
+        createList: async data => {
           set({ isLoading: true, error: null });
           try {
             const response = await fetch('/api/company-lists', {
@@ -120,29 +126,30 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
-            
+
             if (!response.ok) {
               throw new Error('Erreur lors de la création de la liste');
             }
-            
+
             const newList = await response.json();
             const { lists } = get();
-            
-            set({ 
+
+            set({
               lists: [...lists, newList],
               activeListId: newList.id,
-              isLoading: false 
+              isLoading: false,
             });
-            
+
             return newList;
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
-        updateList: async (data) => {
+
+        updateList: async data => {
           set({ isLoading: true, error: null });
           try {
             const response = await fetch(`/api/company-lists/${data.id}`, {
@@ -150,59 +157,64 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
-            
+
             if (!response.ok) {
               throw new Error('Erreur lors de la mise à jour de la liste');
             }
-            
+
             const updatedList = await response.json();
             const { lists } = get();
-            
-            set({ 
-              lists: lists.map(list => list.id === data.id ? updatedList : list),
-              isLoading: false 
+
+            set({
+              lists: lists.map(list =>
+                list.id === data.id ? updatedList : list
+              ),
+              isLoading: false,
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
-        deleteList: async (listId) => {
+
+        deleteList: async listId => {
           set({ isLoading: true, error: null });
           try {
             const response = await fetch(`/api/company-lists/${listId}`, {
               method: 'DELETE',
             });
-            
+
             if (!response.ok) {
               throw new Error('Erreur lors de la suppression de la liste');
             }
-            
+
             const { lists, activeListId } = get();
             const newLists = lists.filter(list => list.id !== listId);
-            const newActiveListId = activeListId === listId ? null : activeListId;
-            
-            set({ 
+            const newActiveListId =
+              activeListId === listId ? null : activeListId;
+
+            set({
               lists: newLists,
               activeListId: newActiveListId,
-              isLoading: false 
+              isLoading: false,
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
-        archiveList: async (listId) => {
+
+        archiveList: async listId => {
           const { updateList } = get();
           await updateList({ id: listId, isArchived: true });
         },
 
         // Actions pour les entreprises
-        addCompaniesToList: async (data) => {
+        addCompaniesToList: async data => {
           set({ isLoading: true, error: null });
           try {
             const response = await fetch('/api/company-lists/add-companies', {
@@ -210,83 +222,101 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
-            
+
             if (!response.ok) {
-              throw new Error('Erreur lors de l\'ajout des entreprises');
+              throw new Error("Erreur lors de l'ajout des entreprises");
             }
-            
+
             // Recharger la liste mise à jour
-            const updatedListResponse = await fetch(`/api/company-lists/${data.listId}`);
+            const updatedListResponse = await fetch(
+              `/api/company-lists/${data.listId}`
+            );
             const updatedList = await updatedListResponse.json();
-            
+
             const { lists } = get();
-            set({ 
-              lists: lists.map(list => list.id === data.listId ? updatedList : list),
-              isLoading: false 
+            set({
+              lists: lists.map(list =>
+                list.id === data.listId ? updatedList : list
+              ),
+              isLoading: false,
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
+
         removeCompanyFromList: async (listId, companyId) => {
           set({ isLoading: true, error: null });
           try {
-            const response = await fetch(`/api/company-lists/${listId}/companies/${companyId}`, {
-              method: 'DELETE',
-            });
-            
+            const response = await fetch(
+              `/api/company-lists/${listId}/companies/${companyId}`,
+              {
+                method: 'DELETE',
+              }
+            );
+
             if (!response.ok) {
-              throw new Error('Erreur lors de la suppression de l\'entreprise');
+              throw new Error("Erreur lors de la suppression de l'entreprise");
             }
-            
+
             const { lists } = get();
-            set({ 
-              lists: lists.map(list => 
-                list.id === listId 
-                  ? { ...list, companies: list.companies.filter(c => c.id !== companyId) }
+            set({
+              lists: lists.map(list =>
+                list.id === listId
+                  ? {
+                      ...list,
+                      companies: list.companies.filter(c => c.id !== companyId),
+                    }
                   : list
               ),
-              selectedCompanies: get().selectedCompanies.filter(id => id !== companyId),
-              isLoading: false 
+              selectedCompanies: get().selectedCompanies.filter(
+                id => id !== companyId
+              ),
+              isLoading: false,
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
+
         importCompanies: async (listId, filters) => {
           set({ isLoading: true, error: null });
           try {
-            const response = await fetch(`/api/company-lists/${listId}/import`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(filters),
-            });
-            
+            const response = await fetch(
+              `/api/company-lists/${listId}/import`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(filters),
+              }
+            );
+
             if (!response.ok) {
-              throw new Error('Erreur lors de l\'importation des entreprises');
+              throw new Error("Erreur lors de l'importation des entreprises");
             }
-            
+
             const result = await response.json();
-            
+
             // Recharger la liste mise à jour
             const { fetchLists } = get();
             await fetchLists();
-            
+
             set({ isLoading: false });
             return result;
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
-        
+
         updateCompanyStatus: async (companyId, status) => {
           try {
             const response = await fetch(`/api/companies/${companyId}/status`, {
@@ -294,27 +324,30 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status }),
             });
-            
+
             if (!response.ok) {
               throw new Error('Erreur lors de la mise à jour du statut');
             }
-            
+
             const { lists } = get();
-            set({ 
+            set({
               lists: lists.map(list => ({
                 ...list,
-                companies: list.companies.map(company => 
-                  company.id === companyId ? { ...company, statut: status } : company
-                )
-              }))
+                companies: list.companies.map(company =>
+                  company.id === companyId
+                    ? { ...company, statut: status }
+                    : company
+                ),
+              })),
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage });
             throw error;
           }
         },
-        
+
         updateCompanyNotes: async (companyId, notes) => {
           try {
             const response = await fetch(`/api/companies/${companyId}/notes`, {
@@ -322,28 +355,29 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ notes }),
             });
-            
+
             if (!response.ok) {
               throw new Error('Erreur lors de la mise à jour des notes');
             }
-            
+
             const { lists } = get();
-            set({ 
+            set({
               lists: lists.map(list => ({
                 ...list,
-                companies: list.companies.map(company => 
+                companies: list.companies.map(company =>
                   company.id === companyId ? { ...company, notes } : company
-                )
-              }))
+                ),
+              })),
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage });
             throw error;
           }
         },
-        
-        bulkAction: async (data) => {
+
+        bulkAction: async data => {
           set({ isLoading: true, error: null });
           try {
             const response = await fetch('/api/companies/bulk-action', {
@@ -351,57 +385,58 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
-            
+
             if (!response.ok) {
-              throw new Error('Erreur lors de l\'action en lot');
+              throw new Error("Erreur lors de l'action en lot");
             }
-            
+
             // Recharger les listes affectées
             const listsResponse = await fetch('/api/company-lists');
             const updatedLists = await listsResponse.json();
-            
-            set({ 
+
+            set({
               lists: updatedLists,
               selectedCompanies: [],
-              isLoading: false 
+              isLoading: false,
             });
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, isLoading: false });
             throw error;
           }
         },
 
         // Actions pour la sélection
-        selectCompany: (companyId) => {
+        selectCompany: companyId => {
           set({ selectedCompanies: [companyId] });
         },
-        
-        selectAllCompanies: (companyIds) => {
+
+        selectAllCompanies: companyIds => {
           set({ selectedCompanies: companyIds });
         },
-        
+
         clearSelection: () => {
           set({ selectedCompanies: [] });
         },
-        
-        toggleCompanySelection: (companyId) => {
+
+        toggleCompanySelection: companyId => {
           const { selectedCompanies } = get();
           const isSelected = selectedCompanies.includes(companyId);
-          
-          set({ 
-            selectedCompanies: isSelected 
+
+          set({
+            selectedCompanies: isSelected
               ? selectedCompanies.filter(id => id !== companyId)
-              : [...selectedCompanies, companyId]
+              : [...selectedCompanies, companyId],
           });
         },
 
         // Actions pour l'import
-        setShowImportModal: (show) => set({ showImportModal: show }),
-        
-        setImportFilters: (filters) => set({ importFilters: filters }),
-        
-        searchCompaniesForImport: async (filters) => {
+        setShowImportModal: show => set({ showImportModal: show }),
+
+        setImportFilters: filters => set({ importFilters: filters }),
+
+        searchCompaniesForImport: async filters => {
           set({ searchLoading: true, error: null });
           try {
             const response = await fetch('/api/companies/search', {
@@ -409,25 +444,26 @@ export const useCompanyListsStore = create<CompanyListsState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ filters }),
             });
-            
+
             if (!response.ok) {
-              throw new Error('Erreur lors de la recherche d\'entreprises');
+              throw new Error("Erreur lors de la recherche d'entreprises");
             }
-            
+
             const results = await response.json();
             set({ searchResults: results.companies, searchLoading: false });
-            
+
             return results.companies;
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Erreur inconnue';
             set({ error: errorMessage, searchLoading: false });
             throw error;
           }
         },
 
         // Actions utilitaires
-        setLoading: (loading) => set({ isLoading: loading }),
-        setError: (error) => set({ error }),
+        setLoading: loading => set({ isLoading: loading }),
+        setError: error => set({ error }),
         clearError: () => set({ error: null }),
 
         // Getters calculés
@@ -435,39 +471,39 @@ export const useCompanyListsStore = create<CompanyListsState>()(
           const { lists, activeListId } = get();
           return lists.find(list => list.id === activeListId) || null;
         },
-        
-        getListById: (listId) => {
+
+        getListById: listId => {
           const { lists } = get();
           return lists.find(list => list.id === listId) || null;
         },
-        
+
         getSelectedCompaniesCount: () => {
           return get().selectedCompanies.length;
         },
-        
-        checkForDuplicates: (siren) => {
+
+        checkForDuplicates: siren => {
           const { lists } = get();
           const duplicates: { listName: string; companyName: string }[] = [];
-          
+
           lists.forEach(list => {
             list.companies.forEach(company => {
               if (company.siren === siren) {
                 duplicates.push({
                   listName: list.name,
-                  companyName: company.denomination
+                  companyName: company.denomination,
                 });
               }
             });
           });
-          
+
           return duplicates;
         },
       }),
       {
         name: 'company-lists-store',
-        partialize: (state) => ({ 
+        partialize: state => ({
           activeListId: state.activeListId,
-          importFilters: state.importFilters 
+          importFilters: state.importFilters,
         }),
       }
     )

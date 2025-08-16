@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useBankingRefresh } from './useBankingRefresh';
 
 interface MonthlyTrend {
   [monthKey: string]: {
@@ -25,7 +26,9 @@ interface UseBankingAnalyticsResult {
   refreshAnalytics: () => void;
 }
 
-export function useBankingAnalytics(timeframe: string = '30d'): UseBankingAnalyticsResult {
+export function useBankingAnalytics(
+  timeframe: string = '30d'
+): UseBankingAnalyticsResult {
   const [analytics, setAnalytics] = useState<BankingAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +38,10 @@ export function useBankingAnalytics(timeframe: string = '30d'): UseBankingAnalyt
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/banking/analytics?timeframe=${timeframe}`);
-      
+      const response = await fetch(
+        `/api/banking/analytics?timeframe=${timeframe}`
+      );
+
       if (!response.ok) {
         throw new Error('Failed to fetch analytics');
       }
@@ -53,6 +58,12 @@ export function useBankingAnalytics(timeframe: string = '30d'): UseBankingAnalyt
   useEffect(() => {
     fetchAnalytics();
   }, [timeframe]);
+
+  // Utiliser le système de refresh centralisé
+  useBankingRefresh('refreshAnalytics', () => {
+    console.log('[useBankingAnalytics] Rafraîchissement des analytics via RefreshManager');
+    fetchAnalytics();
+  });
 
   return {
     analytics,

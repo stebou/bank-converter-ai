@@ -3,14 +3,14 @@
 import { useAuth, useSignIn, useSignUp, useUser } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-    ArrowRight,
-    Eye,
-    EyeOff,
-    Lock,
-    Mail,
-    Sparkles,
-    User,
-    X,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Sparkles,
+  User,
+  X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -218,9 +218,11 @@ export default function AuthModal({
     // Transition simplifiée après suppression de AuthTransition
     setTimeout(() => handleTransitionComplete(), 1000);
     return (
-      <div className="fixed inset-0 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center z-50">
-        <div className="text-white text-center">
-          <h2 className="text-2xl font-bold mb-2">Bienvenue {user?.firstName || 'Utilisateur'}!</h2>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="text-center text-white">
+          <h2 className="mb-2 text-2xl font-bold">
+            Bienvenue {user?.firstName || 'Utilisateur'}!
+          </h2>
           <p>Redirection en cours...</p>
         </div>
       </div>

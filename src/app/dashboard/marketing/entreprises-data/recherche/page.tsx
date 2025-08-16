@@ -5,7 +5,14 @@ import { CompanySearchResults } from '@/components/CompanySearchResults';
 import { useCompanyListsStore } from '@/stores/company-lists';
 import { CompanySearchResult, SearchCriteria } from '@/types/search-criteria';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Building2, Download, Filter, Plus, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  Download,
+  Filter,
+  Plus,
+  Search,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -20,24 +27,31 @@ export default function CompanySearchPage() {
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
-  
+
   const { lists, createList, importCompanies } = useCompanyListsStore();
 
-  const handleAdvancedSearch = async (criteria: SearchCriteria, page: number = 1) => {
+  const handleAdvancedSearch = async (
+    criteria: SearchCriteria,
+    page: number = 1
+  ) => {
     setIsSearching(true);
     setSearchCriteria(criteria);
     setCurrentPage(page);
-    
+
     try {
       const searchParams = new URLSearchParams();
-      
+
       // Ajouter les critères aux paramètres de recherche
       Object.entries(criteria).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           if (typeof value === 'object') {
             // Pour les objets comme dateCreation, chiffreAffaires, etc.
             Object.entries(value).forEach(([subKey, subValue]) => {
-              if (subValue !== undefined && subValue !== null && subValue !== '') {
+              if (
+                subValue !== undefined &&
+                subValue !== null &&
+                subValue !== ''
+              ) {
                 searchParams.append(`${key}.${subKey}`, String(subValue));
               }
             });
@@ -46,11 +60,13 @@ export default function CompanySearchPage() {
           }
         }
       });
-      
+
       searchParams.append('page', page.toString());
       searchParams.append('limit', '20');
 
-      const response = await fetch(`/api/company-search?${searchParams.toString()}`);
+      const response = await fetch(
+        `/api/company-search?${searchParams.toString()}`
+      );
       if (response.ok) {
         const data = await response.json();
         console.log('🔍 Réponse API reçue:', data);
@@ -71,8 +87,8 @@ export default function CompanySearchPage() {
   };
 
   const toggleCompanySelection = (companyId: string) => {
-    setSelectedCompanies(prev => 
-      prev.includes(companyId) 
+    setSelectedCompanies(prev =>
+      prev.includes(companyId)
         ? prev.filter(id => id !== companyId)
         : [...prev, companyId]
     );
@@ -93,7 +109,9 @@ export default function CompanySearchPage() {
     try {
       const newList = await createList({
         name: newListName,
-        description: newListDescription || `Liste créée depuis la recherche d'entreprises - ${selectedCompanies.length} entreprises sélectionnées`
+        description:
+          newListDescription ||
+          `Liste créée depuis la recherche d'entreprises - ${selectedCompanies.length} entreprises sélectionnées`,
       });
 
       // Importer les entreprises sélectionnées dans la nouvelle liste
@@ -104,8 +122,10 @@ export default function CompanySearchPage() {
       setNewListName('');
       setNewListDescription('');
       setSelectedCompanies([]);
-      
-      alert(`Liste "${newListName}" créée avec ${selectedCompanies.length} entreprises !`);
+
+      alert(
+        `Liste "${newListName}" créée avec ${selectedCompanies.length} entreprises !`
+      );
     } catch (error) {
       console.error('Erreur lors de la création de la liste:', error);
       alert('Erreur lors de la création de la liste');
@@ -118,12 +138,14 @@ export default function CompanySearchPage() {
     try {
       await importCompanies(listId, { companyIds: selectedCompanies });
       setSelectedCompanies([]);
-      
+
       const list = lists.find(l => l.id === listId);
-      alert(`${selectedCompanies.length} entreprises ajoutées à la liste "${list?.name}" !`);
+      alert(
+        `${selectedCompanies.length} entreprises ajoutées à la liste "${list?.name}" !`
+      );
     } catch (error) {
-      console.error('Erreur lors de l\'ajout à la liste:', error);
-      alert('Erreur lors de l\'ajout à la liste');
+      console.error("Erreur lors de l'ajout à la liste:", error);
+      alert("Erreur lors de l'ajout à la liste");
     }
   };
 
@@ -133,27 +155,41 @@ export default function CompanySearchPage() {
       return;
     }
 
-    const selectedResults = searchResults.filter(company => 
+    const selectedResults = searchResults.filter(company =>
       selectedCompanies.includes(company.siren)
     );
 
     const csvContent = [
       // En-têtes
-      ['SIREN', 'SIRET', 'Dénomination', 'Activité', 'Code Postal', 'Ville', 'Département', 'Région', 'Effectifs', 'Date de création', 'État'].join(','),
+      [
+        'SIREN',
+        'SIRET',
+        'Dénomination',
+        'Activité',
+        'Code Postal',
+        'Ville',
+        'Département',
+        'Région',
+        'Effectifs',
+        'Date de création',
+        'État',
+      ].join(','),
       // Données
-      ...selectedResults.map(company => [
-        company.siren,
-        company.siret || '',
-        `"${company.denomination}"`,
-        `"${company.activitePrincipaleLibelle}"`,
-        company.adresse.codePostal,
-        `"${company.adresse.commune}"`,
-        company.adresse.departement,
-        `"${company.adresse.region}"`,
-        `"${company.trancheEffectifsLibelle || ''}"`,
-        company.dateCreation,
-        company.etatAdministratif === 'A' ? 'Actif' : 'Fermé'
-      ].join(','))
+      ...selectedResults.map(company =>
+        [
+          company.siren,
+          company.siret || '',
+          `"${company.denomination}"`,
+          `"${company.activitePrincipaleLibelle}"`,
+          company.adresse.codePostal,
+          `"${company.adresse.commune}"`,
+          company.adresse.departement,
+          `"${company.adresse.region}"`,
+          `"${company.trancheEffectifsLibelle || ''}"`,
+          company.dateCreation,
+          company.etatAdministratif === 'A' ? 'Actif' : 'Fermé',
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -166,9 +202,9 @@ export default function CompanySearchPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* En-tête */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
                 href="/dashboard/marketing/entreprises-data"
@@ -192,10 +228,10 @@ export default function CompanySearchPage() {
                 <span className="text-sm text-gray-600">
                   {selectedCompanies.length} sélectionnée(s)
                 </span>
-                
+
                 <button
                   onClick={exportToCsv}
-                  className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
                 >
                   <Download className="h-4 w-4" />
                   Exporter CSV
@@ -205,13 +241,13 @@ export default function CompanySearchPage() {
                 {lists.length > 0 && (
                   <div className="relative">
                     <select
-                      onChange={(e) => {
+                      onChange={e => {
                         if (e.target.value) {
                           handleAddToExistingList(e.target.value);
                           e.target.value = '';
                         }
                       }}
-                      className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm hover:bg-gray-50"
+                      className="appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm hover:bg-gray-50"
                     >
                       <option value="">Ajouter à une liste</option>
                       {lists.map(list => (
@@ -225,7 +261,7 @@ export default function CompanySearchPage() {
 
                 <button
                   onClick={() => setShowCreateListModal(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#3498db] text-white text-sm rounded-lg hover:bg-[#2980b9]"
+                  className="flex items-center gap-2 rounded-lg bg-[#3498db] px-3 py-2 text-sm text-white hover:bg-[#2980b9]"
                 >
                   <Plus className="h-4 w-4" />
                   Créer une liste
@@ -237,36 +273,40 @@ export default function CompanySearchPage() {
       </div>
 
       {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           {/* Sidebar avec les filtres */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
                 <Filter className="h-5 w-5 text-[#3498db]" />
-                <h2 className="font-semibold text-[#2c3e50]">Filtres de recherche</h2>
+                <h2 className="font-semibold text-[#2c3e50]">
+                  Filtres de recherche
+                </h2>
               </div>
-              <AdvancedSearch 
-                onSearch={handleAdvancedSearch} 
-                isSearching={isSearching} 
+              <AdvancedSearch
+                onSearch={handleAdvancedSearch}
+                isSearching={isSearching}
               />
             </div>
           </div>
 
           {/* Zone des résultats */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               {searchResults.length === 0 && !isSearching ? (
-                <div className="text-center py-12">
-                  <Building2 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="py-12 text-center">
+                  <Building2 className="mx-auto mb-4 h-16 w-16 text-gray-300" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">
                     Recherchez des entreprises
                   </h3>
-                  <p className="text-gray-500 mb-6">
-                    Utilisez les filtres à gauche pour trouver des entreprises selon vos critères.
+                  <p className="mb-6 text-gray-500">
+                    Utilisez les filtres à gauche pour trouver des entreprises
+                    selon vos critères.
                   </p>
                   <div className="text-sm text-gray-400">
-                    💡 Astuce : Commencez par une recherche simple avec le nom ou la ville, puis affinez avec les filtres avancés.
+                    💡 Astuce : Commencez par une recherche simple avec le nom
+                    ou la ville, puis affinez avec les filtres avancés.
                   </div>
                 </div>
               ) : (
@@ -290,45 +330,46 @@ export default function CompanySearchPage() {
 
       {/* Modal de création de liste */}
       {showCreateListModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-lg p-6 w-full max-w-md"
+            className="w-full max-w-md rounded-lg bg-white p-6"
           >
-            <h2 className="text-xl font-semibold text-[#2c3e50] mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-[#2c3e50]">
               Créer une nouvelle liste
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Nom de la liste
                 </label>
                 <input
                   type="text"
                   value={newListName}
-                  onChange={(e) => setNewListName(e.target.value)}
+                  onChange={e => setNewListName(e.target.value)}
                   placeholder="Ex: Entreprises Tech Lyon"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#3498db] focus:border-transparent"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-[#3498db]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Description (optionnelle)
                 </label>
                 <textarea
                   value={newListDescription}
-                  onChange={(e) => setNewListDescription(e.target.value)}
+                  onChange={e => setNewListDescription(e.target.value)}
                   placeholder="Description des critères de sélection..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#3498db] focus:border-transparent"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-[#3498db]"
                 />
               </div>
               <div className="text-sm text-gray-600">
-                {selectedCompanies.length} entreprise(s) seront ajoutées à cette liste.
+                {selectedCompanies.length} entreprise(s) seront ajoutées à cette
+                liste.
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowCreateListModal(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
@@ -338,7 +379,7 @@ export default function CompanySearchPage() {
               <button
                 onClick={handleCreateNewList}
                 disabled={!newListName.trim() || selectedCompanies.length === 0}
-                className="px-4 py-2 bg-[#3498db] text-white rounded-lg hover:bg-[#2980b9] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-[#3498db] px-4 py-2 text-white hover:bg-[#2980b9] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Créer la liste
               </button>

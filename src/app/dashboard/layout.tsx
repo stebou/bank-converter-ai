@@ -62,12 +62,15 @@ export default function DashboardLayout({
   const pagesWithoutSidebar = [
     '/dashboard/marketing/creer-campagne',
     '/dashboard/marketing/chat',
-    '/dashboard/marketing/tasks'
+    '/dashboard/marketing/tasks',
   ];
-  
+
   // Vérifier si on est sur une page entreprises-data (y compris les sous-pages)
-  const isEntreprisesDataPage = pathname.startsWith('/dashboard/marketing/entreprises-data');
-  const shouldShowSidebar = !pagesWithoutSidebar.includes(pathname) && !isEntreprisesDataPage;
+  const isEntreprisesDataPage = pathname.startsWith(
+    '/dashboard/marketing/entreprises-data'
+  );
+  const shouldShowSidebar =
+    !pagesWithoutSidebar.includes(pathname) && !isEntreprisesDataPage;
 
   // Si c'est une page sans sidebar, on rend juste les children
   if (!shouldShowSidebar) {

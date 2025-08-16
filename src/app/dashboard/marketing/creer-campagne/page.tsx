@@ -16,7 +16,7 @@ import {
   Send,
   Settings,
   X,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -45,7 +45,7 @@ export default function CreerCampagnePage() {
   const [campaign, setCampaign] = useState<CampaignData>({
     name: "Alternative94's campaign (4)",
     enabled: true,
-    wizard: ['sequence', 'prospects', 'send']
+    wizard: ['sequence', 'prospects', 'send'],
   });
 
   const stepsData: StepsData = {
@@ -55,20 +55,14 @@ export default function CreerCampagnePage() {
       'Message vocal (LinkedIn)',
       'AI Voice message (LinkedIn)',
       'Invitation (LinkedIn)',
-      'Visiter le profil'
+      'Visiter le profil',
     ],
-    manual: [
-      'Appel (Créer une tâche)',
-      'Tâche manuelle (Créer une tâche)'
-    ],
-    other: [
-      'Appeler une API',
-      'Envoyer à une autre campagne'
-    ],
+    manual: ['Appel (Créer une tâche)', 'Tâche manuelle (Créer une tâche)'],
+    other: ['Appeler une API', 'Envoyer à une autre campagne'],
     ai: [
       'Perplexity (browse/generate/classify/analyze)',
-      'OpenAI (generate/classify/analyze)'
-    ]
+      'OpenAI (generate/classify/analyze)',
+    ],
   };
 
   const altMethods = ['create_with_ai', 'templates_library'];
@@ -80,16 +74,16 @@ export default function CreerCampagnePage() {
   return (
     <div className="min-h-screen bg-[#ecf0f1]">
       {/* TopBar simplifiée */}
-      <header 
+      <header
         aria-label="Barre d'entête"
-        className="bg-white shadow-sm border-b border-[#bdc3c7] p-4"
+        className="border-b border-[#bdc3c7] bg-white p-4 shadow-sm"
       >
         <div className="flex items-center justify-between">
           {/* Titre de la page avec bouton retour */}
           <div className="flex items-center gap-4">
             <motion.button
               onClick={() => router.push('/dashboard/marketing')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#2c3e50] text-white rounded-lg hover:bg-[#34495e] transition-all duration-200 text-sm font-medium shadow-md"
+              className="flex items-center gap-2 rounded-lg bg-[#2c3e50] px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-[#34495e]"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               aria-label="Retour au Marketing"
@@ -97,12 +91,12 @@ export default function CreerCampagnePage() {
               <X className="h-4 w-4" />
               Retour au Marketing
             </motion.button>
-            
+
             <div>
-              <h1 className="text-2xl font-bold text-[#2c3e50] font-montserrat">
+              <h1 className="font-montserrat text-2xl font-bold text-[#2c3e50]">
                 Créer une campagne
               </h1>
-              <p className="text-[#7f8c8d] text-sm">
+              <p className="text-sm text-[#7f8c8d]">
                 Configurez votre nouvelle campagne marketing
               </p>
             </div>
@@ -114,12 +108,14 @@ export default function CreerCampagnePage() {
               type="text"
               id="campaign-name"
               value={campaign.name}
-              onChange={(e) => setCampaign(prev => ({ ...prev, name: e.target.value }))}
-              className="text-xl font-semibold text-[#2c3e50] bg-transparent border-none outline-none"
+              onChange={e =>
+                setCampaign(prev => ({ ...prev, name: e.target.value }))
+              }
+              className="border-none bg-transparent text-xl font-semibold text-[#2c3e50] outline-none"
             />
-            
+
             {/* Interrupteur ON/OFF */}
-            <label className="flex items-center space-x-2 cursor-pointer">
+            <label className="flex cursor-pointer items-center space-x-2">
               <input
                 type="checkbox"
                 id="campaign-enabled"
@@ -128,12 +124,16 @@ export default function CreerCampagnePage() {
                 aria-label="Activer la campagne"
                 className="sr-only"
               />
-              <div className={`w-10 h-6 rounded-full transition-colors ${
-                campaign.enabled ? 'bg-green-500' : 'bg-[#bdc3c7]'
-              }`}>
-                <div className={`w-4 h-4 bg-white rounded-full mt-1 transition-transform ${
-                  campaign.enabled ? 'translate-x-5' : 'translate-x-1'
-                }`} />
+              <div
+                className={`h-6 w-10 rounded-full transition-colors ${
+                  campaign.enabled ? 'bg-green-500' : 'bg-[#bdc3c7]'
+                }`}
+              >
+                <div
+                  className={`mt-1 h-4 w-4 rounded-full bg-white transition-transform ${
+                    campaign.enabled ? 'translate-x-5' : 'translate-x-1'
+                  }`}
+                />
               </div>
               <span className="text-sm text-[#7f8c8d]">
                 {campaign.enabled ? 'ON' : 'OFF'}
@@ -143,29 +143,38 @@ export default function CreerCampagnePage() {
 
           {/* WizardSteps + Menu */}
           <div className="flex items-center space-x-4">
-            <nav aria-label="Assistant d'étapes" className="flex items-center space-x-2">
+            <nav
+              aria-label="Assistant d'étapes"
+              className="flex items-center space-x-2"
+            >
               <ol className="flex items-center space-x-2">
                 <li className="flex items-center space-x-2">
-                  <span className="px-3 py-1 bg-[#2c3e50] text-white rounded text-sm">Séquence</span>
+                  <span className="rounded bg-[#2c3e50] px-3 py-1 text-sm text-white">
+                    Séquence
+                  </span>
                   <ChevronRight className="h-4 w-4 text-[#7f8c8d]" />
                 </li>
                 <li className="flex items-center space-x-2">
-                  <span className="px-3 py-1 text-[#7f8c8d] rounded text-sm">Liste de prospects</span>
+                  <span className="rounded px-3 py-1 text-sm text-[#7f8c8d]">
+                    Liste de prospects
+                  </span>
                   <ChevronRight className="h-4 w-4 text-[#7f8c8d]" />
                 </li>
                 <li>
-                  <span className="px-3 py-1 text-[#7f8c8d] rounded text-sm">Envoi</span>
+                  <span className="rounded px-3 py-1 text-sm text-[#7f8c8d]">
+                    Envoi
+                  </span>
                 </li>
               </ol>
-              <button className="px-4 py-2 bg-[#3498db] text-white rounded hover:bg-[#2980b9] transition-colors">
+              <button className="rounded bg-[#3498db] px-4 py-2 text-white transition-colors hover:bg-[#2980b9]">
                 Suivant
               </button>
             </nav>
-            
+
             {/* Icône paramètres */}
-            <button 
+            <button
               id="settings"
-              className="p-2 hover:bg-[#ecf0f1] rounded-lg transition-colors"
+              className="rounded-lg p-2 transition-colors hover:bg-[#ecf0f1]"
             >
               <Settings className="h-5 w-5 text-[#7f8c8d]" />
             </button>
@@ -176,23 +185,33 @@ export default function CreerCampagnePage() {
       {/* Main */}
       <main className="p-6">
         {/* BuilderCard */}
-        <section aria-labelledby="builder-title" className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <section
+          aria-labelledby="builder-title"
+          className="mb-6 rounded-xl bg-white p-6 shadow-sm"
+        >
           {/* Header */}
           <header className="mb-6">
-            <h1 id="builder-title" className="text-2xl font-bold text-[#2c3e50] mb-2">
+            <h1
+              id="builder-title"
+              className="mb-2 text-2xl font-bold text-[#2c3e50]"
+            >
               Construire ma campagne manuellement
             </h1>
-            <p className="text-[#7f8c8d] mb-4">
+            <p className="mb-4 text-[#7f8c8d]">
               Choisir manuellement les étapes
             </p>
-            
+
             {/* Tabs */}
-            <nav role="tablist" aria-label="Onglets du builder" className="flex space-x-1 bg-[#ecf0f1] p-1 rounded-lg w-fit">
+            <nav
+              role="tablist"
+              aria-label="Onglets du builder"
+              className="flex w-fit space-x-1 rounded-lg bg-[#ecf0f1] p-1"
+            >
               <button
                 role="tab"
                 aria-selected={activeTab === 'steps'}
                 onClick={() => setActiveTab('steps')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                   activeTab === 'steps'
                     ? 'bg-white text-[#2c3e50] shadow-sm'
                     : 'text-[#7f8c8d] hover:text-[#2c3e50]'
@@ -204,7 +223,7 @@ export default function CreerCampagnePage() {
                 role="tab"
                 aria-selected={activeTab === 'conditions'}
                 onClick={() => setActiveTab('conditions')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                   activeTab === 'conditions'
                     ? 'bg-white text-[#2c3e50] shadow-sm'
                     : 'text-[#7f8c8d] hover:text-[#2c3e50]'
@@ -218,11 +237,17 @@ export default function CreerCampagnePage() {
           {/* StepsGrid */}
           {activeTab === 'steps' && (
             <section aria-label="Liste des étapes">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Colonne A - Étapes automatiques */}
-                <div role="region" aria-labelledby="auto-steps-title" className="space-y-4">
-                  <h3 id="auto-steps-title" className="text-lg font-semibold text-[#2c3e50] flex items-center space-x-2">
+                <div
+                  role="region"
+                  aria-labelledby="auto-steps-title"
+                  className="space-y-4"
+                >
+                  <h3
+                    id="auto-steps-title"
+                    className="flex items-center space-x-2 text-lg font-semibold text-[#2c3e50]"
+                  >
                     <Zap className="h-5 w-5" />
                     <span>Étapes automatiques</span>
                   </h3>
@@ -231,7 +256,7 @@ export default function CreerCampagnePage() {
                       <motion.li
                         key={index}
                         whileHover={{ scale: 1.02 }}
-                        className="p-3 border border-[#ecf0f1] rounded-lg cursor-pointer hover:border-[#3498db] hover:bg-[#ebf3fd] transition-all"
+                        className="cursor-pointer rounded-lg border border-[#ecf0f1] p-3 transition-all hover:border-[#3498db] hover:bg-[#ebf3fd]"
                       >
                         <div className="flex items-center space-x-3">
                           {step.includes('LinkedIn') ? (
@@ -253,8 +278,15 @@ export default function CreerCampagnePage() {
                 </div>
 
                 {/* Colonne B - Exécution manuelle */}
-                <div role="region" aria-labelledby="manual-steps-title" className="space-y-4">
-                  <h3 id="manual-steps-title" className="text-lg font-semibold text-[#2c3e50] flex items-center space-x-2">
+                <div
+                  role="region"
+                  aria-labelledby="manual-steps-title"
+                  className="space-y-4"
+                >
+                  <h3
+                    id="manual-steps-title"
+                    className="flex items-center space-x-2 text-lg font-semibold text-[#2c3e50]"
+                  >
                     <Brain className="h-5 w-5" />
                     <span>Exécution manuelle</span>
                   </h3>
@@ -263,7 +295,7 @@ export default function CreerCampagnePage() {
                       <motion.li
                         key={index}
                         whileHover={{ scale: 1.02 }}
-                        className="p-3 border border-[#ecf0f1] rounded-lg cursor-pointer hover:border-[#e67e22] hover:bg-[#fdf2e9] transition-all"
+                        className="cursor-pointer rounded-lg border border-[#ecf0f1] p-3 transition-all hover:border-[#e67e22] hover:bg-[#fdf2e9]"
                       >
                         <div className="flex items-center space-x-3">
                           {step.includes('Appel') ? (
@@ -276,16 +308,18 @@ export default function CreerCampagnePage() {
                       </motion.li>
                     ))}
                   </ul>
-                  
+
                   {/* Autres étapes */}
                   <div>
-                    <h4 className="text-md font-medium text-[#7f8c8d] mb-2">Autres étapes</h4>
+                    <h4 className="text-md mb-2 font-medium text-[#7f8c8d]">
+                      Autres étapes
+                    </h4>
                     <ul className="space-y-2">
                       {stepsData.other.map((step, index) => (
                         <motion.li
                           key={index}
                           whileHover={{ scale: 1.02 }}
-                          className="p-3 border border-[#ecf0f1] rounded-lg cursor-pointer hover:border-[#9b59b6] hover:bg-[#f4ecf7] transition-all"
+                          className="cursor-pointer rounded-lg border border-[#ecf0f1] p-3 transition-all hover:border-[#9b59b6] hover:bg-[#f4ecf7]"
                         >
                           <div className="flex items-center space-x-3">
                             {step.includes('API') ? (
@@ -293,7 +327,9 @@ export default function CreerCampagnePage() {
                             ) : (
                               <Send className="h-4 w-4 text-[#7f8c8d]" />
                             )}
-                            <span className="text-sm text-[#2c3e50]">{step}</span>
+                            <span className="text-sm text-[#2c3e50]">
+                              {step}
+                            </span>
                           </div>
                         </motion.li>
                       ))}
@@ -302,8 +338,15 @@ export default function CreerCampagnePage() {
                 </div>
 
                 {/* Colonne C - AI steps */}
-                <div role="region" aria-labelledby="ai-steps-title" className="space-y-4">
-                  <h3 id="ai-steps-title" className="text-lg font-semibold text-[#2c3e50] flex items-center space-x-2">
+                <div
+                  role="region"
+                  aria-labelledby="ai-steps-title"
+                  className="space-y-4"
+                >
+                  <h3
+                    id="ai-steps-title"
+                    className="flex items-center space-x-2 text-lg font-semibold text-[#2c3e50]"
+                  >
                     <Cpu className="h-5 w-5" />
                     <span>AI steps</span>
                   </h3>
@@ -312,7 +355,7 @@ export default function CreerCampagnePage() {
                       <motion.li
                         key={index}
                         whileHover={{ scale: 1.02 }}
-                        className="p-3 border border-[#ecf0f1] rounded-lg cursor-pointer hover:border-[#1abc9c] hover:bg-[#e8f8f5] transition-all"
+                        className="cursor-pointer rounded-lg border border-[#ecf0f1] p-3 transition-all hover:border-[#1abc9c] hover:bg-[#e8f8f5]"
                       >
                         <div className="flex items-center space-x-3">
                           {step.includes('Perplexity') ? (
@@ -326,16 +369,15 @@ export default function CreerCampagnePage() {
                     ))}
                   </ul>
                 </div>
-
               </div>
             </section>
           )}
 
           {/* Tab Conditions */}
           {activeTab === 'conditions' && (
-            <div className="text-center py-12">
-              <Settings className="h-16 w-16 text-[#7f8c8d] mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-[#2c3e50] mb-2">
+            <div className="py-12 text-center">
+              <Settings className="mx-auto mb-4 h-16 w-16 text-[#7f8c8d]" />
+              <h3 className="mb-2 text-xl font-semibold text-[#2c3e50]">
                 Configuration des conditions
               </h3>
               <p className="text-[#7f8c8d]">
@@ -347,41 +389,47 @@ export default function CreerCampagnePage() {
 
         {/* AlternativeMethods */}
         <section aria-label="Méthodes alternatives">
-          <h2 className="text-xl font-bold text-[#2c3e50] mb-4">Méthodes alternatives</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+          <h2 className="mb-4 text-xl font-bold text-[#2c3e50]">
+            Méthodes alternatives
+          </h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Créer avec IA */}
             <motion.button
               whileHover={{ scale: 1.02, y: -2 }}
-              className="p-6 bg-white rounded-xl shadow-sm border border-transparent hover:border-[#3498db] transition-all text-left"
+              className="rounded-xl border border-transparent bg-white p-6 text-left shadow-sm transition-all hover:border-[#3498db]"
             >
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="p-3 bg-[#3498db]/10 rounded-lg">
+              <div className="mb-4 flex items-center space-x-4">
+                <div className="rounded-lg bg-[#3498db]/10 p-3">
                   <Bot className="h-6 w-6 text-[#3498db]" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-[#2c3e50] mb-2">Créer avec IA</h3>
-              <p className="text-[#7f8c8d] text-sm">
-                Laissez l'IA créer automatiquement votre campagne en fonction de vos objectifs
+              <h3 className="mb-2 text-lg font-semibold text-[#2c3e50]">
+                Créer avec IA
+              </h3>
+              <p className="text-sm text-[#7f8c8d]">
+                Laissez l'IA créer automatiquement votre campagne en fonction de
+                vos objectifs
               </p>
             </motion.button>
 
             {/* Bibliothèque de modèles */}
             <motion.button
               whileHover={{ scale: 1.02, y: -2 }}
-              className="p-6 bg-white rounded-xl shadow-sm border border-transparent hover:border-[#2c3e50] transition-all text-left"
+              className="rounded-xl border border-transparent bg-white p-6 text-left shadow-sm transition-all hover:border-[#2c3e50]"
             >
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="p-3 bg-[#2c3e50]/10 rounded-lg">
+              <div className="mb-4 flex items-center space-x-4">
+                <div className="rounded-lg bg-[#2c3e50]/10 p-3">
                   <BookOpen className="h-6 w-6 text-[#2c3e50]" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-[#2c3e50] mb-2">Bibliothèque de modèles</h3>
-              <p className="text-[#7f8c8d] text-sm">
-                Choisissez parmi nos modèles pré-conçus et personnalisez selon vos besoins
+              <h3 className="mb-2 text-lg font-semibold text-[#2c3e50]">
+                Bibliothèque de modèles
+              </h3>
+              <p className="text-sm text-[#7f8c8d]">
+                Choisissez parmi nos modèles pré-conçus et personnalisez selon
+                vos besoins
               </p>
             </motion.button>
-
           </div>
         </section>
       </main>

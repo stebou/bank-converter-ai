@@ -1,35 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
-  Package,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  BarChart3,
-  Search,
-  Filter,
-  ExternalLink,
-  Building2,
-  Zap,
+    generateInventoryStats,
+    generateMockMovements,
+    generateMockProducts
+} from '@/lib/inventory-test-data';
+import type {
+    InventoryStats,
+    Product
+} from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    AlertTriangle,
+    BarChart3,
+    ExternalLink,
+    Package,
+    Search,
+    TrendingUp,
+    X
 } from 'lucide-react';
 import Link from 'next/link';
-import type {
-  Product,
-  StockMovement,
-  InventoryStats,
-  StockMode,
-  OdooConfig,
-} from '@/types';
-import {
-  generateMockProducts,
-  generateMockMovements,
-  generateInventoryStats,
-  MockOdooAPI,
-  DEFAULT_TEST_CONFIG,
-} from '@/lib/inventory-test-data';
+import { useEffect, useState } from 'react';
 import '../styles/fonts.css';
 
 interface StockModalProps {
@@ -170,8 +161,8 @@ export default function StockModal({ isOpen, onClose }: StockModalProps) {
           await new Promise(resolve => setTimeout(resolve, 500));
 
           const mockProducts = generateMockProducts();
-          const mockMovements = generateMockMovements(mockProducts);
-          const mockStats = generateInventoryStats(mockProducts, mockMovements);
+          const mockMovements = generateMockMovements(30);
+          const mockStats = generateInventoryStats();
 
           setProducts(mockProducts);
           setStats(mockStats);

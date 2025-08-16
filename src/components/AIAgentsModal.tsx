@@ -2,202 +2,36 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AlertTriangle,
-  BarChart3,
-  Brain,
-  CheckCircle,
-  ChevronRight,
-  Clock,
-  Database,
-  DollarSign,
-  FileText,
-  Globe,
-  Loader2,
-  Package,
-  Target,
-  TrendingUp,
-  X,
-  XCircle,
-  Zap,
+    AlertTriangle,
+    BarChart3,
+    Brain,
+    CheckCircle,
+    ChevronRight,
+    Clock,
+    Database,
+    DollarSign,
+    FileText,
+    Globe,
+    Loader2,
+    Package,
+    Target,
+    TrendingUp,
+    X,
+    XCircle,
+    Zap,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { AnalysisStorage } from '../lib/analysis-storage';
 import '../styles/fonts.css';
 
-interface AIAgentsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import type {
+    AIAgentsModalProps,
+    Alert,
+    AnalysisResult,
+    AnalysisStep
+} from '../types/ai-agents';
 
-interface AnalysisResult {
-  success: boolean;
-  analysis_id: string;
-  execution_time_ms: number;
-  confidence_score: number;
-  recommendations: Recommendation[];
-  alerts: Alert[];
-  kpis: KPIs;
-  demand_patterns: DemandPattern[];
-  product_segments: ProductSegment[];
-  forecasts: {
-    short_term: Forecast[];
-    medium_term: Forecast[];
-    summary: { total_forecasts: number };
-  };
-  execution_summary: string;
-  agents_performance: { [key: string]: AgentPerformance };
-  market_intelligence?: MarketIntelligence;
-}
-
-interface MarketIntelligence {
-  market_insights: MarketInsight[];
-  competitor_analysis: CompetitorAnalysis[];
-  market_events: MarketEvent[];
-  sentiment_analysis: SentimentAnalysis | null;
-  contextual_recommendations: string[];
-  forecast_adjustments: any;
-  intelligence_summary: string;
-}
-
-interface MarketInsight {
-  id: string;
-  type:
-    | 'TREND'
-    | 'EVENT'
-    | 'COMPETITOR'
-    | 'REGULATION'
-    | 'ECONOMIC'
-    | 'SEASONAL';
-  source: string;
-  title: string;
-  description: string;
-  impact_score: number;
-  confidence_score: number;
-  time_relevance: 'IMMEDIATE' | 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
-  affected_products: string[];
-  predicted_impact: {
-    demand_change_percentage: number;
-    direction: 'INCREASE' | 'DECREASE' | 'NEUTRAL';
-    duration_days: number;
-  };
-  discovered_at: Date;
-  keywords: string[];
-}
-
-interface CompetitorAnalysis {
-  competitor_name: string;
-  actions_detected: any[];
-  market_position: any;
-  recent_activities: any;
-  threat_assessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-}
-
-interface MarketEvent {
-  event_id: string;
-  event_type: string;
-  title: string;
-  description: string;
-  start_date: Date;
-  impact_magnitude: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-}
-
-interface SentimentAnalysis {
-  overall_sentiment: number;
-  sentiment_trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
-  key_topics: any[];
-  consumer_confidence: {
-    current_level: number;
-    three_month_outlook: number;
-    industry_specific: number;
-  };
-}
-
-interface Recommendation {
-  id: string;
-  type: 'ORDER' | 'ADJUST' | 'ALERT' | 'OPTIMIZE';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  product_id: string;
-  action: string;
-  reasoning: string;
-  expected_impact: string;
-  confidence_score: number;
-  estimated_benefit?: number;
-  estimated_cost?: number;
-}
-
-interface Alert {
-  id: string;
-  type: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  product_id: string;
-  message: string;
-  details: string;
-  estimated_impact: {
-    financial: number;
-    operational: string;
-  };
-  recommended_action: string;
-}
-
-interface KPIs {
-  forecast_accuracy: {
-    overall_mape: number;
-    short_term_mape: number;
-    medium_term_mape: number;
-  };
-  service_metrics: {
-    service_level: number;
-    stockout_frequency: number;
-  };
-  financial_metrics: {
-    inventory_turnover: number;
-    days_of_inventory: number;
-    holding_cost_percentage: number;
-  };
-  ai_performance: {
-    alert_precision: number;
-    recommendation_adoption: number;
-  };
-}
-
-interface DemandPattern {
-  product_id: string;
-  pattern_type: 'SEASONAL' | 'TRENDING' | 'STABLE' | 'ERRATIC';
-  confidence: number;
-  volatility: number;
-  seasonality_strength: number;
-}
-
-interface ProductSegment {
-  product_id: string;
-  abc_classification: 'A' | 'B' | 'C';
-  xyz_classification: 'X' | 'Y' | 'Z';
-  strategic_importance: 'CRITICAL' | 'IMPORTANT' | 'STANDARD';
-}
-
-interface Forecast {
-  product_id: string;
-  forecast_date: string;
-  predicted_demand: number;
-  accuracy_score: number;
-}
-
-interface AgentPerformance {
-  agent_id: string;
-  execution_time_ms: number;
-  success: boolean;
-  confidence_score: number;
-}
-
-interface AnalysisStep {
-  id: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  startTime?: Date;
-  endTime?: Date;
-  progress?: number;
-}
+// Import des sous-composants
 
 interface AnalysisProgress {
   currentStep: number;
@@ -205,7 +39,6 @@ interface AnalysisProgress {
   steps: AnalysisStep[];
   overallProgress: number;
 }
-
 const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null
@@ -233,27 +66,39 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
     const steps: AnalysisStep[] = [
       {
         id: 'data-processing',
+        name: 'Traitement des Données',
         title: 'Traitement des Données',
         description: 'Analyse patterns + Prévisions + Optimisation',
         status: 'pending',
+        progress: 0,
+        agent: 'Data Processor',
       },
       {
         id: 'ai-analysis',
+        name: 'Analyse IA Avancée',
         title: 'Analyse IA Avancée',
         description: 'Détection anomalies + KPIs + Performance',
         status: 'pending',
+        progress: 0,
+        agent: 'AI Analyzer',
       },
       {
         id: 'market-intelligence',
+        name: 'Intelligence Marché',
         title: 'Intelligence Marché',
         description: 'Recherche web premium + Analyse OpenAI',
         status: 'pending',
+        progress: 0,
+        agent: 'Market Intelligence',
       },
       {
         id: 'synthesis',
+        name: 'Synthèse & Recommandations',
         title: 'Synthèse & Recommandations',
         description: 'Consolidation finale + Insights exploitables',
         status: 'pending',
+        progress: 0,
+        agent: 'Synthesizer',
       },
     ];
 
@@ -400,12 +245,13 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
           confidence_score: result.confidence_score,
           recommendations: result.recommendations,
           alerts: result.alerts,
-          metrics: { overall_score: result.confidence_score * 10 }, // Convertir en score sur 10
+          metrics: { overall_score: (result.confidence_score || 0) * 10 }, // Convertir en score sur 10
           execution_time_ms: result.execution_time_ms,
           external_context:
             result.agents_performance?.['external-context'] || null,
           anomalies:
-            result.alerts?.filter((alert: any) => alert.type === 'anomaly') || [],
+            result.alerts?.filter((alert: Alert) => alert.type === 'anomaly') ||
+            [],
           products_analyzed: result.product_segments?.length || 0,
         });
         console.log("✅ Analyse sauvegardée automatiquement dans l'historique");
@@ -667,20 +513,20 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
-                    {getPatternIcon(pattern.pattern_type)}
+                    {getPatternIcon(pattern.pattern_type || '')}
                   </span>
                   <div>
                     <p className="font-montserrat text-sm font-medium text-[#2c3e50]">
                       {pattern.product_id}
                     </p>
                     <p className="font-open-sans text-xs text-[#34495e]">
-                      {pattern.pattern_type.toLowerCase()}
+                      {(pattern.pattern_type || '').toLowerCase()}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-montserrat text-sm font-bold text-[#2c3e50]">
-                    {(pattern.confidence * 100).toFixed(0)}%
+                    {((pattern.confidence || 0) * 100).toFixed(0)}%
                   </p>
                   <p className="font-open-sans text-xs text-[#34495e]">
                     confiance
@@ -719,7 +565,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div className="text-right">
               <p className="font-montserrat text-sm font-bold text-[#2c3e50]">
-                {(rec.confidence_score * 100).toFixed(0)}%
+                {((rec.confidence_score || rec.confidence || 0) * 100).toFixed(0)}%
               </p>
               <p className="font-open-sans text-xs text-[#34495e]">confiance</p>
             </div>
@@ -811,7 +657,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                 Action recommandée:
               </p>
               <p className="font-open-sans text-sm text-[#34495e]">
-                {alert.recommended_action}
+                {alert.recommended_action || alert.recommended_actions?.[0] || 'Aucune action spécifiée'}
               </p>
             </div>
 
@@ -821,7 +667,12 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                   Impact financier estimé:
                 </p>
                 <p className="font-open-sans text-sm font-bold text-red-600">
-                  {alert.estimated_impact.financial}€
+                  {(() => {
+                    if (typeof alert.estimated_impact === 'object' && alert.estimated_impact?.financial) {
+                      return `${alert.estimated_impact.financial}€`;
+                    }
+                    return typeof alert.estimated_impact === 'string' ? alert.estimated_impact : 'N/A';
+                  })()}
                 </p>
               </div>
               <div className="text-right">
@@ -829,7 +680,9 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                   Impact opérationnel:
                 </p>
                 <p className="font-open-sans text-sm font-medium text-[#2c3e50]">
-                  {alert.estimated_impact.operational}
+                  {typeof alert.estimated_impact === 'object' && alert.estimated_impact?.operational 
+                    ? alert.estimated_impact.operational 
+                    : 'N/A'}
                 </p>
               </div>
             </div>
@@ -1225,7 +1078,13 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
           {
             label: 'Sentiment Marché',
             value: marketData.sentiment_analysis
-              ? `${(marketData.sentiment_analysis.overall_sentiment * 100).toFixed(0)}%`
+              ? (() => {
+                  const sentiment = marketData.sentiment_analysis.overall_sentiment;
+                  if (typeof sentiment === 'number') {
+                    return `${(sentiment * 100).toFixed(0)}%`;
+                  }
+                  return sentiment;
+                })()
               : 'N/A',
             icon: '📈',
             color: 'text-purple-600',
@@ -1327,21 +1186,21 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-2">
                         <span
                           className={`rounded-lg border px-2 py-1 text-xs font-medium ${
-                            insight.impact_score > 0.8
+                            (insight.impact_score || 0) > 0.8
                               ? 'border-red-200 bg-red-100 text-red-800'
-                              : insight.impact_score > 0.6
+                              : (insight.impact_score || 0) > 0.6
                                 ? 'border-orange-200 bg-orange-100 text-orange-800'
                                 : 'border-yellow-200 bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {insight.impact_score > 0.8
+                          {(insight.impact_score || 0) > 0.8
                             ? 'CRITICAL'
-                            : insight.impact_score > 0.6
+                            : (insight.impact_score || 0) > 0.6
                               ? 'HIGH'
                               : 'MEDIUM'}
                         </span>
                         <span className="font-open-sans text-xs text-[#34495e]">
-                          {(insight.confidence_score * 100).toFixed(0)}%
+                          {((insight.confidence_score || 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -1353,11 +1212,11 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                         Source: {insight.source}
                       </span>
                       <span className="font-open-sans text-[#34495e]">
-                        {insight.time_relevance.toLowerCase().replace('_', ' ')}
+                        {(insight.time_relevance || '').toLowerCase().replace('_', ' ')}
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {insight.keywords.slice(0, 3).map((keyword, idx) => (
+                      {(insight.keywords || []).slice(0, 3).map((keyword, idx) => (
                         <span
                           key={idx}
                           className="rounded-lg bg-white px-2 py-1 text-xs text-[#34495e]"
@@ -1408,7 +1267,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-open-sans text-[#34495e]">
-                          {competitor.actions_detected.length} actions récentes
+                          {(competitor.actions_detected || []).length} actions récentes
                         </span>
                       </div>
                       <div className="mt-2">
@@ -1455,7 +1314,13 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                       <li>
                         • Sentiment marché:{' '}
                         {marketData.sentiment_analysis
-                          ? `${(marketData.sentiment_analysis.overall_sentiment * 100).toFixed(0)}% positif`
+                          ? (() => {
+                              const sentiment = marketData.sentiment_analysis.overall_sentiment;
+                              if (typeof sentiment === 'number') {
+                                return `${(sentiment * 100).toFixed(0)}% positif`;
+                              }
+                              return sentiment;
+                            })()
                           : 'Non disponible'}
                       </li>
                       <li>
@@ -1751,7 +1616,7 @@ const AIAgentsModal: React.FC<AIAgentsModalProps> = ({ isOpen, onClose }) => {
                     ].map(tab => (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as typeof activeTab)}
                         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 ${
                           activeTab === tab.id
                             ? 'bg-[#2c3e50] text-white shadow-lg'

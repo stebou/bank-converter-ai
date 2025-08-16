@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useClientOnly } from './useClientOnly';
 
 interface CompanyAccountStatus {
@@ -18,9 +18,11 @@ export function useCompanyAccountStatus() {
   const { user } = useUser();
   const isClientReady = useClientOnly();
   const hasInitializedRef = useRef(false);
-  
+
   const [hasEverConnected, setHasEverConnected] = useState(false);
-  const [status, setStatus] = useState<Omit<CompanyAccountStatus, 'hasEverConnected' | 'isClientReady'>>({
+  const [status, setStatus] = useState<
+    Omit<CompanyAccountStatus, 'hasEverConnected' | 'isClientReady'>
+  >({
     hasConnectedAccount: false,
     accountsCount: 0,
     lastSyncAt: null,
@@ -31,7 +33,7 @@ export function useCompanyAccountStatus() {
   // Charger l'état depuis localStorage seulement côté client
   useEffect(() => {
     if (!isClientReady || !user) return;
-    
+
     const storageKey = `bank_connection_status_${user.id}`;
     try {
       const saved = localStorage.getItem(storageKey);
@@ -39,7 +41,7 @@ export function useCompanyAccountStatus() {
         setHasEverConnected(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Erreur lors du chargement de l\'état de connexion:', error);
+      console.error("Erreur lors du chargement de l'état de connexion:", error);
     }
   }, [isClientReady, user]);
 
@@ -55,7 +57,7 @@ export function useCompanyAccountStatus() {
 
       if (result.success) {
         const hasConnectedAccount = result.data.hasConnectedAccount;
-        
+
         // Sauvegarder dans localStorage seulement côté client
         const storageKey = `bank_connection_status_${user.id}`;
         try {
@@ -67,7 +69,10 @@ export function useCompanyAccountStatus() {
             setHasEverConnected(false);
           }
         } catch (error) {
-          console.error('Erreur lors de la sauvegarde dans localStorage:', error);
+          console.error(
+            'Erreur lors de la sauvegarde dans localStorage:',
+            error
+          );
         }
 
         setStatus({
@@ -85,7 +90,10 @@ export function useCompanyAccountStatus() {
         }));
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification du statut du compte:', error);
+      console.error(
+        'Erreur lors de la vérification du statut du compte:',
+        error
+      );
       setStatus(prev => ({
         ...prev,
         isLoading: false,
@@ -101,22 +109,25 @@ export function useCompanyAccountStatus() {
 
   const resetConnectionStatus = useCallback(() => {
     if (!isClientReady || !user) return;
-    
+
     setHasEverConnected(false);
     const storageKey = `bank_connection_status_${user.id}`;
     try {
       localStorage.setItem(storageKey, JSON.stringify(false));
     } catch (error) {
-      console.error('Erreur lors de la réinitialisation du localStorage:', error);
+      console.error(
+        'Erreur lors de la réinitialisation du localStorage:',
+        error
+      );
     }
   }, [isClientReady, user]);
 
   // Charger l'état depuis localStorage et initialiser une seule fois
   useEffect(() => {
     if (!isClientReady || !user || hasInitializedRef.current) return;
-    
+
     hasInitializedRef.current = true;
-    
+
     const storageKey = `bank_connection_status_${user.id}`;
     try {
       const saved = localStorage.getItem(storageKey);
@@ -124,9 +135,9 @@ export function useCompanyAccountStatus() {
         setHasEverConnected(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Erreur lors du chargement de l\'état de connexion:', error);
+      console.error("Erreur lors du chargement de l'état de connexion:", error);
     }
-    
+
     // Vérifier le statut une seule fois après l'initialisation
     checkAccountStatus();
   }, [isClientReady, user]); // Retirer checkAccountStatus des dépendances
@@ -134,10 +145,10 @@ export function useCompanyAccountStatus() {
   // Vérifier les paramètres URL pour une connexion réussie - une seule fois
   useEffect(() => {
     if (!isClientReady) return;
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const bridgeConnect = urlParams.get('bridge_connect');
-    
+
     if (bridgeConnect === 'success') {
       // Supprimer le paramètre de l'URL
       const newUrl = new URL(window.location.href);
@@ -145,7 +156,7 @@ export function useCompanyAccountStatus() {
       newUrl.searchParams.delete('demo');
       newUrl.searchParams.delete('status');
       window.history.replaceState({}, '', newUrl.toString());
-      
+
       // Rafraîchir le statut après une connexion réussie
       setTimeout(() => {
         refreshStatus();
@@ -153,11 +164,11 @@ export function useCompanyAccountStatus() {
     }
   }, [isClientReady]); // Retirer refreshStatus des dépendances pour éviter la boucle
 
-  return { 
-    ...status, 
-    hasEverConnected, 
+  return {
+    ...status,
+    hasEverConnected,
     isClientReady,
-    refreshStatus, 
-    resetConnectionStatus 
+    refreshStatus,
+    resetConnectionStatus,
   };
 }

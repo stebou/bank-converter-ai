@@ -94,3 +94,5 @@ Key models: `User`, `Document`, `Transaction`, `Plan`, `Payment`, `Conversation`
 - Comprehensive error handling and logging in API routes
 - Real-time chat streaming with OpenAI integration
 - Multi-tenant architecture with user isolation
+
+- X-INSEE-Api-Key-Integration est la bonne integration , la methode Authorization: Bearer YOUR_TOKEN est deprecier

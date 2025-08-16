@@ -18,7 +18,7 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  X
+  X,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -55,18 +55,23 @@ const AgentAnalysisModal: React.FC<AgentAnalysisModalProps> = ({
             insights: [
               ...report.insights.strengths,
               ...report.insights.concerns,
-              ...report.insights.opportunities
+              ...report.insights.opportunities,
             ],
             confidence_score: report.companyHealth?.score / 10 || 0.85, // Convertir score sur 10 en score sur 1
             execution_time_ms: 5000, // Valeur par défaut
-            recommendations: report.recommendations || []
+            recommendations: report.recommendations || [],
           });
-          console.log('✅ Rapport automatiquement sauvegardé dans l\'historique');
+          console.log(
+            "✅ Rapport automatiquement sauvegardé dans l'historique"
+          );
         } catch (error) {
-          console.error('❌ Erreur lors de la sauvegarde automatique dans l\'historique:', error);
+          console.error(
+            "❌ Erreur lors de la sauvegarde automatique dans l'historique:",
+            error
+          );
         }
       };
-      
+
       saveAnalysisToHistory();
     }
   }, [report, isLoading]);
@@ -74,7 +79,7 @@ const AgentAnalysisModal: React.FC<AgentAnalysisModalProps> = ({
   const startBankingAnalysis = async () => {
     try {
       setAnalyzing(true);
-      
+
       // Appeler la nouvelle API d'analyse globale
       const analysisResponse = await fetch('/api/banking/global-analysis', {
         method: 'POST',
@@ -82,22 +87,26 @@ const AgentAnalysisModal: React.FC<AgentAnalysisModalProps> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          analysisType: 'comprehensive'
-        })
+          analysisType: 'comprehensive',
+        }),
       });
 
       if (!analysisResponse.ok) {
         const errorData = await analysisResponse.json();
         if (errorData.needsDocuments) {
-          alert('Aucun document trouvé. Veuillez d\'abord uploader des relevés bancaires dans la section Documents.');
+          alert(
+            "Aucun document trouvé. Veuillez d'abord uploader des relevés bancaires dans la section Documents."
+          );
           return;
         }
-        throw new Error(errorData.message || 'Erreur lors de l\'analyse bancaire');
+        throw new Error(
+          errorData.message || "Erreur lors de l'analyse bancaire"
+        );
       }
 
       const result = await analysisResponse.json();
       console.log('Analyse bancaire globale terminée:', result);
-      
+
       // Fermer le modal et le rouvrir avec les résultats
       // (Le parent ProBankingDashboard devra gérer cela)
       if (result.success && result.report) {
@@ -112,25 +121,32 @@ const AgentAnalysisModal: React.FC<AgentAnalysisModalProps> = ({
             insights: [
               ...report.insights.strengths,
               ...report.insights.concerns,
-              ...report.insights.opportunities
+              ...report.insights.opportunities,
             ],
             confidence_score: report.companyHealth?.score / 10 || 0.85,
             execution_time_ms: result.executionTime || 5000,
-            recommendations: report.recommendations || []
+            recommendations: report.recommendations || [],
           });
-          console.log('✅ Analyse sauvegardée dans l\'historique');
+          console.log("✅ Analyse sauvegardée dans l'historique");
         } catch (storageError) {
-          console.error('❌ Erreur lors de la sauvegarde dans l\'historique:', storageError);
+          console.error(
+            "❌ Erreur lors de la sauvegarde dans l'historique:",
+            storageError
+          );
         }
-        
+
         // Trigger un re-render avec les nouvelles données
-        alert('Analyse bancaire terminée ! Les résultats vont s\'afficher dans le modal.');
+        alert(
+          "Analyse bancaire terminée ! Les résultats vont s'afficher dans le modal."
+        );
         window.location.reload(); // Solution temporaire - idéalement on passerait les données au parent
       }
-      
     } catch (error) {
-      console.error('Erreur lors de l\'analyse bancaire:', error);
-      alert('Erreur lors de l\'analyse bancaire: ' + (error instanceof Error ? error.message : 'Erreur inconnue'));
+      console.error("Erreur lors de l'analyse bancaire:", error);
+      alert(
+        "Erreur lors de l'analyse bancaire: " +
+          (error instanceof Error ? error.message : 'Erreur inconnue')
+      );
     } finally {
       setAnalyzing(false);
     }
@@ -533,21 +549,26 @@ const AgentAnalysisModal: React.FC<AgentAnalysisModalProps> = ({
                 Agent IA Bancaire
               </h3>
               <p className="font-open-sans mb-6 text-[#34495e]">
-                Lancez une analyse complète de vos documents bancaires avec notre agent IA spécialisé.
+                Lancez une analyse complète de vos documents bancaires avec
+                notre agent IA spécialisé.
               </p>
               <motion.button
                 onClick={onStartAnalysis || startBankingAnalysis}
                 disabled={analyzing || isLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#2c3e50] px-6 py-3 text-white font-semibold transition-all duration-200 hover:bg-[#34495e] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: (analyzing || isLoading) ? 1 : 1.05 }}
-                whileTap={{ scale: (analyzing || isLoading) ? 1 : 0.95 }}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#2c3e50] px-6 py-3 font-semibold text-white transition-all duration-200 hover:bg-[#34495e] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                whileHover={{ scale: analyzing || isLoading ? 1 : 1.05 }}
+                whileTap={{ scale: analyzing || isLoading ? 1 : 0.95 }}
               >
-                {(analyzing || isLoading) ? (
+                {analyzing || isLoading ? (
                   <>
                     <motion.div
                       className="h-4 w-4 rounded-full border-2 border-white border-t-transparent"
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: 'linear',
+                      }}
                     />
                     Analyse en cours...
                   </>

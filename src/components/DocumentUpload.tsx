@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { Upload, CheckCircle, Loader2, Brain, FileText } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { DocumentRejectionModal } from '@/components/DocumentRejectionModal';
+import { useDocumentRejection } from '@/hooks/useDocumentRejection';
 
 interface TransactionData {
   id: number;
@@ -60,11 +61,9 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState('');
-  const [showRejectionModal, setShowRejectionModal] = useState(false);
-  const [rejectionDetails, setRejectionDetails] = useState<{
-    message: string;
-    documentType?: string;
-  } | null>(null);
+  
+  // Utiliser le hook de gestion des rejets
+  const [rejectionState, rejectionActions] = useDocumentRejection();
 
   const handleFileUpload = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,13 +111,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           .json()
           .catch(() => ({ error: 'Échec du téléversement.' }));
 
-        // Gestion spéciale pour les documents rejetés
-        if (errorData.error === 'DOCUMENT_REJECTED') {
-          setRejectionDetails({
-            message: errorData.message,
-            documentType: errorData.documentType,
-          });
-          setShowRejectionModal(true);
+        // Gestion spéciale pour les documents rejetés avec le hook
+        if (rejectionActions.handleApiError(errorData)) {
           setProcessing(false);
           setProcessingStep('');
           return; // Ne pas décrémenter les crédits car ils ont été remboursés par l'API
@@ -250,12 +244,12 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       </div>
 
       {/* Modal de rejet de document */}
-      {showRejectionModal && rejectionDetails && (
+      {rejectionState.showRejectionModal && rejectionState.rejectionDetails && (
         <DocumentRejectionModal
-          isOpen={showRejectionModal}
-          onClose={() => setShowRejectionModal(false)}
-          message={rejectionDetails.message}
-          documentType={rejectionDetails.documentType}
+          isOpen={rejectionState.showRejectionModal}
+          onClose={rejectionActions.closeRejection}
+          message={rejectionState.rejectionDetails.message}
+          documentType={rejectionState.rejectionDetails.documentType}
         />
       )}
     </>

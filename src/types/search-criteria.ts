@@ -3,25 +3,25 @@ export interface SearchCriteria {
   denomination?: string;
   siren?: string;
   siret?: string;
-  
+
   // Localisation
   codePostal?: string;
   ville?: string;
   commune?: string; // Ajouté pour SIRENE
   departement?: string;
   region?: string;
-  
+
   // Activité
   activitePrincipale?: string; // Code NAF
   categorieJuridique?: string;
-  
+
   // Caractéristiques économiques
   trancheEffectifs?: string;
   chiffreAffaires?: {
     min?: number;
     max?: number;
   };
-  
+
   // Dates
   dateCreation?: {
     debut?: string;
@@ -33,7 +33,7 @@ export interface SearchCriteria {
     debut?: string;
     fin?: string;
   };
-  
+
   // État
   etatAdministratif?: 'A' | 'F'; // Actif ou Fermé
   statutDiffusion?: 'O' | 'P' | 'N'; // Oui, Partiel, Non
@@ -95,14 +95,17 @@ export const TRANCHES_EFFECTIFS = [
   { value: '42', label: '1000 à 1999 salariés' },
   { value: '51', label: '2000 à 4999 salariés' },
   { value: '52', label: '5000 à 9999 salariés' },
-  { value: '53', label: '10000 salariés et plus' }
+  { value: '53', label: '10000 salariés et plus' },
 ];
 
 export const CATEGORIES_JURIDIQUES = [
   { value: '1000', label: 'Entrepreneur individuel' },
   { value: '5499', label: 'SARL unipersonnelle' },
   { value: '5710', label: 'SAS, société par actions simplifiée' },
-  { value: '5720', label: 'SASU, société par actions simplifiée unipersonnelle' },
+  {
+    value: '5720',
+    label: 'SASU, société par actions simplifiée unipersonnelle',
+  },
   { value: '5505', label: 'SARL' },
   { value: '5599', label: 'Autre SARL' },
   { value: '5770', label: 'Société par actions simplifiée (s.a.s)' },
@@ -114,13 +117,40 @@ export const CODES_NAF_PRINCIPAUX = [
   { value: '05', label: 'Extraction de houille et de lignite' },
   { value: '10', label: 'Industries alimentaires' },
   { value: '20', label: 'Industrie chimique' },
-  { value: '35', label: 'Production et distribution d\'électricité, de gaz, de vapeur et d\'air conditionné' },
+  {
+    value: '35',
+    label:
+      "Production et distribution d'électricité, de gaz, de vapeur et d'air conditionné",
+  },
   { value: '41', label: 'Construction de bâtiments' },
-  { value: '45', label: 'Commerce et réparation d\'automobiles et de motocycles' },
-  { value: '46', label: 'Commerce de gros, à l\'exception des automobiles et des motocycles' },
-  { value: '47', label: 'Commerce de détail, à l\'exception des automobiles et des motocycles' },
-  { value: '62', label: 'Programmation, conseil et autres activités informatiques' },
+  {
+    value: '45',
+    label: "Commerce et réparation d'automobiles et de motocycles",
+  },
+  {
+    value: '46',
+    label: "Commerce de gros, à l'exception des automobiles et des motocycles",
+  },
+  {
+    value: '47',
+    label:
+      "Commerce de détail, à l'exception des automobiles et des motocycles",
+  },
+  {
+    value: '62',
+    label: 'Programmation, conseil et autres activités informatiques',
+  },
   { value: '68', label: 'Activités immobilières' },
   { value: '70', label: 'Activités des sièges sociaux ; conseil de gestion' },
   // Ajouter d'autres codes selon les besoins
 ];
+
+export interface CompanySearchResponse {
+  companies: CompanySearchResult[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}

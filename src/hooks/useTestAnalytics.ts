@@ -15,7 +15,7 @@ export function useTestAnalytics() {
         console.log('[TEST] Fetching analytics...');
         const response = await fetch('/api/banking/analytics?timeframe=1y');
         console.log('[TEST] Response status:', response.status);
-        
+
         if (response.ok) {
           const result = await response.json();
           console.log('[TEST] Success:', result);

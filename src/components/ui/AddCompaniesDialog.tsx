@@ -14,7 +14,7 @@ export const AddCompaniesDialog: React.FC<AddCompaniesDialogProps> = ({
   isOpen,
   onClose,
   onAddCompanies,
-  listName
+  listName,
 }) => {
   if (!isOpen) return null;
 
@@ -27,7 +27,7 @@ export const AddCompaniesDialog: React.FC<AddCompaniesDialogProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
         {/* Backdrop */}
-        <div 
+        <div
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
           onClick={onClose}
         />
@@ -47,8 +47,11 @@ export const AddCompaniesDialog: React.FC<AddCompaniesDialogProps> = ({
               </h3>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
-                  La liste <span className="font-medium text-gray-900">"{listName}"</span> a été créée. 
-                  Voulez-vous ajouter des entreprises maintenant ?
+                  La liste{' '}
+                  <span className="font-medium text-gray-900">
+                    "{listName}"
+                  </span>{' '}
+                  a été créée. Voulez-vous ajouter des entreprises maintenant ?
                 </p>
               </div>
             </div>
@@ -61,7 +64,7 @@ export const AddCompaniesDialog: React.FC<AddCompaniesDialogProps> = ({
               className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
               onClick={handleAddCompanies}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Ajouter des entreprises
             </button>
             <button

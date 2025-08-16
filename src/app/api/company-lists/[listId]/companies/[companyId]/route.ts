@@ -20,14 +20,14 @@ export async function DELETE(
       where: {
         id: listId,
         user: {
-          clerkId: userId
-        }
-      }
+          clerkId: userId,
+        },
+      },
     });
 
     if (!list) {
       return NextResponse.json(
-        { error: 'Liste non trouvée ou accès non autorisé' }, 
+        { error: 'Liste non trouvée ou accès non autorisé' },
         { status: 404 }
       );
     }
@@ -36,13 +36,13 @@ export async function DELETE(
     const company = await prisma.company.findFirst({
       where: {
         id: companyId,
-        companyListId: listId
-      }
+        companyListId: listId,
+      },
     });
 
     if (!company) {
       return NextResponse.json(
-        { error: 'Entreprise non trouvée dans cette liste' }, 
+        { error: 'Entreprise non trouvée dans cette liste' },
         { status: 404 }
       );
     }
@@ -50,19 +50,18 @@ export async function DELETE(
     // Supprimer l'entreprise
     await prisma.company.delete({
       where: {
-        id: companyId
-      }
+        id: companyId,
+      },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Entreprise supprimée avec succès',
-      deletedCompanyId: companyId 
+      deletedCompanyId: companyId,
     });
-
   } catch (error) {
-    console.error('Erreur lors de la suppression de l\'entreprise:', error);
+    console.error("Erreur lors de la suppression de l'entreprise:", error);
     return NextResponse.json(
-      { error: 'Erreur serveur lors de la suppression de l\'entreprise' }, 
+      { error: "Erreur serveur lors de la suppression de l'entreprise" },
       { status: 500 }
     );
   }
